@@ -11,13 +11,19 @@ export(MoPlot_onepred)
 export(ModelContrastTable)
 export(extract_param)
 export(reverse_helmert)
-importFrom(effectsize,t_to_d)
-importFrom(effectsize,z_to_d)
+importFrom(effectsize,
+  t_to_d,
+  z_to_d
+)
 importFrom(parameters,model_parameters)
-importFrom(patchwork,plot_annotation)
-importFrom(patchwork,wrap_plots)
-importFrom(stats,contrasts)
-importFrom(stats,family)
-importFrom(stats,formula)
-importFrom(stats,nobs)
-importFrom(stats,setNames)
+importFrom(patchwork,
+  plot_annotation,
+  wrap_plots
+)
+importFrom(stats,
+  contrasts,
+  family,
+  formula,
+  nobs,
+  setNames
+)

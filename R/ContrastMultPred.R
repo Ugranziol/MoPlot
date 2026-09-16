@@ -30,9 +30,20 @@
 #' @param response Character string indicating the name of the response
 #'   variable. By default, the response is extracted from the model formula.
 #'
+#' @param interaction Optional character string identifying the interaction
+#'   term to decompose, for example `"A:B"` or `"A:B:C"`. When supplied,
+#'   the interaction is resolved using the fitted model matrix and the
+#'   coefficients associated with that interaction are selected automatically.
+#'   If `coefficients` is also supplied, those coefficients are validated
+#'   against the requested interaction. When both `interaction` and
+#'   `coefficients` are `NULL`, all non-intercept coefficients containing
+#'   `":"` are analyzed, preserving the default behavior of this function.
+#'
 #' @param coefficients Optional character vector containing the interaction
-#'   coefficients to decompose. If `NULL`, all non-intercept coefficients
-#'   containing `":"` are analyzed.
+#'   coefficients to decompose. If `interaction` is `NULL` and `coefficients`
+#'   is `NULL`, all non-intercept coefficients containing `":"` are analyzed.
+#'   When `interaction` is supplied, `coefficients` may be used to select a
+#'   subset of the coefficients belonging to that interaction.
 #'
 #' @param split_rule Character string indicating how the split variable is
 #'   selected for each interaction coefficient. Available options are:
@@ -667,6 +678,7 @@
 ContrastMultPred <- function(model,
                              data=NULL,
                              response = all.vars(formula(model))[1],
+                             interaction = NULL,
                              coefficients = NULL,
                              split_rule = c(
                                "last_variable",
@@ -787,9 +799,36 @@ ContrastMultPred <- function(model,
   model_info <- extract_model_info(model, data, alpha_sig = alpha_sig)
   coef_names <- model_info$coef_names
 
-  # If no coefficient is specified, analyze all interaction terms.
-  if (is.null(coefficients)) {
-    coefficients <- coef_names[grepl(":", coef_names, fixed = TRUE)]
+  # Select the interaction coefficients to analyze.
+  #
+  # Backward compatibility is preserved:
+  #   - interaction = NULL, coefficients = NULL:
+  #       analyze all interaction coefficients;
+  #   - interaction = NULL, coefficients supplied:
+  #       analyze exactly the requested coefficients.
+  #
+  # When 'interaction' is supplied, reuse the same model-matrix-based
+  # selection logic used by MoPlot_multpred(). This maps an interaction
+  # term (e.g., "A:B:C") to all coefficient columns belonging to that
+  # term and, when 'coefficients' is also supplied, validates that the
+  # requested coefficients belong to the selected interaction.
+  if (!is.null(interaction)) {
+
+    selection <- .resolve_moplot_interaction_selection(
+      model = model,
+      interaction = interaction,
+      coefficients = coefficients,
+      interaction_info = FALSE
+    )
+
+    interaction <- selection$interaction
+    coefficients <- selection$coefficients
+
+  } else if (is.null(coefficients)) {
+
+    coefficients <- coef_names[
+      grepl(":", coef_names, fixed = TRUE)
+    ]
   }
 
   if (length(coefficients) == 0) {
@@ -2842,6 +2881,7 @@ ContrastMultPred <- function(model,
   attr(out, "pvalue_source") <- model_info$pvalue_source
   attr(out, "split_rule") <- split_rule
   attr(out, "top_split") <- top_split
+  attr(out, "interaction") <- interaction
   attr(out, "decomposition") <- decomposition
 
   class(out) <- c("plot_ready_contrasts_df", class(out))
