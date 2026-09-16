@@ -20,7 +20,6 @@ MoPlot_multpred(
   coefficient_scale = c("model", "interpreted"),
   coef = TRUE,
   style = c("minimal", "tree"),
-  x_label_dictionary = c("never", "auto", "always"),
   caption = TRUE,
   digits = 2L,
   base_size = 13,
@@ -158,26 +157,6 @@ contrasts and ultimately into the final interaction contrast.
 }
 
 The default is \code{"minimal"}.}
-
-\item{x_label_dictionary}{Character string controlling the treatment of
-long x-axis labels. Available options are:
-
-\describe{
-\item{\code{"never"}}{
-Retains the original labels. A warning is issued when labels exceed
-12 characters and may overlap.
-}
-\item{\code{"auto"}}{
-Automatically replaces all x-axis labels with numeric codes when at
-least one label exceeds 12 characters and displays a corresponding
-dictionary to the right of the plot.
-}
-\item{\code{"always"}}{
-Always uses numeric codes and displays the corresponding dictionary.
-}
-}
-
-The default is \code{"never"}.}
 
 \item{caption}{Controls whether a descriptive caption is printed in the
 console. It can be:
