@@ -1306,8 +1306,9 @@
       delta_number <- elementary_index
 
       delta_symbol <- paste0(
-        "\u0394",
-        delta_number
+        "Delta[",
+        delta_number,
+        "]"
       )
 
       grouping_var <- variable_path[
@@ -1497,13 +1498,14 @@
 
         if (is_final) {
           delta_number <- NA_integer_
-          delta_symbol <- "\u0394"
+          delta_symbol <- "Delta"
         } else {
           delta_number <- next_delta_number
 
           delta_symbol <- paste0(
-            "\u0394",
-            delta_number
+            "Delta[",
+            delta_number,
+            "]"
           )
 
           next_delta_number <- next_delta_number + 1L
@@ -1511,7 +1513,7 @@
 
         expression <- paste0(
           delta_symbol,
-          " = ",
+          " == ",
           child_nodes$symbol_label[1L],
           " - ",
           child_nodes$symbol_label[2L]
@@ -3181,6 +3183,7 @@
         ),
         inherit.aes =
           FALSE,
+        parse=TRUE,
         size =
           delta_label_size,
         fill =
@@ -3365,6 +3368,7 @@
             ),
             inherit.aes =
               FALSE,
+            parse=TRUE,
             size =
               contrast_label_size,
             hjust =
@@ -3395,6 +3399,7 @@
             ),
             inherit.aes =
               FALSE,
+            parse=TRUE,
             size =
               contrast_label_size,
             hjust =
@@ -3437,6 +3442,7 @@
           ),
           inherit.aes =
             FALSE,
+          parse=TRUE,
           size =
             contrast_label_size,
           hjust =
