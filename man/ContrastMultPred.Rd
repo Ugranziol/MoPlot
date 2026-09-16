@@ -8,6 +8,7 @@ ContrastMultPred(
   model,
   data = NULL,
   response = all.vars(formula(model))[1],
+  interaction = NULL,
   coefficients = NULL,
   split_rule = c("last_variable", "first_variable", "lowest_complexity",
     "highest_complexity"),
@@ -34,9 +35,20 @@ model frame or when a specific analysis data set should be used.}
 \item{response}{Character string indicating the name of the response
 variable. By default, the response is extracted from the model formula.}
 
+\item{interaction}{Optional character string identifying the interaction
+term to decompose, for example \code{"A:B"} or \code{"A:B:C"}. When supplied,
+the interaction is resolved using the fitted model matrix and the
+coefficients associated with that interaction are selected automatically.
+If \code{coefficients} is also supplied, those coefficients are validated
+against the requested interaction. When both \code{interaction} and
+\code{coefficients} are \code{NULL}, all non-intercept coefficients containing
+\code{":"} are analyzed, preserving the default behavior of this function.}
+
 \item{coefficients}{Optional character vector containing the interaction
-coefficients to decompose. If \code{NULL}, all non-intercept coefficients
-containing \code{":"} are analyzed.}
+coefficients to decompose. If \code{interaction} is \code{NULL} and \code{coefficients}
+is \code{NULL}, all non-intercept coefficients containing \code{":"} are analyzed.
+When \code{interaction} is supplied, \code{coefficients} may be used to select a
+subset of the coefficients belonging to that interaction.}
 
 \item{split_rule}{Character string indicating how the split variable is
 selected for each interaction coefficient. Available options are:
