@@ -183,21 +183,13 @@ MoPlot_onepred <- function(
   # 1. ARGUMENT MATCHING
   # ==========================================================================
 
-  estimate_type <- match.arg(
-    estimate_type
-  )
+  estimate_type <- match.arg(estimate_type)
 
-  prediction_scale <- match.arg(
-    prediction_scale
-  )
+  prediction_scale <- match.arg(prediction_scale)
 
-  coefficient_scale <- match.arg(
-    coefficient_scale
-  )
+  coefficient_scale <- match.arg(coefficient_scale)
 
-  style <- match.arg(
-    style
-  )
+  style <- match.arg(style)
 
   # ==========================================================================
   # 2. ARGUMENT VALIDATION
@@ -321,9 +313,7 @@ MoPlot_onepred <- function(
     coefficient_scale = coefficient_scale
   )
 
-  factor_levels <- levels(
-    .extract_model_frame(model)[[predictor]]
-  )
+  factor_levels <- levels(.extract_model_frame(model)[[predictor]])
 
   label_result <- .abbreviate_moplot_labels(
     labels = factor_levels,
@@ -385,9 +375,7 @@ MoPlot_onepred <- function(
 
   if (!is.null(caption_text)) {
 
-    caption_text <- trimws(
-      caption_text
-    )
+    caption_text <- trimws(caption_text)
 
     # Print each sentence on a separate line.
     # Decimal points, such as those in 0.050, are not modified.
