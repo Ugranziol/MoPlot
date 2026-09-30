@@ -28,10 +28,7 @@
     "Display_Levels"
   )
 
-  missing_columns <- setdiff(
-    required_columns,
-    names(contrast_data)
-  )
+  missing_columns <- setdiff(required_columns,names(contrast_data))
 
   if (length(missing_columns) > 0L) {
     stop(
@@ -59,17 +56,12 @@
     )
   }
 
-  contrast_ids <- unique(
-    contrast_data$Contrast
-  )
+  contrast_ids <- unique(contrast_data$Contrast)
 
   output <- contrast_data
   output$x <- NA_real_
 
-  paired_layout <- contrast_type %in% c(
-    "Treatment",
-    "Sum"
-  )
+  paired_layout <- contrast_type %in% c("Treatment", "Sum")
 
   # ==========================================================================
   # PAIRED LAYOUT: TREATMENT AND SUM
@@ -81,9 +73,7 @@
 
       contrast_id <- contrast_ids[contrast_index]
 
-      row_indices <- which(
-        output$Contrast == contrast_id
-      )
+      row_indices <- which(output$Contrast == contrast_id)
 
       if (length(row_indices) != 2L) {
         stop(
@@ -99,10 +89,7 @@
       left_position <- 2 * (contrast_index - 1L) + 1L
       right_position <- left_position + 1L
 
-      output$x[row_indices] <- c(
-        right_position,
-        left_position
-      )
+      output$x[row_indices] <- c(right_position,left_position)
     }
 
     axis_information <- output[
@@ -137,37 +124,21 @@
 
   for (contrast_id in contrast_ids) {
 
-    row_indices <- which(
-      output$Contrast == contrast_id
-    )
+    row_indices <- which(output$Contrast == contrast_id)
 
-    structural_labels <- output$Levels[
-      row_indices
-    ]
+    structural_labels <- output$Levels[row_indices]
 
-    display_labels <- output$Display_Levels[
-      row_indices
-    ]
+    display_labels <- output$Display_Levels[row_indices]
 
-    previously_seen <- structural_labels %in%
-      names(position_map)
+    previously_seen <- structural_labels %in% names(position_map)
 
-    block_positions <- rep(
-      NA_real_,
-      length(row_indices)
-    )
+    block_positions <- rep(NA_real_, length(row_indices))
 
     if (any(previously_seen)) {
 
-      block_positions[previously_seen] <- unname(
-        position_map[
-          structural_labels[previously_seen]
-        ]
-      )
+      block_positions[previously_seen] <- unname(osition_map[structural_labels[previously_seen]])
 
-      new_indices <- which(
-        !previously_seen
-      )
+      new_indices <- which(!previously_seen)
 
       if (length(new_indices) > 0L) {
 
@@ -197,26 +168,18 @@
 
       if (!structural_label %in% names(position_map)) {
 
-        position_map[structural_label] <-
-          block_positions[index]
+        position_map[structural_label] <- block_positions[index]
 
-        display_map[structural_label] <-
-          display_labels[index]
+        display_map[structural_label] <- display_labels[index]
       }
     }
 
-    next_position <- max(
-      unname(position_map)
-    ) + 1L
+    next_position <- max(unname(position_map)) + 1L
   }
 
-  position_order <- order(
-    unname(position_map)
-  )
+  position_order <- order(unname(position_map))
 
-  ordered_structural_labels <- names(
-    position_map
-  )[position_order]
+  ordered_structural_labels <- names(position_map)[position_order]
 
   list(
     contrast_data = output,
@@ -320,9 +283,7 @@
   # 2. MODEL INFORMATION
   # ==========================================================================
 
-  model_frame <- .extract_model_frame(
-    model
-  )
+  model_frame <- .extract_model_frame(model)
 
   if (!predictor %in% names(model_frame)) {
     stop(
@@ -346,20 +307,13 @@
     )
   }
 
-  model_information <- ModelContrastTable(
-    model,
-    type = "all"
-  )
+  model_information <- ModelContrastTable(model,type = "all")
 
-  model_summary <-
-    model_information[["Model-Level Summary"]]
+  model_summary <- model_information[["Model-Level Summary"]]
 
-  variable_summary <-
-    model_information[["Variable-Level Summary"]]
+  variable_summary <- model_information[["Variable-Level Summary"]]
 
-  outcome_names <- variable_summary$Variable[
-    variable_summary$Role == "Dependent"
-  ]
+  outcome_names <- variable_summary$Variable[variable_summary$Role == "Dependent"]
 
   if (length(outcome_names) != 1L) {
     stop(
@@ -388,8 +342,7 @@
     )
   }
 
-  contrast_type <-
-    predictor_row$Contrast_Matrix_Type[1L]
+  contrast_type <- predictor_row$Contrast_Matrix_Type[1L]
 
   if (
     is.na(contrast_type) ||
@@ -419,18 +372,11 @@
   # 3. CHECK FOCAL INTERACTIONS
   # ==========================================================================
 
-  fixed_formula <- .extract_fixed_formula(
-    model
-  )
+  fixed_formula <- .extract_fixed_formula(model)
 
-  terms_object <- stats::terms(
-    fixed_formula
-  )
+  terms_object <- stats::terms(fixed_formula)
 
-  term_labels <- attr(
-    terms_object,
-    "term.labels"
-  )
+  term_labels <- attr(terms_object,"term.labels")
 
   interaction_terms <- term_labels[
     grepl(
@@ -532,25 +478,13 @@
     prediction_scale = prediction_scale
   )
 
-  contrast_family <- attr(
-    contrast_data,
-    "family"
-  )
+  contrast_family <- attr(contrast_data,"family")
 
-  contrast_link <- attr(
-    contrast_data,
-    "link"
-  )
+  contrast_link <- attr(contrast_data,"link")
 
-  contrast_estimate_type <- attr(
-    contrast_data,
-    "estimate_type"
-  )
+  contrast_estimate_type <- attr(contrast_data,"estimate_type")
 
-  contrast_prediction_scale <- attr(
-    contrast_data,
-    "prediction_scale"
-  )
+  contrast_prediction_scale <- attr(contrast_data,"prediction_scale")
 
 
 
@@ -574,10 +508,7 @@
     "Significance"
   )
 
-  missing_contrast_columns <- setdiff(
-    required_contrast_columns,
-    names(contrast_data)
-  )
+  missing_contrast_columns <- setdiff(required_contrast_columns,names(contrast_data))
 
   if (length(missing_contrast_columns) > 0L) {
     stop(
@@ -590,13 +521,9 @@
     )
   }
 
-  contrast_ids <- unique(
-    contrast_data$Contrast
-  )
+  contrast_ids <- unique(contrast_data$Contrast)
 
-  rows_per_contrast <- table(
-    contrast_data$Contrast
-  )
+  rows_per_contrast <- table(contrast_data$Contrast)
 
   if (any(rows_per_contrast != 2L)) {
     stop(
@@ -608,10 +535,7 @@
     )
   }
 
-  contrast_disclaimer <- attr(
-    contrast_data,
-    "disclaimer"
-  )
+  contrast_disclaimer <- attr(contrast_data,"disclaimer")
 
   # ==========================================================================
   # 6. HORIZONTAL POSITIONS
@@ -622,17 +546,13 @@
     contrast_type = contrast_type
   )
 
-  contrast_data <-
-    position_information$contrast_data
+  contrast_data <- position_information$contrast_data
 
-  axis_breaks <-
-    position_information$axis_breaks
+  axis_breaks <- position_information$axis_breaks
 
-  axis_labels <-
-    position_information$axis_labels
+  axis_labels <- position_information$axis_labels
 
-  position_layout <-
-    position_information$position_layout
+  position_layout <- position_information$position_layout
 
   # ==========================================================================
   # 7. SEGMENT TABLE
@@ -656,8 +576,7 @@
         drop = FALSE
       ]
 
-      significance_value <-
-        current_contrast$Significance[1L]
+      significance_value <- current_contrast$Significance[1L]
 
       significant <- !is.na(significance_value) &&
         identical(significance_value, "sig")
@@ -682,10 +601,7 @@
     }
   )
 
-  segment_data <- do.call(
-    rbind,
-    segment_list
-  )
+  segment_data <- do.call(rbind,segment_list)
 
   rownames(segment_data) <- NULL
 
@@ -699,15 +615,9 @@
     include_intercept = FALSE
   )
 
-  model_matrix <- stats::model.matrix(
-    terms_object,
-    data = model_frame
-  )
+  model_matrix <- stats::model.matrix(terms_object,data = model_frame)
 
-  assignment <- attr(
-    model_matrix,
-    "assign"
-  )
+  assignment <- attr(model_matrix,"assign")
 
   if (is.null(assignment)) {
     stop(
@@ -723,9 +633,7 @@
     fixed = TRUE
   )
 
-  focal_term_index <- which(
-    normalized_term_labels == predictor
-  )
+  focal_term_index <- which(normalized_term_labels == predictor)
 
   if (length(focal_term_index) != 1L) {
     stop(
@@ -738,14 +646,9 @@
     )
   }
 
-  focal_matrix_columns <- colnames(model_matrix)[
-    assignment == focal_term_index
-  ]
+  focal_matrix_columns <- colnames(model_matrix)[assignment == focal_term_index]
 
-  parameter_indices <- match(
-    focal_matrix_columns,
-    parameter_table$Parameter
-  )
+  parameter_indices <- match(focal_matrix_columns,parameter_table$Parameter)
 
   if (anyNA(parameter_indices)) {
 
@@ -805,33 +708,25 @@
 
   if (identical(coefficient_scale, "model")) {
 
-    parameter_data$Display_estimate <-
-      parameter_data$Estimate
+    parameter_data$Display_estimate <- parameter_data$Estimate
 
-    parameter_data$Display_CI_low <-
-      parameter_data$CI_low
+    parameter_data$Display_CI_low <- parameter_data$CI_low
 
-    parameter_data$Display_CI_high <-
-      parameter_data$CI_high
+    parameter_data$Display_CI_high <- parameter_data$CI_high
 
-    parameter_data$Display_type <-
-      "Model estimate"
+    parameter_data$Display_type <- "Model estimate"
 
     null_value <- 0
 
   } else {
 
-    parameter_data$Display_estimate <-
-      parameter_data$Interpreted_Estimate
+    parameter_data$Display_estimate <- parameter_data$Interpreted_Estimate
 
-    parameter_data$Display_CI_low <-
-      parameter_data$Interpreted_CI_low
+    parameter_data$Display_CI_low <- parameter_data$Interpreted_CI_low
 
-    parameter_data$Display_CI_high <-
-      parameter_data$Interpreted_CI_high
+    parameter_data$Display_CI_high <- parameter_data$Interpreted_CI_high
 
-    parameter_data$Display_type <-
-      parameter_data$Estimate_type
+    parameter_data$Display_type <- parameter_data$Estimate_type
 
     ratio_types <- c(
       "Odds ratio",
@@ -854,9 +749,7 @@
   # 9. RAW DATA
   # ==========================================================================
 
-  raw_level_values <- as.character(
-    model_frame[[predictor]]
-  )
+  raw_level_values <- as.character(model_frame[[predictor]])
 
   raw_outcome_values <- model_frame[[outcome]]
 
@@ -866,15 +759,9 @@
 
       # A level can intentionally appear at multiple horizontal positions,
       # as in the paired layout used for Treatment contrasts.
-      current_positions <- unique(
-        contrast_data$x[
-          contrast_data$Levels == current_level
-        ]
-      )
+      current_positions <- unique(contrast_data$x[contrast_data$Levels == current_level])
 
-      current_positions <- current_positions[
-        is.finite(current_positions)
-      ]
+      current_positions <- current_positions[is.finite(current_positions)]
 
       # Aggregated quantities such as "Grand Mean" or "A, B" have no
       # corresponding raw observations. Likewise, a factor level that is
@@ -883,9 +770,7 @@
         return(NULL)
       }
 
-      current_rows <- which(
-        raw_level_values == current_level
-      )
+      current_rows <- which(raw_level_values == current_level)
 
       if (length(current_rows) == 0L) {
         return(NULL)
@@ -931,10 +816,7 @@
 
   } else {
 
-    raw_data <- do.call(
-      rbind,
-      raw_data_list
-    )
+    raw_data <- do.call(rbind,raw_data_list)
 
     rownames(raw_data) <- NULL
   }
@@ -966,10 +848,7 @@
     disclaimer = contrast_disclaimer
   )
 
-  class(output) <- c(
-    "moplot_onepred_data",
-    "list"
-  )
+  class(output) <- c("moplot_onepred_data","list")
 
   output
 }
@@ -1069,18 +948,11 @@
   segment_data <- prep$segment_data
   raw_data <- prep$raw_data
 
-  axis_breaks <- as.numeric(
-    prep$axis_breaks
-  )
+  axis_breaks <- as.numeric(prep$axis_breaks)
 
-  axis_labels <- as.character(
-    prep$axis_labels
-  )
+  axis_labels <- as.character(prep$axis_labels)
 
-  axis_labels <- .apply_moplot_label_key(
-    labels = axis_labels,
-    label_key = label_key
-  )
+  axis_labels <- .apply_moplot_label_key(labels = axis_labels,label_key = label_key)
 
   required_contrast_columns <- c(
     "Estimate",
@@ -1089,10 +961,7 @@
     "x"
   )
 
-  missing_contrast_columns <- setdiff(
-    required_contrast_columns,
-    names(contrast_data)
-  )
+  missing_contrast_columns <- setdiff(required_contrast_columns,names(contrast_data))
 
   if (length(missing_contrast_columns) > 0L) {
     stop(
@@ -1119,10 +988,7 @@
     "Label"
   )
 
-  missing_segment_columns <- setdiff(
-    required_segment_columns,
-    names(segment_data)
-  )
+  missing_segment_columns <- setdiff(required_segment_columns,names(segment_data))
 
   if (length(missing_segment_columns) > 0L) {
     stop(
@@ -1150,33 +1016,19 @@
     )
   }
 
-  contrast_data$x <- as.numeric(
-    contrast_data$x
-  )
+  contrast_data$x <- as.numeric(contrast_data$x)
 
-  segment_data$x <- as.numeric(
-    segment_data$x
-  )
+  segment_data$x <- as.numeric(segment_data$x)
 
-  segment_data$xend <- as.numeric(
-    segment_data$xend
-  )
+  segment_data$xend <- as.numeric(segment_data$xend)
 
-  segment_data$x_mid <- as.numeric(
-    segment_data$x_mid
-  )
+  segment_data$x_mid <- as.numeric(segment_data$x_mid)
 
-  segment_data$y_mid <- as.numeric(
-    segment_data$y_mid
-  )
+  segment_data$y_mid <- as.numeric(segment_data$y_mid)
 
-  raw_data$x <- as.numeric(
-    raw_data$x
-  )
+  raw_data$x <- as.numeric(raw_data$x)
 
-  raw_data$y <- as.numeric(
-    raw_data$y
-  )
+  raw_data$y <- as.numeric(raw_data$y)
 
   # ==========================================================================
   # 2. STYLE SETTINGS
@@ -1237,11 +1089,7 @@
 
     guide_linewidth <- 0.45
 
-    contrast_ids <- sort(
-      unique(
-        segment_data$Contrast_number
-      )
-    )
+    contrast_ids <- sort(unique(segment_data$Contrast_number))
 
     contrast_colours <- stats::setNames(
       .moplot_contrast_palette(
@@ -1281,9 +1129,7 @@
     )
   }
 
-  displayed_y <- displayed_y[
-    is.finite(displayed_y)
-  ]
+  displayed_y <- displayed_y[is.finite(displayed_y)]
 
   if (length(displayed_y) == 0L) {
     stop(
@@ -1292,13 +1138,9 @@
     )
   }
 
-  y_range <- range(
-    displayed_y
-  )
+  y_range <- range(displayed_y)
 
-  y_span <- diff(
-    y_range
-  )
+  y_span <- diff(y_range)
 
   if (
     !is.finite(y_span) ||
@@ -1310,14 +1152,11 @@
     )
   }
 
-  y_lower <- y_range[1L] -
-    0.10 * y_span
+  y_lower <- y_range[1L] - 0.10 * y_span
 
-  y_upper <- y_range[2L] +
-    0.24 * y_span
+  y_upper <- y_range[2L] + 0.24 * y_span
 
-  contrast_label_y <- y_range[2L] +
-    0.15 * y_span
+  contrast_label_y <- y_range[2L] + 0.15 * y_span
 
   # ==========================================================================
   # 4. X-AXIS LIMITS
@@ -1338,9 +1177,7 @@
     )
   }
 
-  displayed_x <- displayed_x[
-    is.finite(displayed_x)
-  ]
+  displayed_x <- displayed_x[is.finite(displayed_x)]
 
   if (length(displayed_x) == 0L) {
     stop(
@@ -1349,14 +1186,9 @@
     )
   }
 
-  x_range <- range(
-    displayed_x
-  )
+  x_range <- range(displayed_x)
 
-  x_limits <- c(
-    x_range[1L] - 0.5,
-    x_range[2L] + 0.5
-  )
+  x_limits <- c(x_range[1L] - 0.5,x_range[2L] + 0.5)
 
   # ==========================================================================
   # 5. BASE PLOT
@@ -1613,41 +1445,23 @@ MoPlotStele <- function(
     label_key = NULL
 ) {
 
-  coefficient_scale <- match.arg(
-    coefficient_scale
-  )
+  coefficient_scale <- match.arg(coefficient_scale)
 
-  family_name <- tolower(
-    as.character(family)[1L]
-  )
+  family_name <- tolower(as.character(family)[1L])
 
-  link_name <- tolower(
-    as.character(link)[1L]
-  )
+  link_name <- tolower(as.character(link)[1L])
 
-  estimate_type <- tolower(
-    as.character(estimate_type)[1L]
-  )
+  estimate_type <- tolower(as.character(estimate_type)[1L])
 
-  prediction_scale <- tolower(
-    as.character(prediction_scale)[1L]
-  )
+  prediction_scale <- tolower(as.character(prediction_scale)[1L])
 
-  model_information <- ModelContrastTable(
-    model,
-    type = "all"
-  )
+  model_information <- ModelContrastTable(model,type = "all")
 
-  variable_information <-
-    model_information[["Variable-Level Summary"]]
+  variable_information <- model_information[["Variable-Level Summary"]]
 
-  dependent_variables <- variable_information$Variable[
-    variable_information$Role == "Dependent"
-  ]
+  dependent_variables <- variable_information$Variable[variable_information$Role == "Dependent"]
 
-  predictor_variables <- variable_information$Variable[
-    variable_information$Role == "Predictor"
-  ]
+  predictor_variables <- variable_information$Variable[variable_information$Role == "Predictor"]
 
   if (length(dependent_variables) != 1L) {
     stop(
@@ -1674,16 +1488,11 @@ MoPlotStele <- function(
     drop = FALSE
   ]
 
-  contrast_type <-
-    predictor_row$Contrast_Matrix_Type[1L]
+  contrast_type <-predictor_row$Contrast_Matrix_Type[1L]
 
-  dependent_variable <-
-    dependent_variables[1L]
+  dependent_variable <-dependent_variables[1L]
 
-  disclaimer <- attr(
-    contrast_output,
-    "disclaimer"
-  )
+  disclaimer <- attr(contrast_output,"disclaimer")
 
   disclaimer_text <- if (
     is.null(disclaimer) ||
@@ -2021,9 +1830,7 @@ MoPlotStele <- function(
   parameter_data <- prep$parameter_data
   segment_data <- prep$segment_data
 
-  axis_breaks <- as.numeric(
-    prep$axis_breaks
-  )
+  axis_breaks <- as.numeric(prep$axis_breaks)
 
   required_parameter_columns <- c(
     "Contrast",
@@ -2036,10 +1843,7 @@ MoPlotStele <- function(
     "d"
   )
 
-  missing_parameter_columns <- setdiff(
-    required_parameter_columns,
-    names(parameter_data)
-  )
+  missing_parameter_columns <- setdiff(required_parameter_columns, names(parameter_data))
 
   if (length(missing_parameter_columns) > 0L) {
     stop(
@@ -2091,29 +1895,17 @@ MoPlotStele <- function(
     )
   }
 
-  parameter_data$x <- as.numeric(
-    parameter_data$x
-  )
+  parameter_data$x <- as.numeric(parameter_data$x)
 
-  parameter_data$Display_estimate <- as.numeric(
-    parameter_data$Display_estimate
-  )
+  parameter_data$Display_estimate <- as.numeric(parameter_data$Display_estimate)
 
-  parameter_data$Display_CI_low <- as.numeric(
-    parameter_data$Display_CI_low
-  )
+  parameter_data$Display_CI_low <- as.numeric(parameter_data$Display_CI_low)
 
-  parameter_data$Display_CI_high <- as.numeric(
-    parameter_data$Display_CI_high
-  )
+  parameter_data$Display_CI_high <- as.numeric(parameter_data$Display_CI_high)
 
-  parameter_data$d <- as.numeric(
-    parameter_data$d
-  )
+  parameter_data$d <- as.numeric(parameter_data$d)
 
-  segment_data$x_mid <- as.numeric(
-    segment_data$x_mid
-  )
+  segment_data$x_mid <- as.numeric(segment_data$x_mid)
 
   if (
     anyNA(parameter_data$x) ||
@@ -2324,13 +2116,9 @@ MoPlotStele <- function(
     )
   }
 
-  y_range <- range(
-    displayed_y
-  )
+  y_range <- range(displayed_y)
 
-  y_span <- diff(
-    y_range
-  )
+  y_span <- diff(y_range)
 
   if (
     !is.finite(y_span) ||
@@ -2342,26 +2130,19 @@ MoPlotStele <- function(
     )
   }
 
-  y_lower <- y_range[1L] -
-    0.12 * y_span
+  y_lower <- y_range[1L] - 0.12 * y_span
 
-  y_upper <- y_range[2L] +
-    0.12 * y_span
+  y_upper <- y_range[2L] + 0.12 * y_span
 
-  x_limits <- c(
-    min(axis_breaks) - 0.5,
-    max(axis_breaks) + 0.5
-  )
+  x_limits <- c(min(axis_breaks) - 0.5,max(axis_breaks) + 0.5)
 
   # ==========================================================================
   # 6. LABEL POSITIONS
   # ==========================================================================
 
-  parameter_data$Label_x <-
-    parameter_data$x + label_x_offset
+  parameter_data$Label_x <-parameter_data$x + label_x_offset
 
-  parameter_data$Label_y <-
-    parameter_data$Display_estimate
+  parameter_data$Label_y <-parameter_data$Display_estimate
 
   # ==========================================================================
   # 7. CREATE PLOT
