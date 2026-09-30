@@ -29,13 +29,9 @@
 #' @export
 print.model_contrast_table <- function(x, ...) {
 
-  cli::cli_h1(
-    "Model Contrast Summary"
-  )
+  cli::cli_h1("Model Contrast Summary")
 
-  cli::cli_h2(
-    "Model-level information"
-  )
+  cli::cli_h2("Model-level information")
 
   model_summary <- x[["Model-Level Summary"]]
 
@@ -47,9 +43,7 @@ print.model_contrast_table <- function(x, ...) {
     width = Inf
   )
 
-  cli::cli_h2(
-    "Variable-level information"
-  )
+  cli::cli_h2("Variable-level information")
 
   variable_summary <- x[["Variable-Level Summary"]]
 
@@ -83,14 +77,9 @@ print.model_contrast_table <- function(x, ...) {
 #' @export
 print.model_contrast_summary <- function(x, ...) {
 
-  cli::cli_h1(
-    "Model-level summary"
-  )
+  cli::cli_h1("Model-level summary")
 
-  printable_object <- as.data.frame(
-    x,
-    stringsAsFactors = FALSE
-  )
+  printable_object <- as.data.frame(x,stringsAsFactors = FALSE)
 
   print(
     tibble::as_tibble(
@@ -122,14 +111,9 @@ print.model_contrast_summary <- function(x, ...) {
 #' @export
 print.model_contrast_variables <- function(x, ...) {
 
-  cli::cli_h1(
-    "Variable-level summary"
-  )
+  cli::cli_h1("Variable-level summary")
 
-  printable_object <- as.data.frame(
-    x,
-    stringsAsFactors = FALSE
-  )
+  printable_object <- as.data.frame(x,stringsAsFactors = FALSE)
 
   print(
     tibble::as_tibble(
