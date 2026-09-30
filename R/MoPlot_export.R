@@ -52,11 +52,7 @@ MoPlot_export <- function(
     )
   }
 
-  extension <- tolower(
-    tools::file_ext(
-      filename
-    )
-  )
+  extension <- tolower(tools::file_ext(filename))
 
   supported_extensions <- c(
     "png",
@@ -83,10 +79,7 @@ MoPlot_export <- function(
   # 2. RECOMMENDED DIMENSIONS
   # ==========================================================================
 
-  recommended_size <- attr(
-    plot,
-    "moplot_export_size"
-  )
+  recommended_size <- attr(plot,"moplot_export_size")
 
   if (
     is.null(width) ||
