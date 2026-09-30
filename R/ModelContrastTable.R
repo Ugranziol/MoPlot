@@ -252,53 +252,28 @@ ModelContrastTable <- function(model,
 
   } else {
 
-    paste(
-      random_effects,
-      collapse = ", "
-    )
+    paste(random_effects,collapse = ", ")
   }
 
   # ============================================================
   # 3. IDENTIFY RESPONSE AND PREDICTOR VARIABLES
   # ============================================================
 
-  response_variables <- all.vars(
-    model_formula[[2L]]
-  )
+  response_variables <- all.vars(model_formula[[2L]])
 
-  variable_names <- names(
-    model_frame
-  )
+  variable_names <- names(model_frame)
 
-  predictor_variables <- setdiff(
-    variable_names,
-    response_variables
-  )
+  predictor_variables <- setdiff(variable_names,response_variables)
 
-  predictor_terms <- attr(
-    terms_object,
-    "term.labels"
-  )
+  predictor_terms <- attr(terms_object,"term.labels")
 
-  number_total_variables <- length(
-    variable_names
-  )
+  number_total_variables <- length(variable_names)
 
-  number_dependent_variables <- length(
-    response_variables
-  )
+  number_dependent_variables <- length(response_variables)
 
-  number_predictors <- length(
-    predictor_variables
-  )
+  number_predictors <- length(predictor_variables)
 
-  number_interactions <- sum(
-    grepl(
-      ":",
-      predictor_terms,
-      fixed = TRUE
-    )
-  )
+  number_interactions <- sum(grepl(":",predictor_terms,fixed = TRUE))
 
   # ============================================================
   # 4. VARIABLE INFORMATION HELPERS
@@ -453,15 +428,9 @@ ModelContrastTable <- function(model,
   # 6. MODEL-LEVEL CONTRAST SUMMARY
   # ============================================================
 
-  predictor_contrast_types <- contrast_types[
-    predictor_variables
-  ]
+  predictor_contrast_types <- contrast_types[predictor_variables]
 
-  contrast_summary <- unique(
-    stats::na.omit(
-      predictor_contrast_types
-    )
-  )
+  contrast_summary <- unique(stats::na.omit(predictor_contrast_types))
 
   contrast_summary <- if (length(contrast_summary) == 0L) {
 
@@ -469,43 +438,20 @@ ModelContrastTable <- function(model,
 
   } else {
 
-    paste(
-      contrast_summary,
-      collapse = ", "
-    )
+    paste(contrast_summary,collapse = ", ")
   }
 
   # ============================================================
   # 7. SAFE VARIABLE LOOKUPS
   # ============================================================
 
-  response_types <- variable_types[
-    response_variables[
-      response_variables %in%
-        names(variable_types)
-    ]
-  ]
+  response_types <- variable_types[response_variables[response_variables %in% names(variable_types)]]
 
-  response_levels <- variable_levels[
-    response_variables[
-      response_variables %in%
-        names(variable_levels)
-    ]
-  ]
+  response_levels <- variable_levels[response_variables[response_variables %in% names(variable_levels)]]
 
-  predictor_types <- variable_types[
-    predictor_variables[
-      predictor_variables %in%
-        names(variable_types)
-    ]
-  ]
+  predictor_types <- variable_types[predictor_variables[predictor_variables %in% names(variable_types)]]
 
-  predictor_levels <- variable_levels[
-    predictor_variables[
-      predictor_variables %in%
-        names(variable_levels)
-    ]
-  ]
+  predictor_levels <- variable_levels[predictor_variables[predictor_variables %in% names(variable_levels)]]
 
   collapse_or_na <- function(values) {
 
@@ -515,10 +461,7 @@ ModelContrastTable <- function(model,
       return(NA_character_)
     }
 
-    paste(
-      values,
-      collapse = ", "
-    )
+    paste(values,collapse = ", ")
   }
 
   # ============================================================
@@ -593,60 +536,37 @@ ModelContrastTable <- function(model,
       `Variable-Level Summary` = variable_table
     )
 
-    class(output) <- c(
-      "model_contrast_table",
-      class(output)
-    )
+    class(output) <- c("model_contrast_table",class(output))
 
     return(output)
   }
 
   if (type == "summary") {
 
-    class(summary_table) <- c(
-      "model_contrast_summary",
-      class(summary_table)
-    )
+    class(summary_table) <- c("model_contrast_summary",class(summary_table))
 
     return(summary_table)
   }
 
   if (type == "x&y") {
 
-    class(variable_table) <- c(
-      "model_contrast_variables",
-      class(variable_table)
-    )
+    class(variable_table) <- c("model_contrast_variables",class(variable_table))
 
     return(variable_table)
   }
 
   if (type == "y") {
 
-    output <- variable_table[
-      variable_table$Role == "Dependent",
-      ,
-      drop = FALSE
-    ]
+    output <- variable_table[variable_table$Role == "Dependent", ,drop = FALSE]
 
-    class(output) <- c(
-      "model_contrast_variables",
-      class(output)
-    )
+    class(output) <- c("model_contrast_variables",class(output))
 
     return(output)
   }
 
-  output <- variable_table[
-    variable_table$Role == "Predictor",
-    ,
-    drop = FALSE
-  ]
+  output <- variable_table[variable_table$Role == "Predictor", ,drop = FALSE]
 
-  class(output) <- c(
-    "model_contrast_variables",
-    class(output)
-  )
+  class(output) <- c("model_contrast_variables",class(output))
 
   output
 }
