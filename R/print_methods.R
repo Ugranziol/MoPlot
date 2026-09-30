@@ -1,13 +1,6 @@
 # ============================================================
 # PRINT METHODS FOR MODEL CONTRAST TABLE OBJECTS (INTERNAL)
 # ============================================================
-#
-# These S3 methods control how ModelContrastTable() results are
-# displayed in the console internally within the package.
-#
-# The underlying objects remain ordinary lists and data frames.
-# ============================================================
-
 
 # ============================================================
 # 1. COMPLETE MODEL CONTRAST TABLE
@@ -31,23 +24,20 @@ print.model_contrast_table <- function(x, ...) {
 
   model_summary <- x[["Model-Level Summary"]]
 
-  print(
-    tibble::as_tibble(model_summary),
-    n = Inf,
-    width = Inf,
-    ...
-  )
+  # Capture extra arguments passed in '...'
+  extra_args <- list(...)
+
+  # Set default printing parameters if not provided in '...'
+  if (!"n" %in% names(extra_args)) extra_args$n <- Inf
+  if (!"width" %in% names(extra_args)) extra_args$width <- Inf
+
+  do.call(print, c(list(x = tibble::as_tibble(model_summary)), extra_args))
 
   cli::cli_h2("Variable-level information")
 
   variable_summary <- x[["Variable-Level Summary"]]
 
-  print(
-    tibble::as_tibble(variable_summary),
-    n = Inf,
-    width = Inf,
-    ...
-  )
+  do.call(print, c(list(x = tibble::as_tibble(variable_summary)), extra_args))
 
   invisible(x)
 }
@@ -73,12 +63,11 @@ print.model_contrast_summary <- function(x, ...) {
 
   printable_object <- as.data.frame(x, stringsAsFactors = FALSE)
 
-  print(
-    tibble::as_tibble(printable_object),
-    n = Inf,
-    width = Inf,
-    ...
-  )
+  extra_args <- list(...)
+  if (!"n" %in% names(extra_args)) extra_args$n <- Inf
+  if (!"width" %in% names(extra_args)) extra_args$width <- Inf
+
+  do.call(print, c(list(x = tibble::as_tibble(printable_object)), extra_args))
 
   invisible(x)
 }
@@ -104,12 +93,11 @@ print.model_contrast_variables <- function(x, ...) {
 
   printable_object <- as.data.frame(x, stringsAsFactors = FALSE)
 
-  print(
-    tibble::as_tibble(printable_object),
-    n = Inf,
-    width = Inf,
-    ...
-  )
+  extra_args <- list(...)
+  if (!"n" %in% names(extra_args)) extra_args$n <- Inf
+  if (!"width" %in% names(extra_args)) extra_args$width <- Inf
+
+  do.call(print, c(list(x = tibble::as_tibble(printable_object)), extra_args))
 
   invisible(x)
 }
