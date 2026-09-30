@@ -495,10 +495,7 @@ ContrastsOnePred <- function(model = NULL,
   prediction_scale <- match.arg(prediction_scale)
 
   if (is.null(model)) {
-    stop(
-      "You must provide a fitted model.",
-      call. = FALSE
-    )
+    stop("You must provide a fitted model.",call. = FALSE)
   }
 
   if (!.is_supported_model(model)) {
@@ -513,58 +510,37 @@ ContrastsOnePred <- function(model = NULL,
   }
 
   if (!is.data.frame(data)) {
-    stop(
-      "'data' must be a data frame.",
-      call. = FALSE
-    )
+    stop("'data' must be a data frame.",call. = FALSE)
   }
 
   if (!is.character(predictor) ||
       length(predictor) != 1L ||
       is.na(predictor)) {
 
-    stop(
-      "'predictor' must be a single character string.",
-      call. = FALSE
-    )
+    stop("'predictor' must be a single character string.",call. = FALSE)
   }
 
   if (!is.character(outcome) ||
       length(outcome) != 1L ||
       is.na(outcome)) {
 
-    stop(
-      "'outcome' must be a single character string.",
-      call. = FALSE
-    )
+    stop("'outcome' must be a single character string.",call. = FALSE)
   }
 
   if (!predictor %in% names(data)) {
-    stop(
-      "The predictor was not found in 'data'.",
-      call. = FALSE
-    )
+    stop("The predictor was not found in 'data'.",call. = FALSE)
   }
 
   if (!outcome %in% names(data)) {
-    stop(
-      "The outcome was not found in 'data'.",
-      call. = FALSE
-    )
+    stop("The outcome was not found in 'data'.",call. = FALSE)
   }
 
   if (!is.factor(data[[predictor]])) {
-    stop(
-      "The predictor must be represented by a factor variable.",
-      call. = FALSE
-    )
+    stop("The predictor must be represented by a factor variable.",call. = FALSE)
   }
 
   if (!is.numeric(data[[outcome]])) {
-    stop(
-      "The dependent variable must be numeric.",
-      call. = FALSE
-    )
+    stop("The dependent variable must be numeric.",call. = FALSE)
   }
 
   if (!is.numeric(sig.level) ||
@@ -573,10 +549,7 @@ ContrastsOnePred <- function(model = NULL,
       sig.level <= 0 ||
       sig.level >= 1) {
 
-    stop(
-      "'sig.level' must be a single numeric value between 0 and 1.",
-      call. = FALSE
-    )
+    stop("'sig.level' must be a single numeric value between 0 and 1.",call. = FALSE)
   }
 
   if (!is.numeric(level) ||
@@ -585,17 +558,11 @@ ContrastsOnePred <- function(model = NULL,
       level <= 0 ||
       level >= 1) {
 
-    stop(
-      "'level' must be a single numeric value between 0 and 1.",
-      call. = FALSE
-    )
+    stop("'level' must be a single numeric value between 0 and 1.",call. = FALSE)
   }
 
   if (nlevels(data[[predictor]]) < 2L) {
-    stop(
-      "The predictor must contain at least two factor levels.",
-      call. = FALSE
-    )
+    stop("The predictor must contain at least two factor levels.",call. = FALSE)
   }
 
   # ============================================================
@@ -604,22 +571,11 @@ ContrastsOnePred <- function(model = NULL,
 
   if (identical(estimate_type, "auto")) {
 
-    model_information <- ModelContrastTable(
-      model,
-      type = "summary"
-    )
+    model_information <- ModelContrastTable(model,type = "summary")
 
-    number_predictors <- as.integer(
-      model_information$Value[
-        model_information$Metric == "Predictors"
-      ]
-    )
+    number_predictors <- as.integer(model_information$Value[model_information$Metric == "Predictors"])
 
-    number_interactions <- as.integer(
-      model_information$Value[
-        model_information$Metric == "Interactions"
-      ]
-    )
+    number_interactions <- as.integer(model_information$Value[model_information$Metric == "Interactions"])
 
     if (
       length(number_predictors) != 1L ||
@@ -646,9 +602,7 @@ ContrastsOnePred <- function(model = NULL,
   }
 
 
-  z_value <- stats::qnorm(
-    1 - (1 - level) / 2
-  )
+  z_value <- stats::qnorm(1 - (1 - level) / 2)
 
   # ============================================================
   # 2. INTERNAL FUNCTION: P-VALUES FOR THE FOCAL PREDICTOR
@@ -677,17 +631,13 @@ ContrastsOnePred <- function(model = NULL,
         fixed = TRUE
       )
 
-    focal_coefficient_names <- coefficient_names[
-      focal_indices
-    ]
+    focal_coefficient_names <- coefficient_names[focal_indices]
 
     # Ensure that the number of requested coefficient names matches
     # the number of columns in the predictor's contrast matrix.
     if (length(focal_coefficient_names) > n_contrasts) {
 
-      focal_coefficient_names <- focal_coefficient_names[
-        seq_len(n_contrasts)
-      ]
+      focal_coefficient_names <- focal_coefficient_names[seq_len(n_contrasts)]
     }
 
     p_information <- .extract_p_values(
@@ -711,9 +661,7 @@ ContrastsOnePred <- function(model = NULL,
 
     if (length(p_values) > n_contrasts) {
 
-      p_values <- p_values[
-        seq_len(n_contrasts)
-      ]
+      p_values <- p_values[seq_len(n_contrasts)]
     }
 
     list(
@@ -734,17 +682,11 @@ ContrastsOnePred <- function(model = NULL,
                                   prediction_scale,
                                   level) {
 
-    level_names <- levels(
-      data[[predictor]]
-    )
+    level_names <- levels(data[[predictor]])
 
-    n_levels <- length(
-      level_names
-    )
+    n_levels <- length(level_names)
 
-    z_value <- stats::qnorm(
-      1 - (1 - level) / 2
-    )
+    z_value <- stats::qnorm(1 - (1 - level) / 2)
 
     # ----------------------------------------------------------
     # OBSERVED ESTIMATES
@@ -774,9 +716,7 @@ ContrastsOnePred <- function(model = NULL,
         }
       )
 
-      level_ses <- as.numeric(
-        level_sds / sqrt(level_ns)
-      )
+      level_ses <- as.numeric(level_sds / sqrt(level_ns))
 
       return(
         data.frame(
@@ -808,11 +748,7 @@ ContrastsOnePred <- function(model = NULL,
     # .build_fixed_model_matrix().
     # ----------------------------------------------------------
 
-    newdata <- data[
-      rep(1L, n_levels),
-      ,
-      drop = FALSE
-    ]
+    newdata <- data[rep(1L, n_levels), ,drop = FALSE]
 
     for (variable_name in names(newdata)) {
 
@@ -870,17 +806,13 @@ ContrastsOnePred <- function(model = NULL,
 
     # Preserve intermediate prediction quantities required for the
     # predicted Grand Mean in sum contrasts.
-    attr(estimates, "model_matrix") <-
-      attr(predictions, "model_matrix")
+    attr(estimates, "model_matrix") <- attr(predictions, "model_matrix")
 
-    attr(estimates, "vcov_beta") <-
-      attr(predictions, "vcov_beta")
+    attr(estimates, "vcov_beta") <- attr(predictions, "vcov_beta")
 
-    attr(estimates, "eta") <-
-      attr(predictions, "eta")
+    attr(estimates, "eta") <- attr(predictions, "eta")
 
-    attr(estimates, "family") <-
-      attr(predictions, "family")
+    attr(estimates, "family") <- attr(predictions, "family")
 
     estimates
   }
@@ -897,9 +829,7 @@ ContrastsOnePred <- function(model = NULL,
     estimate_values <- level_estimates$Estimate
     se_values <- level_estimates$SE
 
-    z_value <- stats::qnorm(
-      1 - (1 - level) / 2
-    )
+    z_value <- stats::qnorm(1 - (1 - level) / 2)
 
     # ----------------------------------------------------------
     # OBSERVED GRAND MEAN
@@ -907,12 +837,9 @@ ContrastsOnePred <- function(model = NULL,
 
     if (estimate_type == "observed") {
 
-      valid_levels <- !is.na(estimate_values) &
-        !is.na(se_values)
+      valid_levels <- !is.na(estimate_values) & !is.na(se_values)
 
-      number_valid_levels <- sum(
-        valid_levels
-      )
+      number_valid_levels <- sum(valid_levels)
 
       if (number_valid_levels == 0L) {
 
@@ -928,17 +855,11 @@ ContrastsOnePred <- function(model = NULL,
 
       # Each factor level receives equal weight, irrespective of
       # the number of observations in that level.
-      grand_mean <- mean(
-        estimate_values[valid_levels]
-      )
+      grand_mean <- mean(estimate_values[valid_levels])
 
       # Observed level means are based on disjoint groups and are
       # treated as independent for variance propagation.
-      grand_mean_se <- sqrt(
-        sum(
-          se_values[valid_levels]^2
-        )
-      ) / number_valid_levels
+      grand_mean_se <- sqrt(sum(se_values[valid_levels]^2)) / number_valid_levels
 
       return(
         list(
@@ -956,25 +877,13 @@ ContrastsOnePred <- function(model = NULL,
     # MODEL-BASED GRAND MEAN
     # ----------------------------------------------------------
 
-    model_matrix <- attr(
-      level_estimates,
-      "model_matrix"
-    )
+    model_matrix <- attr(level_estimates,"model_matrix")
 
-    variance_matrix <- attr(
-      level_estimates,
-      "vcov_beta"
-    )
+    variance_matrix <- attr(level_estimates,"vcov_beta")
 
-    linear_predictors <- attr(
-      level_estimates,
-      "eta"
-    )
+    linear_predictors <- attr(level_estimates,"eta")
 
-    family_object <- attr(
-      level_estimates,
-      "family"
-    )
+    family_object <- attr(level_estimates,"family")
 
     if (is.null(model_matrix) ||
         is.null(variance_matrix) ||
@@ -993,17 +902,11 @@ ContrastsOnePred <- function(model = NULL,
     # LINK-SCALE GRAND MEAN
     # ----------------------------------------------------------
 
-    if (prediction_scale == "link" ||
-        is.null(family_object)) {
+    if (prediction_scale == "link" || is.null(family_object)) {
 
-      mean_model_row <- matrix(
-        colMeans(model_matrix),
-        nrow = 1L
-      )
+      mean_model_row <- matrix(colMeans(model_matrix),nrow = 1L)
 
-      grand_mean <- mean(
-        linear_predictors
-      )
+      grand_mean <- mean(linear_predictors)
 
       grand_mean_variance <- as.numeric(
         mean_model_row %*%
@@ -1011,12 +914,7 @@ ContrastsOnePred <- function(model = NULL,
           t(mean_model_row)
       )
 
-      grand_mean_se <- sqrt(
-        max(
-          grand_mean_variance,
-          0
-        )
-      )
+      grand_mean_se <- sqrt(max(grand_mean_variance,0))
 
       return(
         list(
@@ -1037,42 +935,19 @@ ContrastsOnePred <- function(model = NULL,
     inverse_link <- family_object$linkinv
     derivative_inverse_link <- family_object$mu.eta
 
-    response_values <- inverse_link(
-      linear_predictors
-    )
+    response_values <- inverse_link(linear_predictors)
 
-    grand_mean <- mean(
-      response_values
-    )
+    grand_mean <- mean(response_values)
 
-    response_derivatives <- as.numeric(
-      derivative_inverse_link(
-        linear_predictors
-      )
-    )
+    response_derivatives <- as.numeric(derivative_inverse_link(linear_predictors))
 
-    gradient <- colMeans(
-      model_matrix *
-        response_derivatives
-    )
+    gradient <- colMeans(model_matrix * response_derivatives)
 
-    gradient <- matrix(
-      gradient,
-      nrow = 1L
-    )
+    gradient <- matrix(gradient,nrow = 1L)
 
-    grand_mean_variance <- as.numeric(
-      gradient %*%
-        variance_matrix %*%
-        t(gradient)
-    )
+    grand_mean_variance <- as.numeric( gradient %*% variance_matrix %*% t(gradient))
 
-    grand_mean_se <- sqrt(
-      max(
-        grand_mean_variance,
-        0
-      )
-    )
+    grand_mean_se <- sqrt(max(grand_mean_variance,0))
 
     list(
       Estimate = grand_mean,
@@ -1225,9 +1100,7 @@ ContrastsOnePred <- function(model = NULL,
   # 6. CONTRAST-MATRIX IDENTIFICATION
   # ============================================================
 
-  original_contrast_matrix <- stats::contrasts(
-    data[[predictor]]
-  )
+  original_contrast_matrix <- stats::contrasts(data[[predictor]])
 
   if (is.null(original_contrast_matrix)) {
     stop(
@@ -1236,23 +1109,15 @@ ContrastsOnePred <- function(model = NULL,
     )
   }
 
-  contrast_matrix <- as.matrix(
-    original_contrast_matrix
-  )
+  contrast_matrix <- as.matrix(original_contrast_matrix)
 
   dimnames(contrast_matrix) <- NULL
 
-  level_names <- levels(
-    data[[predictor]]
-  )
+  level_names <- levels(data[[predictor]])
 
-  n_levels <- length(
-    level_names
-  )
+  n_levels <- length(level_names)
 
-  n_contrasts <- ncol(
-    contrast_matrix
-  )
+  n_contrasts <- ncol(contrast_matrix)
 
   same_contrast_matrix <- function(first,
                                    second) {
@@ -1319,18 +1184,9 @@ ContrastsOnePred <- function(model = NULL,
 
     hypothesis_object <- hypr::hypr()
 
-    hypr::cmat(
-      hypothesis_object,
-      add_intercept = TRUE
-    ) <- stats::contr.treatment(n_levels)
+    hypr::cmat(hypothesis_object,add_intercept = TRUE) <- stats::contr.treatment(n_levels)
 
-    contrast_matrix <- as.matrix(
-      t(
-        hypr::hmat(
-          hypothesis_object
-        )
-      )[, -1, drop = FALSE]
-    )
+    contrast_matrix <- as.matrix(t(hypr::hmat(hypothesis_object))[, -1, drop = FALSE])
   }
 
   if (is_sliding_difference) {
@@ -1351,35 +1207,20 @@ ContrastsOnePred <- function(model = NULL,
 
     hypothesis_object <- hypr::hypr()
 
-    hypr::cmat(
-      hypothesis_object,
-      add_intercept = TRUE
-    ) <- original_contrast_matrix
+    hypr::cmat(hypothesis_object,add_intercept = TRUE) <- original_contrast_matrix
 
-    contrast_matrix <- as.matrix(
-      t(
-        hypr::hmat(
-          hypothesis_object
-        )
-      )[, -1, drop = FALSE]
-    )
+    contrast_matrix <- as.matrix(t(hypr::hmat(hypothesis_object))[, -1, drop = FALSE])
   }
 
   # ============================================================
   # 7. MODEL INFORMATION
   # ============================================================
 
-  fixed_effects <- .extract_fixef(
-    model
-  )
+  fixed_effects <- .extract_fixef(model)
 
-  intercept <- as.numeric(
-    fixed_effects[1L]
-  )
+  intercept <- as.numeric(fixed_effects[1L])
 
-  fixed_effect_names <- names(
-    fixed_effects
-  )
+  fixed_effect_names <- names(fixed_effects)
 
   focal_coefficient_indices <- startsWith(
     fixed_effect_names,
@@ -1391,9 +1232,7 @@ ContrastsOnePred <- function(model = NULL,
       fixed = TRUE
     )
 
-  contrast_coefficients <- fixed_effects[
-    focal_coefficient_indices
-  ]
+  contrast_coefficients <- fixed_effects[focal_coefficient_indices]
 
   p_information <- get_predictor_p_values(
     model = model,
@@ -1403,13 +1242,9 @@ ContrastsOnePred <- function(model = NULL,
 
   p_values <- p_information$p
 
-  mixed_model <- .is_mixed_model(
-    model
-  )
+  mixed_model <- .is_mixed_model(model)
 
-  generalized_model <- .is_generalized_model(
-    model
-  )
+  generalized_model <- .is_generalized_model(model)
 
   # ============================================================
   # 8. LEVEL-SPECIFIC ESTIMATES
@@ -1461,21 +1296,15 @@ ContrastsOnePred <- function(model = NULL,
       stringsAsFactors = FALSE
     )
 
-    polynomial_names <- colnames(
-      stats::contr.poly(n_levels)
-    )
+    polynomial_names <- colnames(stats::contr.poly(n_levels))
 
     for (contrast_index in seq_len(
       ncol(contrast_matrix)
     )) {
 
-      polynomial_weights <- as.numeric(
-        contrast_matrix[, contrast_index]
-      )
+      polynomial_weights <- as.numeric(contrast_matrix[, contrast_index])
 
-      polynomial_coefficient <- as.numeric(
-        contrast_coefficients[contrast_index]
-      )
+      polynomial_coefficient <- as.numeric(contrast_coefficients[contrast_index])
 
       polynomial_fit <- intercept +
         polynomial_coefficient *
@@ -1573,17 +1402,11 @@ ContrastsOnePred <- function(model = NULL,
     ncol(contrast_matrix)
   )) {
 
-    contrast_weights <- as.numeric(
-      contrast_matrix[, contrast_index]
-    )
+    contrast_weights <- as.numeric(contrast_matrix[, contrast_index])
 
-    positive_levels <- which(
-      contrast_weights > 0
-    )
+    positive_levels <- which(contrast_weights > 0)
 
-    negative_levels <- which(
-      contrast_weights < 0
-    )
+    negative_levels <- which(contrast_weights < 0)
 
     if (length(positive_levels) == 0L ||
         length(negative_levels) == 0L) {
@@ -1625,31 +1448,17 @@ ContrastsOnePred <- function(model = NULL,
     # independent. The sum-contrast Grand Mean is handled separately
     # with the complete fixed-effect covariance matrix when predicted
     # estimates are requested.
-    positive_se <- sqrt(
-      sum(
-        level_se_values[positive_levels]^2,
-        na.rm = TRUE
-      )
-    ) / length(positive_levels)
+    positive_se <- sqrt(sum(level_se_values[positive_levels]^2,na.rm = TRUE)) / length(positive_levels)
 
-    negative_se <- sqrt(
-      sum(
-        level_se_values[negative_levels]^2,
-        na.rm = TRUE
-      )
-    ) / length(negative_levels)
+    negative_se <- sqrt(sum(level_se_values[negative_levels]^2,na.rm = TRUE)) / length(negative_levels)
 
-    positive_ci_low <- positive_estimate -
-      z_value * positive_se
+    positive_ci_low <- positive_estimate - z_value * positive_se
 
-    positive_ci_high <- positive_estimate +
-      z_value * positive_se
+    positive_ci_high <- positive_estimate + z_value * positive_se
 
-    negative_ci_low <- negative_estimate -
-      z_value * negative_se
+    negative_ci_low <- negative_estimate - z_value * negative_se
 
-    negative_ci_high <- negative_estimate +
-      z_value * negative_se
+    negative_ci_high <- negative_estimate + z_value * negative_se
 
     # Sum contrasts are displayed as the focal level versus the
     # unweighted Grand Mean of all factor levels.
@@ -1657,17 +1466,13 @@ ContrastsOnePred <- function(model = NULL,
 
       negative_group <- "Grand Mean"
 
-      negative_estimate <-
-        sum_grand_mean$Estimate
+      negative_estimate <- sum_grand_mean$Estimate
 
-      negative_se <-
-        sum_grand_mean$SE
+      negative_se <- sum_grand_mean$SE
 
-      negative_ci_low <-
-        sum_grand_mean$CI_low
+      negative_ci_low <- sum_grand_mean$CI_low
 
-      negative_ci_high <-
-        sum_grand_mean$CI_high
+      negative_ci_high <- sum_grand_mean$CI_high
     }
 
     significance_label <- if (
