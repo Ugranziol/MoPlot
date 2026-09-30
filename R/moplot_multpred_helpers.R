@@ -79,9 +79,7 @@
       interactions,
       function(current_interaction) {
 
-        current_coefficients <- interaction_map$coefficient[
-          interaction_map$interaction == current_interaction
-        ]
+        current_coefficients <- interaction_map$coefficient[interaction_map$interaction == current_interaction]
 
         interaction_code <- paste0(
           'interaction = "',
@@ -180,10 +178,7 @@
       stop("`coefficients` must be `NULL` or a non-empty character vector.", call. = FALSE)
     }
 
-    unknown_coefficients <- setdiff(
-      coefficients,
-      available_coefficients
-    )
+    unknown_coefficients <- setdiff(coefficients,available_coefficients)
 
     if (length(unknown_coefficients) > 0L) {
       if (isTRUE(interaction_info)) {
@@ -207,21 +202,13 @@
 
   if (is.null(interaction) && is.null(coefficients)) {
 
-    maximum_order <- max(
-      interaction_map$interaction_order
-    )
+    maximum_order <- max(interaction_map$interaction_order)
 
-    highest_order_interactions <- unique(
-      interaction_map$interaction[
-        interaction_map$interaction_order == maximum_order
-      ]
-    )
+    highest_order_interactions <- unique(interaction_map$interaction[interaction_map$interaction_order == maximum_order])
 
     if (length(highest_order_interactions) > 1L) {
 
-      .print_moplot_interaction_info(
-        interaction_map
-      )
+      .print_moplot_interaction_info(interaction_map)
 
       stop(
         paste0(
@@ -234,9 +221,7 @@
 
     interaction <- highest_order_interactions[1L]
 
-    coefficients <- interaction_map$coefficient[
-      interaction_map$interaction == interaction
-    ]
+    coefficients <- interaction_map$coefficient[interaction_map$interaction == interaction]
   }
 
   # --------------------------------------------------------------------------
@@ -245,9 +230,7 @@
 
   if (!is.null(interaction) && is.null(coefficients)) {
 
-    coefficients <- interaction_map$coefficient[
-      interaction_map$interaction == interaction
-    ]
+    coefficients <- interaction_map$coefficient[interaction_map$interaction == interaction]
   }
 
   # --------------------------------------------------------------------------
@@ -290,14 +273,9 @@
   # Case 4: both supplied — verify consistency
   # --------------------------------------------------------------------------
 
-  interaction_coefficients <- interaction_map$coefficient[
-    interaction_map$interaction == interaction
-  ]
+  interaction_coefficients <- interaction_map$coefficient[interaction_map$interaction == interaction]
 
-  invalid_for_interaction <- setdiff(
-    coefficients,
-    interaction_coefficients
-  )
+  invalid_for_interaction <- setdiff(coefficients,interaction_coefficients)
 
   if (length(invalid_for_interaction) > 0L) {
 
@@ -419,13 +397,7 @@
   # Mixed-effects predictions
   # --------------------------------------------------------------------------
 
-  is_mixed_model <- inherits(
-    model,
-    c(
-      "merMod",
-      "glmmTMB"
-    )
-  )
+  is_mixed_model <- inherits(model,c("merMod","glmmTMB"))
 
   if (
     identical(estimate_type, "predicted") &&
@@ -506,10 +478,7 @@
       " Predicted cell estimates are not treated as independent during aggregation."
     )
 
-    methodological_points <- c(
-      methodological_points,
-      uncertainty_note
-    )
+    methodological_points <- c(methodological_points,uncertainty_note)
   }
 
   # --------------------------------------------------------------------------
@@ -701,11 +670,7 @@
     )
   }
 
-  gap_values <- c(
-    within_split_gap,
-    between_split_gap,
-    between_coefficient_gap
-  )
+  gap_values <- c(within_split_gap,between_split_gap,between_coefficient_gap)
 
   if (
     !is.numeric(gap_values) ||
@@ -734,10 +699,7 @@
     )
   }
 
-  decomposition <- attr(
-    contrast_data,
-    "decomposition"
-  )
+  decomposition <- attr(contrast_data,"decomposition")
 
   if (
     is.null(decomposition) ||
@@ -767,10 +729,7 @@
     "ci_high"
   )
 
-  missing_decomposition_columns <- setdiff(
-    required_decomposition_columns,
-    names(decomposition)
-  )
+  missing_decomposition_columns <- setdiff(required_decomposition_columns,names(decomposition))
 
   if (length(missing_decomposition_columns) > 0L) {
     stop(
@@ -804,10 +763,7 @@
     "configuration_semantic"
   )
 
-  predictor_columns <- setdiff(
-    names(contrast_data),
-    structural_columns
-  )
+  predictor_columns <- setdiff(names(contrast_data),structural_columns)
 
   if (length(predictor_columns) < 2L) {
     stop(
@@ -819,14 +775,9 @@
     )
   }
 
-  split_variables <- unique(
-    contrast_data$split_var
-  )
+  split_variables <- unique(contrast_data$split_var)
 
-  split_variables <- split_variables[
-    !is.na(split_variables) &
-      nzchar(split_variables)
-  ]
+  split_variables <- split_variables[!is.na(split_variables) & nzchar(split_variables)]
 
   if (length(split_variables) != 1L) {
     stop(
@@ -869,32 +820,21 @@
   }
 
   parent_path <- function(path) {
-    tokens <- split_path(
-      path
-    )
+    tokens <- split_path(path)
 
     if (length(tokens) <= 1L) {
       return("root")
     }
 
-    collapse_path(
-      tokens[-length(tokens)]
-    )
+    collapse_path(tokens[-length(tokens)])
   }
 
   common_prefix_length <- function(path_a, path_b) {
-    a <- split_path(
-      path_a
-    )
+    a <- split_path(path_a)
 
-    b <- split_path(
-      path_b
-    )
+    b <- split_path(path_b)
 
-    n <- min(
-      length(a),
-      length(b)
-    )
+    n <- min(length(a),length(b))
 
     if (n == 0L) {
       return(0L)
@@ -902,9 +842,7 @@
 
     same <- a[seq_len(n)] == b[seq_len(n)]
 
-    mismatch <- which(
-      !same
-    )
+    mismatch <- which(!same)
 
     if (length(mismatch) == 0L) {
       return(n)
@@ -914,9 +852,7 @@
   }
 
   path_order_key <- function(path) {
-    tokens <- split_path(
-      path
-    )
+    tokens <- split_path(path)
 
     paste0(
       ifelse(
@@ -932,43 +868,21 @@
   # 4. PRESERVE COEFFICIENT ORDER
   # ==========================================================================
 
-  coefficient_order <- unique(
-    contrast_data$coefficient
-  )
+  coefficient_order <- unique(contrast_data$coefficient)
 
-  point_parts <- vector(
-    "list",
-    length(coefficient_order)
-  )
+  point_parts <- vector("list",length(coefficient_order))
 
-  segment_parts <- vector(
-    "list",
-    length(coefficient_order)
-  )
+  segment_parts <- vector("list",length(coefficient_order))
 
-  delta_parts <- vector(
-    "list",
-    length(coefficient_order)
-  )
+  delta_parts <- vector("list",length(coefficient_order))
 
-  coefficient_parts <- vector(
-    "list",
-    length(coefficient_order)
-  )
+  coefficient_parts <- vector("list",length(coefficient_order))
 
-  group_label_parts <- vector(
-    "list",
-    length(coefficient_order)
-  )
+  group_label_parts <- vector("list",length(coefficient_order))
 
-  variable_paths <- vector(
-    "list",
-    length(coefficient_order)
-  )
+  variable_paths <- vector("list",length(coefficient_order))
 
-  hierarchy_depths <- integer(
-    length(coefficient_order)
-  )
+  hierarchy_depths <- integer(length(coefficient_order))
 
   current_x <- 1
 
@@ -978,29 +892,15 @@
 
   for (coefficient_index in seq_along(coefficient_order)) {
 
-    coefficient_name <- coefficient_order[
-      coefficient_index
-    ]
+    coefficient_name <- coefficient_order[coefficient_index]
 
-    coefficient_rows <- contrast_data[
-      contrast_data$coefficient == coefficient_name,
-      ,
-      drop = FALSE
-    ]
+    coefficient_rows <- contrast_data[contrast_data$coefficient == coefficient_name, ,drop = FALSE]
 
-    leaf_rows <- decomposition[
-      decomposition$coefficient == coefficient_name,
-      ,
-      drop = FALSE
-    ]
+    leaf_rows <- decomposition[decomposition$coefficient == coefficient_name, ,drop = FALSE]
 
-    depths <- unique(
-      leaf_rows$decomposition_depth
-    )
+    depths <- unique(leaf_rows$decomposition_depth)
 
-    depths <- depths[
-      !is.na(depths)
-    ]
+    depths <- depths[!is.na(depths)]
 
     if (length(depths) != 1L) {
       stop(
@@ -1013,9 +913,7 @@
       )
     }
 
-    depth <- as.integer(
-      depths[1L]
-    )
+    depth <- as.integer(depths[1L])
 
     if (depth < 2L) {
       stop(
@@ -1028,14 +926,9 @@
       )
     }
 
-    coefficient_variable_paths <- unique(
-      leaf_rows$variable_path
-    )
+    coefficient_variable_paths <- unique(leaf_rows$variable_path)
 
-    coefficient_variable_paths <- coefficient_variable_paths[
-      !is.na(coefficient_variable_paths) &
-        nzchar(coefficient_variable_paths)
-    ]
+    coefficient_variable_paths <- coefficient_variable_paths[!is.na(coefficient_variable_paths) & nzchar(coefficient_variable_paths)]
 
     if (length(coefficient_variable_paths) != 1L) {
       stop(
@@ -1076,32 +969,19 @@
       )
     }
 
-    hierarchy_depths[
-      coefficient_index
-    ] <- depth
+    hierarchy_depths[coefficient_index] <- depth
 
-    variable_paths[[
-      coefficient_index
-    ]] <- variable_path
+    variable_paths[[coefficient_index]] <- variable_path
 
-    target_var <- variable_path[
-      depth
-    ]
+    target_var <- variable_path[depth]
 
-    top_split_var <- variable_path[
-      1L
-    ]
+    top_split_var <- variable_path[1L]
 
     # ------------------------------------------------------------------------
     # 5A. ORDER LEAVES
     # ------------------------------------------------------------------------
 
-    path_lengths <- lengths(
-      lapply(
-        leaf_rows$decomposition_path,
-        split_path
-      )
-    )
+    path_lengths <- lengths(lapply(leaf_rows$decomposition_path,split_path))
 
     if (any(path_lengths != depth)) {
       stop(
@@ -1133,69 +1013,42 @@
       )
     )
 
-    leaf_rows <- leaf_rows[
-      leaf_order,
-      ,
-      drop = FALSE
-    ]
+    leaf_rows <- leaf_rows[leaf_order, ,drop = FALSE]
 
     # ------------------------------------------------------------------------
     # 5B. ASSIGN HORIZONTAL POSITIONS
     # ------------------------------------------------------------------------
 
-    leaf_x <- numeric(
-      nrow(leaf_rows)
-    )
+    leaf_x <- numeric(nrow(leaf_rows))
 
     leaf_x[1L] <- current_x
 
     if (nrow(leaf_rows) > 1L) {
       for (leaf_index in 2:nrow(leaf_rows)) {
 
-        previous_path <- leaf_rows$decomposition_path[
-          leaf_index - 1L
-        ]
+        previous_path <- leaf_rows$decomposition_path[leaf_index - 1L]
 
-        current_path <- leaf_rows$decomposition_path[
-          leaf_index
-        ]
+        current_path <- leaf_rows$decomposition_path[leaf_index]
 
-        common_depth <- common_prefix_length(
-          previous_path,
-          current_path
-        )
+        common_depth <- common_prefix_length(previous_path,current_path)
 
         if (common_depth == depth - 1L) {
           current_gap <- within_split_gap
         } else {
-          separation_level <- max(
-            1L,
-            depth - common_depth - 1L
-          )
+          separation_level <- max(1L,depth - common_depth - 1L)
 
-          current_gap <- between_split_gap *
-            separation_level
+          current_gap <- between_split_gap * separation_level
         }
 
-        leaf_x[
-          leaf_index
-        ] <- leaf_x[
-          leaf_index - 1L
-        ] + current_gap
+        leaf_x[leaf_index] <- leaf_x[leaf_index - 1L] + current_gap
       }
     }
 
     leaf_rows$x <- leaf_x
     leaf_rows$coefficient_index <- coefficient_index
-    leaf_rows$target_group <- as.character(
-      leaf_rows[[target_var]]
-    )
-    leaf_rows$point_label <- as.character(
-      leaf_rows$configuration_semantic
-    )
-    leaf_rows$split_group <- as.character(
-      leaf_rows[[top_split_var]]
-    )
+    leaf_rows$target_group <- as.character(leaf_rows[[target_var]])
+    leaf_rows$point_label <- as.character(leaf_rows$configuration_semantic)
+    leaf_rows$split_group <- as.character(leaf_rows[[top_split_var]])
 
     top_split_paths <- vapply(
       leaf_rows$decomposition_path,
@@ -1205,14 +1058,9 @@
       character(1)
     )
 
-    leaf_rows$split_index <- match(
-      top_split_paths,
-      unique(top_split_paths)
-    )
+    leaf_rows$split_index <- match(top_split_paths,unique(top_split_paths))
 
-    point_parts[[
-      coefficient_index
-    ]] <- leaf_rows
+    point_parts[[coefficient_index]] <- leaf_rows
 
     # ------------------------------------------------------------------------
     # 5C. BUILD ELEMENTARY CONTRASTS
@@ -1224,33 +1072,17 @@
       character(1)
     )
 
-    elementary_paths <- unique(
-      unname(
-        elementary_parent_paths
-      )
-    )
+    elementary_paths <- unique(unname(elementary_parent_paths))
 
-    elementary_segments <- vector(
-      "list",
-      length(elementary_paths)
-    )
+    elementary_segments <- vector("list",length(elementary_paths))
 
-    elementary_nodes <- vector(
-      "list",
-      length(elementary_paths)
-    )
+    elementary_nodes <- vector("list",length(elementary_paths))
 
     for (elementary_index in seq_along(elementary_paths)) {
 
-      node_path <- elementary_paths[
-        elementary_index
-      ]
+      node_path <- elementary_paths[elementary_index]
 
-      child_rows <- leaf_rows[
-        unname(elementary_parent_paths) == node_path,
-        ,
-        drop = FALSE
-      ]
+      child_rows <- leaf_rows[unname(elementary_parent_paths) == node_path, ,drop = FALSE]
 
       child_sides <- unname(
         vapply(
@@ -1297,11 +1129,7 @@
         child_sides
       )
 
-      child_rows <- child_rows[
-        child_order,
-        ,
-        drop = FALSE
-      ]
+      child_rows <- child_rows[child_order, ,drop = FALSE]
 
       delta_number <- elementary_index
 
@@ -1311,9 +1139,7 @@
         "]"
       )
 
-      grouping_var <- variable_path[
-        depth - 1L
-      ]
+      grouping_var <- variable_path[depth - 1L]
 
       grouping_value <- unique(
         as.character(
@@ -1329,9 +1155,7 @@
         )
       }
 
-      node_tokens <- split_path(
-        node_path
-      )
+      node_tokens <- split_path(node_path)
 
       top_side <- if (length(node_tokens) > 0L) {
         node_tokens[1L]
@@ -1392,19 +1216,11 @@
       )
     }
 
-    coefficient_segments <- do.call(
-      rbind,
-      elementary_segments
-    )
+    coefficient_segments <- do.call(rbind,elementary_segments)
 
-    current_nodes <- do.call(
-      rbind,
-      elementary_nodes
-    )
+    current_nodes <- do.call(rbind,elementary_nodes)
 
-    next_delta_number <- nrow(
-      current_nodes
-    ) + 1L
+    next_delta_number <- nrow(current_nodes) + 1L
 
     higher_node_parts <- list()
 
@@ -1420,28 +1236,15 @@
         character(1)
       )
 
-      parent_paths <- unique(
-        unname(
-          current_parent_paths
-        )
-      )
+      parent_paths <- unique(unname(current_parent_paths))
 
-      next_nodes <- vector(
-        "list",
-        length(parent_paths)
-      )
+      next_nodes <- vector("list",length(parent_paths))
 
       for (parent_index in seq_along(parent_paths)) {
 
-        node_path <- parent_paths[
-          parent_index
-        ]
+        node_path <- parent_paths[parent_index]
 
-        child_nodes <- current_nodes[
-          unname(current_parent_paths) == node_path,
-          ,
-          drop = FALSE
-        ]
+        child_nodes <- current_nodes[unname(current_parent_paths) == node_path, ,drop = FALSE]
 
         child_sides <- unname(
           vapply(
@@ -1488,11 +1291,7 @@
           child_sides
         )
 
-        child_nodes <- child_nodes[
-          child_order,
-          ,
-          drop = FALSE
-        ]
+        child_nodes <- child_nodes[child_order, ,drop = FALSE]
 
         is_final <- node_level == depth
 
@@ -1548,37 +1347,22 @@
         )
       }
 
-      current_nodes <- do.call(
-        rbind,
-        next_nodes
-      )
+      current_nodes <- do.call(rbind,next_nodes)
 
-      higher_node_parts[[
-        length(higher_node_parts) + 1L
-      ]] <- current_nodes
+      higher_node_parts[[length(higher_node_parts) + 1L]] <- current_nodes
     }
 
-    coefficient_delta_data <- do.call(
-      rbind,
-      higher_node_parts
-    )
+    coefficient_delta_data <- do.call(rbind,higher_node_parts)
 
-    coefficient_delta_data$label <-
-      coefficient_delta_data$expression
+    coefficient_delta_data$label <- coefficient_delta_data$expression
 
-    delta_parts[[
-      coefficient_index
-    ]] <- coefficient_delta_data
+    delta_parts[[coefficient_index]] <- coefficient_delta_data
 
     # ------------------------------------------------------------------------
     # 5E. FINAL COEFFICIENT POSITION
     # ------------------------------------------------------------------------
 
-    final_node <- coefficient_delta_data[
-      coefficient_delta_data$is_final,
-      ,
-      drop = FALSE
-    ]
+    final_node <- coefficient_delta_data[coefficient_delta_data$is_final, ,drop = FALSE]
 
     if (nrow(final_node) != 1L) {
       stop(
@@ -1603,19 +1387,13 @@
       stringsAsFactors = FALSE
     )
 
-    segment_parts[[
-      coefficient_index
-    ]] <- coefficient_segments
+    segment_parts[[coefficient_index]] <- coefficient_segments
 
     # ------------------------------------------------------------------------
     # 5F. BUILD HIERARCHICAL GROUP LABEL POSITIONS
     # ------------------------------------------------------------------------
 
-    grouping_variables <- variable_path[
-      seq_len(
-        depth - 1L
-      )
-    ]
+    grouping_variables <- variable_path[seq_len(depth - 1L)]
 
     coefficient_group_labels <- list()
 
@@ -1646,29 +1424,15 @@
         character(1)
       )
 
-      unique_prefixes <- unique(
-        unname(
-          group_prefix
-        )
-      )
+      unique_prefixes <- unique(unname(group_prefix))
 
       for (prefix_index in seq_along(unique_prefixes)) {
 
-        current_prefix <- unique_prefixes[
-          prefix_index
-        ]
+        current_prefix <- unique_prefixes[prefix_index]
 
-        current_rows <- leaf_rows[
-          unname(group_prefix) == current_prefix,
-          ,
-          drop = FALSE
-        ]
+        current_rows <- leaf_rows[unname(group_prefix) == current_prefix, ,drop = FALSE]
 
-        group_value <- unique(
-          as.character(
-            current_rows[[grouping_var]]
-          )
-        )
+        group_value <- unique(as.character(current_rows[[grouping_var]]))
 
         group_value <- if (length(group_value) == 1L) {
           group_value
@@ -1700,47 +1464,24 @@
       }
     }
 
-    group_label_parts[[
-      coefficient_index
-    ]] <- do.call(
-      rbind,
-      coefficient_group_labels
-    )
+    group_label_parts[[coefficient_index]] <- do.call(rbind,coefficient_group_labels)
 
-    current_x <- max(
-      leaf_rows$x
-    ) +
-      between_coefficient_gap
+    current_x <- max(leaf_rows$x) + between_coefficient_gap
   }
 
   # ==========================================================================
   # 6. COMBINE OUTPUT
   # ==========================================================================
 
-  point_data <- do.call(
-    rbind,
-    point_parts
-  )
+  point_data <- do.call(rbind,point_parts)
 
-  segment_data <- do.call(
-    rbind,
-    segment_parts
-  )
+  segment_data <- do.call(rbind,segment_parts)
 
-  delta_data <- do.call(
-    rbind,
-    delta_parts
-  )
+  delta_data <- do.call(rbind,delta_parts)
 
-  coefficient_data <- do.call(
-    rbind,
-    coefficient_parts
-  )
+  coefficient_data <- do.call(rbind,coefficient_parts)
 
-  group_label_data <- do.call(
-    rbind,
-    group_label_parts
-  )
+  group_label_data <- do.call(rbind,group_label_parts)
 
   rownames(point_data) <- NULL
   rownames(segment_data) <- NULL
@@ -1752,11 +1493,7 @@
   # 7. BACKWARD-COMPATIBLE SPLIT LABEL DATA
   # ==========================================================================
 
-  split_label_data <- group_label_data[
-    group_label_data$variable == split_var,
-    ,
-    drop = FALSE
-  ]
+  split_label_data <- group_label_data[group_label_data$variable == split_var, ,drop = FALSE]
 
   # ==========================================================================
   # 8. STORE STRUCTURAL INFORMATION
@@ -1797,30 +1534,15 @@
     common_depth
   ]
 
-  attr(
-    point_data,
-    "split_var"
-  ) <- split_var
+  attr(point_data,"split_var") <- split_var
 
-  attr(
-    point_data,
-    "target_var"
-  ) <- target_var
+  attr(point_data,"target_var") <- target_var
 
-  attr(
-    point_data,
-    "variable_path"
-  ) <- common_variable_path
+  attr(point_data,"variable_path") <- common_variable_path
 
-  attr(
-    point_data,
-    "hierarchy_depth"
-  ) <- common_depth
+  attr(point_data,"hierarchy_depth") <- common_depth
 
-  x_limits <- c(
-    min(point_data$x) - 0.5,
-    max(point_data$x) + 0.5
-  )
+  x_limits <- c(min(point_data$x) - 0.5,max(point_data$x) + 0.5)
 
   list(
     point_data = point_data,
@@ -1917,13 +1639,9 @@
 
   while (anyDuplicated(abbreviations)) {
 
-    duplicated_groups <- abbreviations[
-      duplicated(abbreviations) |
-        duplicated(abbreviations, fromLast = TRUE)
-    ]
+    duplicated_groups <- abbreviations[duplicated(abbreviations) | duplicated(abbreviations, fromLast = TRUE)]
 
-    duplicated_rows <- abbreviations %in%
-      duplicated_groups
+    duplicated_rows <- abbreviations %in% duplicated_groups
 
     prefix_length[duplicated_rows] <- pmin(
       prefix_length[duplicated_rows] + 1L,
@@ -1949,10 +1667,7 @@
     }
   }
 
-  lookup <- stats::setNames(
-    abbreviations,
-    long_labels
-  )
+  lookup <- stats::setNames(abbreviations,long_labels)
 
   replace_atomic_labels <- function(x) {
 
@@ -1974,14 +1689,9 @@
         )[[1L]]
       )
 
-      replace <- values %in%
-        names(lookup)
+      replace <- values %in% names(lookup)
 
-      values[replace] <- unname(
-        lookup[
-          values[replace]
-        ]
-      )
+      values[replace] <- unname(lookup[values[replace]])
 
       return(
         paste0(
@@ -2069,9 +1779,7 @@
     return(NULL)
   }
 
-  unique(
-    abbreviation_result$key
-  )
+  unique(abbreviation_result$key)
 }
 
 #' Apply a MoPlot label abbreviation key
@@ -2127,15 +1835,9 @@
         )[[1L]]
       )
 
-      replace <- values %in%
-        names(lookup)
+      replace <- values %in% names(lookup)
 
-      values[replace] <-
-        unname(
-          lookup[
-            values[replace]
-          ]
-        )
+      values[replace] <-unname(lookup[values[replace]])
 
       return(
         paste0(
@@ -2200,9 +1902,7 @@
   # 1. ARGUMENT MATCHING
   # ==========================================================================
 
-  style <- match.arg(
-    style
-  )
+  style <- match.arg(style)
 
 
   # ==========================================================================
@@ -2258,10 +1958,7 @@
     "is_final"
   )
 
-  missing_delta_columns <- setdiff(
-    required_delta_columns,
-    names(delta_data)
-  )
+  missing_delta_columns <- setdiff(required_delta_columns,names(delta_data))
 
   if (length(missing_delta_columns) > 0L) {
     stop(
@@ -2287,13 +1984,9 @@
     amount
   ) {
 
-    rgb_value <- grDevices::col2rgb(
-      colour
-    ) / 255
+    rgb_value <- grDevices::col2rgb(colour) / 255
 
-    rgb_value <- rgb_value +
-      (1 - rgb_value) *
-      amount
+    rgb_value <- rgb_value + (1 - rgb_value) * amount
 
     grDevices::rgb(
       rgb_value[1L, ],
@@ -2380,21 +2073,15 @@
 
     palette <- grayscale_palette
 
-    segment_data$Contrast_colour <-
-      palette[["segment"]]
+    segment_data$Contrast_colour <- palette[["segment"]]
 
-    delta_data$Base_colour <-
-      palette[["midpoint"]]
+    delta_data$Base_colour <- palette[["midpoint"]]
 
   } else {
 
     palette <- coloured_palette
 
-    contrast_ids <- sort(
-      unique(
-        segment_data$contrast_id
-      )
-    )
+    contrast_ids <- sort(unique(segment_data$contrast_id))
 
     contrast_colours <- stats::setNames(
       .moplot_contrast_palette(
@@ -2490,24 +2177,13 @@
   # 7. Y-AXIS LIMITS AND BREAKS
   # ==========================================================================
 
-  ci_min <- min(
-    point_data$ci_low,
-    na.rm = TRUE
-  )
+  ci_min <- min(point_data$ci_low,na.rm = TRUE)
 
-  ci_max <- max(
-    point_data$ci_high,
-    na.rm = TRUE
-  )
+  ci_max <- max(point_data$ci_high,na.rm = TRUE)
 
-  y_range <- c(
-    ci_min,
-    ci_max
-  )
+  y_range <- c(ci_min,ci_max)
 
-  y_span <- diff(
-    y_range
-  )
+  y_span <- diff(y_range)
 
   if (
     !is.finite(y_span) ||
@@ -2521,16 +2197,9 @@
     )
   }
 
-  candidate_breaks <- pretty(
-    y_range,
-    n = 5
-  )
+  candidate_breaks <- pretty(y_range,n = 5)
 
-  break_step <- stats::median(
-    diff(
-      candidate_breaks
-    )
-  )
+  break_step <- stats::median(diff(candidate_breaks))
 
   if (
     !is.finite(break_step) ||
@@ -2539,10 +2208,7 @@
     break_step <- 1
   }
 
-  lower_candidates <- candidate_breaks[
-    candidate_breaks <
-      ci_min
-  ]
+  lower_candidates <- candidate_breaks[candidate_breaks < ci_min]
 
   y_lower <- if (
     length(
@@ -2559,10 +2225,7 @@
       break_step
   }
 
-  upper_candidates <- candidate_breaks[
-    candidate_breaks >
-      ci_max
-  ]
+  upper_candidates <- candidate_breaks[candidate_breaks > ci_max]
 
   y_upper <- if (
     length(
@@ -2585,18 +2248,13 @@
     by = break_step
   )
 
-  y_plot_lower <-
-    y_lower -
-    0.10 *
-    break_step
+  y_plot_lower <- y_lower - 0.10 * break_step
 
   # ==========================================================================
   # 8. HIERARCHICAL GROUP LABEL POSITIONS
   # ==========================================================================
 
-  group_label_step <-
-    0.075 *
-    y_span
+  group_label_step <- 0.075 * y_span
 
   if (
     nrow(
@@ -2624,8 +2282,7 @@
 
   } else {
 
-    highest_group_label_y <-
-      ci_max
+    highest_group_label_y <- ci_max
   }
 
   y_plot_upper <- max(
@@ -2650,8 +2307,7 @@
     )
   ) {
 
-    tree_node_data <-
-      delta_data
+    tree_node_data <- delta_data
 
     # ------------------------------------------------------------------------
     # 10.1. VERTICAL SPACING
@@ -2722,23 +2378,15 @@
     # 10.2. INITIALISE TREE COORDINATES
     # ------------------------------------------------------------------------
 
-    tree_node_data$Entry_y <-
-      NA_real_
+    tree_node_data$Entry_y <- NA_real_
 
-    tree_node_data$Tree_y <-
-      NA_real_
+    tree_node_data$Tree_y <- NA_real_
 
-    tree_node_data$Formula_y <-
-      NA_real_
+    tree_node_data$Formula_y <- NA_real_
 
-    tree_node_data$Final_x_y <-
-      NA_real_
+    tree_node_data$Final_x_y <- NA_real_
 
-    tree_levels <- sort(
-      unique(
-        tree_node_data$node_level
-      )
-    )
+    tree_levels <- sort(unique(tree_node_data$node_level))
 
     # ------------------------------------------------------------------------
     # 10.3. FIRST TREE LEVEL
@@ -2749,63 +2397,32 @@
     # sits just above the point from which its branch descends.
     # ------------------------------------------------------------------------
 
-    first_tree_level <- min(
-      tree_levels
-    )
+    first_tree_level <- min(tree_levels)
 
-    first_level_rows <-
-      tree_node_data$node_level ==
-      first_tree_level
+    first_level_rows <- tree_node_data$node_level == first_tree_level
 
-    first_level_final_rows <-
-      first_level_rows &
-      tree_node_data$is_final
+    first_level_final_rows <- first_level_rows & tree_node_data$is_final
 
-    first_level_nonfinal_rows <-
-      first_level_rows &
-      !tree_node_data$is_final
+    first_level_nonfinal_rows <- first_level_rows & !tree_node_data$is_final
 
     # For interactions of order >= 3, the first tree level contains
     # intermediate contrasts. Their formulas remain above the outgoing branches.
-    tree_node_data$Tree_y[
-      first_level_nonfinal_rows
-    ] <- tree_top_y
+    tree_node_data$Tree_y[first_level_nonfinal_rows] <- tree_top_y
 
-    tree_node_data$Formula_y[
-      first_level_nonfinal_rows
-    ] <- tree_top_y +
-      tree_top_formula_offset
+    tree_node_data$Formula_y[first_level_nonfinal_rows] <- tree_top_y + tree_top_formula_offset
 
-    tree_node_data$Entry_y[
-      first_level_nonfinal_rows
-    ] <- tree_node_data$Formula_y[
-      first_level_nonfinal_rows
-    ]
+    tree_node_data$Entry_y[first_level_nonfinal_rows] <- tree_node_data$Formula_y[first_level_nonfinal_rows]
 
     # For a two-way interaction, the first tree level is already the final
     # contrast. There is no intermediate branching structure, so the final
     # formula is placed below the estimates and the final X below the formula.
-    tree_node_data$Entry_y[
-      first_level_final_rows
-    ] <- tree_top_y
+    tree_node_data$Entry_y[first_level_final_rows] <- tree_top_y
 
-    tree_node_data$Formula_y[
-      first_level_final_rows
-    ] <- tree_top_y -
-      tree_formula_gap
+    tree_node_data$Formula_y[first_level_final_rows] <- tree_top_y - tree_formula_gap
 
-    tree_node_data$Tree_y[
-      first_level_final_rows
-    ] <- tree_node_data$Formula_y[
-      first_level_final_rows
-    ]
+    tree_node_data$Tree_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
 
-    tree_node_data$Final_x_y[
-      first_level_final_rows
-    ] <- tree_node_data$Formula_y[
-      first_level_final_rows
-    ] -
-      tree_final_x_gap
+    tree_node_data$Final_x_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows] - tree_final_x_gap
 
     # ------------------------------------------------------------------------
     # 10.4. POSITION SUCCESSIVE TREE LEVELS
@@ -2825,9 +2442,7 @@
         current_level in tree_levels[-1L]
       ) {
 
-        current_rows <-
-          tree_node_data$node_level ==
-          current_level
+        current_rows <- tree_node_data$node_level == current_level
 
         previous_level <-
           max(
@@ -2837,66 +2452,37 @@
             ]
           )
 
-        previous_rows <-
-          tree_node_data$node_level ==
-          previous_level
+        previous_rows <- tree_node_data$node_level == previous_level
 
-        previous_branch_y <- min(
-          tree_node_data$Tree_y[
-            previous_rows
-          ],
-          na.rm = TRUE
-        )
+        previous_branch_y <- min(tree_node_data$Tree_y[previous_rows],na.rm = TRUE)
 
         # Horizontal bridge connecting the two child nodes.
-        current_joint_y <-
-          previous_branch_y -
-          tree_branch_drop
+        current_joint_y <- previous_branch_y - tree_branch_drop
 
         # End of the short central vertical segment.
-        current_entry_y <-
-          current_joint_y -
-          tree_central_drop
+        current_entry_y <- current_joint_y - tree_central_drop
 
         # Formula is always below the incoming central branch.
-        current_formula_y <-
-          current_entry_y -
-          tree_formula_gap
+        current_formula_y <- current_entry_y - tree_formula_gap
 
-        tree_node_data$Entry_y[
-          current_rows
-        ] <- current_entry_y
+        tree_node_data$Entry_y[current_rows] <- current_entry_y
 
-        tree_node_data$Formula_y[
-          current_rows
-        ] <- current_formula_y
+        tree_node_data$Formula_y[current_rows] <- current_formula_y
 
         # For non-final nodes, subsequent branches begin below the formula.
         # This automatically pushes all later hierarchical levels downward.
-        current_final_rows <-
-          current_rows &
-          tree_node_data$is_final
+        current_final_rows <- current_rows & tree_node_data$is_final
 
-        current_nonfinal_rows <-
-          current_rows &
-          !tree_node_data$is_final
+        current_nonfinal_rows <- current_rows & !tree_node_data$is_final
 
-        tree_node_data$Tree_y[
-          current_nonfinal_rows
-        ] <- current_formula_y -
-          tree_outgoing_gap
+        tree_node_data$Tree_y[current_nonfinal_rows] <- current_formula_y - tree_outgoing_gap
 
         # The final node does not need an outgoing branch. Tree_y is retained
         # at the formula position only as a valid internal coordinate.
-        tree_node_data$Tree_y[
-          current_final_rows
-        ] <- current_formula_y
+        tree_node_data$Tree_y[current_final_rows] <- current_formula_y
 
         # The single final X is positioned below the final formula.
-        tree_node_data$Final_x_y[
-          current_final_rows
-        ] <- current_formula_y -
-          tree_final_x_gap
+        tree_node_data$Final_x_y[current_final_rows] <- current_formula_y - tree_final_x_gap
       }
     }
 
@@ -2907,12 +2493,7 @@
     connector_parts <- list()
     connector_counter <- 1L
 
-    parent_rows <- tree_node_data[
-      tree_node_data$node_level >
-        first_tree_level,
-      ,
-      drop = FALSE
-    ]
+    parent_rows <- tree_node_data[tree_node_data$node_level > first_tree_level, ,drop = FALSE]
 
     if (
       nrow(
@@ -2966,8 +2547,7 @@
           drop = FALSE
         ]
 
-        child_start_y <-
-          children$Tree_y
+        child_start_y <- children$Tree_y
 
         # Both children belong to the same hierarchical level and therefore
         # normally share the same y coordinate. mean() keeps the construction
@@ -2977,8 +2557,7 @@
         ) -
           tree_branch_drop
 
-        connector_colour <-
-          parent$Base_colour[1L]
+        connector_colour <- parent$Base_colour[1L]
 
         # --------------------------------------------------------------------
         # Left child vertical branch
@@ -3003,9 +2582,7 @@
             FALSE
         )
 
-        connector_counter <-
-          connector_counter +
-          1L
+        connector_counter <- connector_counter + 1L
 
         # --------------------------------------------------------------------
         # Right child vertical branch
@@ -3057,9 +2634,7 @@
             FALSE
         )
 
-        connector_counter <-
-          connector_counter +
-          1L
+        connector_counter <- connector_counter + 1L
 
         # --------------------------------------------------------------------
         # Short central descent
@@ -3099,10 +2674,7 @@
       ) > 0L
     ) {
 
-      tree_segment_data <- do.call(
-        rbind,
-        connector_parts
-      )
+      tree_segment_data <- do.call(rbind,connector_parts)
     }
 
     # ------------------------------------------------------------------------
@@ -3121,10 +2693,7 @@
       0.025 *
       y_span
 
-    y_plot_lower <- min(
-      y_plot_lower,
-      tree_bottom
-    )
+    y_plot_lower <- min(y_plot_lower,tree_bottom)
   }
 
 
@@ -3317,11 +2886,7 @@
     # 19.2. INTERMEDIATE TREE FORMULAS
     # ------------------------------------------------------------------------
 
-    tree_intermediate_data <- tree_node_data[
-      !tree_node_data$is_final,
-      ,
-      drop = FALSE
-    ]
+    tree_intermediate_data <- tree_node_data[!tree_node_data$is_final, ,drop = FALSE]
 
     if (
       nrow(
@@ -3329,9 +2894,7 @@
       ) > 0L
     ) {
 
-      first_tree_level <- min(
-        tree_intermediate_data$node_level
-      )
+      first_tree_level <- min(tree_intermediate_data$node_level)
 
       tree_first_level_data <- tree_intermediate_data[
         tree_intermediate_data$node_level ==
@@ -3479,8 +3042,7 @@
   # 20. IDENTITY SCALES
   # ==========================================================================
 
-  plot <- plot +
-    ggplot2::scale_colour_identity()
+  plot <- plot + ggplot2::scale_colour_identity()
 
 
   # ==========================================================================
@@ -3696,16 +3258,11 @@
     include_intercept = FALSE
   )
 
-  parameter_indices <- match(
-    coefficient_data$coefficient,
-    parameter_table$Parameter
-  )
+  parameter_indices <- match(coefficient_data$coefficient,parameter_table$Parameter)
 
   if (anyNA(parameter_indices)) {
 
-    unmatched_parameters <- coefficient_data$coefficient[
-      is.na(parameter_indices)
-    ]
+    unmatched_parameters <- coefficient_data$coefficient[is.na(parameter_indices)]
 
     stop(
       paste0(
@@ -3721,11 +3278,7 @@
     )
   }
 
-  interaction_parameters <- parameter_table[
-    parameter_indices,
-    ,
-    drop = FALSE
-  ]
+  interaction_parameters <- parameter_table[parameter_indices, ,drop = FALSE]
 
   # ============================================================
   # 3. DISPLAY SCALE
@@ -3733,35 +3286,25 @@
 
   if (identical(coefficient_scale, "model")) {
 
-    display_estimate <-
-      interaction_parameters$Estimate
+    display_estimate <- interaction_parameters$Estimate
 
-    display_ci_low <-
-      interaction_parameters$CI_low
+    display_ci_low <- interaction_parameters$CI_low
 
-    display_ci_high <-
-      interaction_parameters$CI_high
+    display_ci_high <- interaction_parameters$CI_high
 
-    display_type <- rep(
-      "Model estimate",
-      nrow(interaction_parameters)
-    )
+    display_type <- rep("Model estimate",nrow(interaction_parameters))
 
     null_value <- 0
 
   } else {
 
-    display_estimate <-
-      interaction_parameters$Interpreted_Estimate
+    display_estimate <- interaction_parameters$Interpreted_Estimate
 
-    display_ci_low <-
-      interaction_parameters$Interpreted_CI_low
+    display_ci_low <- interaction_parameters$Interpreted_CI_low
 
-    display_ci_high <-
-      interaction_parameters$Interpreted_CI_high
+    display_ci_high <- interaction_parameters$Interpreted_CI_high
 
-    display_type <-
-      interaction_parameters$Estimate_type
+    display_type <- interaction_parameters$Estimate_type
 
     ratio_types <- c(
       "Odds ratio",
@@ -3895,9 +3438,7 @@
     )
   }
 
-  digits <- as.integer(
-    digits
-  )
+  digits <- as.integer(digits)
 
   if (
     !is.numeric(base_size) ||
@@ -3929,10 +3470,7 @@
     "significance"
   )
 
-  missing_parameter_columns <- setdiff(
-    required_parameter_columns,
-    names(parameter_data)
-  )
+  missing_parameter_columns <- setdiff(required_parameter_columns,names(parameter_data))
 
   if (length(missing_parameter_columns) > 0L) {
     stop(
@@ -3948,25 +3486,15 @@
     )
   }
 
-  parameter_data$x <- as.numeric(
-    parameter_data$x
-  )
+  parameter_data$x <- as.numeric(parameter_data$x)
 
-  parameter_data$Display_estimate <- as.numeric(
-    parameter_data$Display_estimate
-  )
+  parameter_data$Display_estimate <- as.numeric(parameter_data$Display_estimate)
 
-  parameter_data$Display_CI_low <- as.numeric(
-    parameter_data$Display_CI_low
-  )
+  parameter_data$Display_CI_low <- as.numeric(parameter_data$Display_CI_low)
 
-  parameter_data$Display_CI_high <- as.numeric(
-    parameter_data$Display_CI_high
-  )
+  parameter_data$Display_CI_high <- as.numeric(parameter_data$Display_CI_high)
 
-  parameter_data$d <- as.numeric(
-    parameter_data$d
-  )
+  parameter_data$d <- as.numeric(parameter_data$d)
 
   if (
     anyNA(parameter_data$x) ||
@@ -3982,9 +3510,7 @@
   # 2. VERIFY ALIGNMENT WITH UPPER-PANEL COEFFICIENT BLOCKS
   # ==========================================================================
 
-  coefficient_midpoints <- as.numeric(
-    coefficient_data$x
-  )
+  coefficient_midpoints <- as.numeric(coefficient_data$x)
 
   if (
     length(coefficient_midpoints) != nrow(parameter_data) ||
@@ -4197,13 +3723,9 @@
     )
   }
 
-  y_range <- range(
-    displayed_y
-  )
+  y_range <- range(displayed_y)
 
-  y_span <- diff(
-    y_range
-  )
+  y_span <- diff(y_range)
 
   if (
     !is.finite(y_span) ||
@@ -4215,11 +3737,9 @@
     )
   }
 
-  y_lower <- y_range[1L] -
-    0.12 * y_span
+  y_lower <- y_range[1L] - 0.12 * y_span
 
-  y_upper <- y_range[2L] +
-    0.12 * y_span
+  y_upper <- y_range[2L] + 0.12 * y_span
 
   # Use the full upper-panel horizontal range so that the upper and lower
   # panels remain perfectly aligned regardless of interaction order.
@@ -4229,12 +3749,9 @@
   # 6. LABEL POSITIONS
   # ==========================================================================
 
-  parameter_data$Label_x <-
-    parameter_data$x +
-    label_x_offset
+  parameter_data$Label_x <- parameter_data$x + label_x_offset
 
-  parameter_data$Label_y <-
-    parameter_data$Display_estimate
+  parameter_data$Label_y <- parameter_data$Display_estimate
 
   # ==========================================================================
   # 7. CREATE PLOT
@@ -4488,25 +4005,13 @@ MoPlotStele_multpred <- function(
   # 1. ARGUMENTS
   # ==========================================================================
 
-  style <- match.arg(
-    style
-  )
+  style <- match.arg(style)
 
-  coefficient_scale <- match.arg(
-    coefficient_scale
-  )
+  coefficient_scale <- match.arg(coefficient_scale)
 
-  estimate_type <- tolower(
-    as.character(
-      estimate_type
-    )[1L]
-  )
+  estimate_type <- tolower(as.character(estimate_type)[1L])
 
-  prediction_scale <- tolower(
-    as.character(
-      prediction_scale
-    )[1L]
-  )
+  prediction_scale <- tolower(as.character(prediction_scale)[1L])
 
   if (
     !is.character(interaction) ||
@@ -4524,18 +4029,11 @@ MoPlotStele_multpred <- function(
   # 2. MODEL AND INTERACTION INFORMATION
   # ==========================================================================
 
-  model_information <- ModelContrastTable(
-    model,
-    type = "all"
-  )
+  model_information <- ModelContrastTable(model,type = "all")
 
-  variable_information <-
-    model_information[["Variable-Level Summary"]]
+  variable_information <- model_information[["Variable-Level Summary"]]
 
-  dependent_variables <- variable_information$Variable[
-    variable_information$Role ==
-      "Dependent"
-  ]
+  dependent_variables <- variable_information$Variable[variable_information$Role == "Dependent"]
 
   if (
     length(
@@ -4548,8 +4046,7 @@ MoPlotStele_multpred <- function(
     )
   }
 
-  dependent_variable <-
-    dependent_variables[1L]
+  dependent_variable <- dependent_variables[1L]
 
   interaction_variables <- strsplit(
     interaction,
@@ -4557,11 +4054,9 @@ MoPlotStele_multpred <- function(
     fixed = TRUE
   )[[1L]]
 
-  hierarchy_variables <-
-    prep$variable_path
+  hierarchy_variables <- prep$variable_path
 
-  hierarchy_depth <-
-    prep$hierarchy_depth
+  hierarchy_depth <- prep$hierarchy_depth
 
   if (
     is.null(hierarchy_variables) ||
@@ -4584,15 +4079,9 @@ MoPlotStele_multpred <- function(
       )
   }
 
-  split_variable <-
-    hierarchy_variables[1L]
+  split_variable <- hierarchy_variables[1L]
 
-  target_variable <-
-    hierarchy_variables[
-      length(
-        hierarchy_variables
-      )
-    ]
+  target_variable <- hierarchy_variables[length(hierarchy_variables)]
 
   # ==========================================================================
   # 3. DISPLAYED ESTIMATE DESCRIPTION
@@ -4784,8 +4273,7 @@ MoPlotStele_multpred <- function(
         )
       }
 
-      current_contrast <-
-        current_row$Contrast_Matrix_Type[1L]
+      current_contrast <- current_row$Contrast_Matrix_Type[1L]
 
       contrast_explanation <- switch(
         current_contrast,
@@ -5038,13 +4526,9 @@ MoPlotStele_multpred <- function(
     coef = TRUE
 ) {
 
-  style <- match.arg(
-    style
-  )
+  style <- match.arg(style)
 
-  number_points <- nrow(
-    prep$point_data
-  )
+  number_points <- nrow(prep$point_data)
 
   hierarchy_depth <- prep$hierarchy_depth
 
@@ -5056,9 +4540,7 @@ MoPlotStele_multpred <- function(
     hierarchy_depth <- 2L
   }
 
-  number_coefficients <- nrow(
-    prep$coefficient_data
-  )
+  number_coefficients <- nrow(prep$coefficient_data)
 
   # Horizontal space is driven primarily by the number of displayed
   # quantities. Delta and tree representations receive slightly more room.
