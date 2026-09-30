@@ -741,17 +741,11 @@ ContrastMultPred <- function(model,
   }
 
   if (!is.data.frame(data)) {
-    stop(
-      "'data' must be a data frame.",
-      call. = FALSE
-    )
+    stop("'data' must be a data frame.",call. = FALSE)
   }
 
   if (!response %in% names(data)) {
-    stop(
-      "The response variable is not present in 'data'.",
-      call. = FALSE
-    )
+    stop("The response variable is not present in 'data'.",call. = FALSE)
   }
 
   # ============================================================
@@ -768,24 +762,13 @@ ContrastMultPred <- function(model,
   # If lmerTest is installed, the function attempts to recover them.
   # ============================================================
 
-  extract_model_info <- function(model,
-                                 data,
-                                 alpha_sig = 0.05) {
+  extract_model_info <- function(model,data, alpha_sig = 0.05) {
 
-    fixed_effects <- .extract_fixef(
-      model
-    )
+    fixed_effects <- .extract_fixef(model)
 
-    coefficient_names <- setdiff(
-      names(fixed_effects),
-      "(Intercept)"
-    )
+    coefficient_names <- setdiff(names(fixed_effects),"(Intercept)")
 
-    p_information <- .extract_p_values(
-      model = model,
-      coefficient_names = coefficient_names,
-      alpha = alpha_sig
-    )
+    p_information <- .extract_p_values(model = model,coefficient_names = coefficient_names, alpha = alpha_sig)
 
     list(
       coef_names = coefficient_names,
@@ -824,9 +807,7 @@ ContrastMultPred <- function(model,
 
   } else if (is.null(coefficients)) {
 
-    coefficients <- coef_names[
-      grepl(":", coef_names, fixed = TRUE)
-    ]
+    coefficients <- coef_names[grepl(":", coef_names, fixed = TRUE)]
   }
 
   if (length(coefficients) == 0) {
@@ -836,22 +817,15 @@ ContrastMultPred <- function(model,
   # Identify factor predictors involved in the model.
   fixed_formula <- .extract_fixed_formula(model)
 
-  model_vars <- all.vars(
-    fixed_formula
-  )
+  model_vars <- all.vars(fixed_formula)
 
-  predictor_vars <- setdiff(
-    model_vars,
-    response
-  )
+  predictor_vars <- setdiff(model_vars,response)
 
   predictor_vars <- predictor_vars[predictor_vars %in% names(data)]
 
   factor_vars <- predictor_vars[vapply(data[predictor_vars],is.factor,logical(1))]
 
-  if (length(factor_vars) == 0) {
-    stop("There are no factor predictors in the model.")
-  }
+  if (length(factor_vars) == 0) {stop("There are no factor predictors in the model.")}
 
   # ============================================================
   # 3. Matrix comparison helper
@@ -910,17 +884,11 @@ ContrastMultPred <- function(model,
 
   contrast_complexity <- function(var) {
 
-    contrast_matrix <- stats::contrasts(
-      data[[var]]
-    )
+    contrast_matrix <- stats::contrasts(data[[var]])
 
-    number_levels <- nlevels(
-      data[[var]]
-    )
+    number_levels <- nlevels(data[[var]])
 
-    if (is.null(contrast_matrix)) {
-      return(Inf)
-    }
+    if (is.null(contrast_matrix)) { return(Inf) }
 
     contrast_matrix_unname <- contrast_matrix
     dimnames(contrast_matrix_unname) <- NULL
@@ -988,11 +956,7 @@ ContrastMultPred <- function(model,
     configuration = configuration
   )
 
-  if (isTRUE(methodological_note)) {
-    message(
-      disclaimer_note
-    )
-  }
+  if (isTRUE(methodological_note)) { message(disclaimer_note) }
 
   # ============================================================
   # 7. Build component lookup
@@ -1015,13 +979,9 @@ ContrastMultPred <- function(model,
   build_component_lookup <- function(var,
                                      data) {
 
-    variable_formula <- stats::reformulate(
-      var
-    )
+    variable_formula <- stats::reformulate(var)
 
-    terms_object <- stats::delete.response(
-      stats::terms(variable_formula)
-    )
+    terms_object <- stats::delete.response(stats::terms(variable_formula))
 
     variable_frame <- stats::model.frame(
       terms_object,
@@ -1034,20 +994,11 @@ ContrastMultPred <- function(model,
     # in 'data'. Therefore, it is not passed again through
     # contrasts.arg, avoiding duplicated contrast assignments and
     # the associated "contrasts dropped from factor" warning.
-    model_matrix <- stats::model.matrix(
-      terms_object,
-      data = variable_frame
-    )
+    model_matrix <- stats::model.matrix(terms_object,data = variable_frame)
 
-    model_matrix <- model_matrix[
-      ,
-      colnames(model_matrix) != "(Intercept)",
-      drop = FALSE
-    ]
+    model_matrix <- model_matrix[ ,colnames(model_matrix) != "(Intercept)", drop = FALSE]
 
-    if (ncol(model_matrix) == 0L) {
-      return(NULL)
-    }
+    if (ncol(model_matrix) == 0L) { return(NULL) }
 
     data.frame(
       component = colnames(model_matrix),
@@ -1144,33 +1095,19 @@ ContrastMultPred <- function(model,
 
     # Preserve the stable order of categorical predictors in the
     # fixed-effects model.
-    ordered_variables <- factor_vars[
-      factor_vars %in% variables
-    ]
+    ordered_variables <- factor_vars[factor_vars %in% variables]
 
     # Retain any unexpected variable that is not included in
     # factor_vars.
-    remaining_variables <- setdiff(
-      variables,
-      ordered_variables
-    )
+    remaining_variables <- setdiff(variables,ordered_variables)
 
-    ordered_variables <- c(
-      ordered_variables,
-      remaining_variables
-    )
+    ordered_variables <- c(ordered_variables,remaining_variables)
 
     # The split variable is the conditioning variable and is placed
     # after all target contrast variables.
     if (!is.null(split_var) &&
         split_var %in% ordered_variables) {
-
-      ordered_variables <- c(
-        ordered_variables[
-          ordered_variables != split_var
-        ],
-        split_var
-      )
+          ordered_variables <- c(ordered_variables[ordered_variables != split_var],split_var)
     }
 
     ordered_variables
@@ -1179,23 +1116,11 @@ ContrastMultPred <- function(model,
   make_configuration_semantic <- function(named_labels,
                                           split_var = NULL) {
 
-    labels <- unique(
-      named_labels
-    )
+    labels <- unique(named_labels)
 
-    parsed_labels <- lapply(
-      labels,
-      parse_named_label
-    )
+    parsed_labels <- lapply(labels,parse_named_label)
 
-    variables_present <- unique(
-      unlist(
-        lapply(
-          parsed_labels,
-          names
-        )
-      )
-    )
+    variables_present <- unique(unlist(lapply(parsed_labels,names)))
 
     variable_order <- order_configuration_variables(
       variables = variables_present,
@@ -1504,14 +1429,8 @@ ContrastMultPred <- function(model,
     # The weights are stored explicitly so that they can later be
     # multiplied by contrast weights during recursive aggregation.
     row_weights <- if (number_rows > 0L) {
-
-      rep(
-        1 / number_rows,
-        number_rows
-      )
-
+      rep(1 / number_rows,number_rows)
     } else {
-
       numeric(0)
     }
 
@@ -1687,15 +1606,9 @@ ContrastMultPred <- function(model,
     # Normalize the higher-level contrast weights.
     outer_weights <- weights / sum(weights)
 
-    weighted_data <- vector(
-      "list",
-      length(prediction_data)
-    )
+    weighted_data <- vector("list",length(prediction_data))
 
-    weighted_rows <- vector(
-      "list",
-      length(prediction_data)
-    )
+    weighted_rows <- vector("list",length(prediction_data))
 
     for (index in seq_along(prediction_data)) {
 
@@ -1705,26 +1618,18 @@ ContrastMultPred <- function(model,
       # Normalize the weights within each child bundle. The child
       # estimate is therefore preserved before applying its outer
       # contrast weight.
-      current_weights <- current_weights /
-        sum(current_weights)
+      current_weights <- current_weights / sum(current_weights)
 
       weighted_data[[index]] <- current_data
 
-      weighted_rows[[index]] <- current_weights *
-        outer_weights[index]
+      weighted_rows[[index]] <- current_weights * outer_weights[index]
     }
 
-    combined_data <- do.call(
-      rbind,
-      weighted_data
-    )
+    combined_data <- do.call(rbind,weighted_data)
 
     rownames(combined_data) <- NULL
 
-    combined_weights <- unlist(
-      weighted_rows,
-      use.names = FALSE
-    )
+    combined_weights <- unlist(weighted_rows,use.names = FALSE)
 
     # Calculate the final average and its uncertainty directly from
     # the fixed-effect coefficient covariance matrix.
@@ -1917,14 +1822,9 @@ ContrastMultPred <- function(model,
 
       hypothesis_object <- hypr::hypr()
 
-      hypr::cmat(
-        hypothesis_object,
-        add_intercept = TRUE
-      ) <- cm_un
+      hypr::cmat(hypothesis_object,add_intercept = TRUE) <- cm_un
 
-      cm_use <- t(
-        hypr::hmat(hypothesis_object)
-      )[, -1, drop = FALSE]
+      cm_use <- t(hypr::hmat(hypothesis_object))[, -1, drop = FALSE]
 
       dimnames(cm_use) <- dm_names
 
@@ -1932,14 +1832,9 @@ ContrastMultPred <- function(model,
 
       hypothesis_object <- hypr::hypr()
 
-      hypr::cmat(
-        hypothesis_object,
-        add_intercept = TRUE
-      ) <- cm_un
+      hypr::cmat(hypothesis_object,add_intercept = TRUE) <- cm_un
 
-      cm_use <- t(
-        hypr::hmat(hypothesis_object)
-      )[, -1, drop = FALSE]
+      cm_use <- t(hypr::hmat(hypothesis_object))[, -1, drop = FALSE]
 
       dimnames(cm_use) <- dm_names
 
@@ -2168,25 +2063,13 @@ ContrastMultPred <- function(model,
 
           lev <- pos_levels[i]
 
-          conds <- c(
-            conditions,
-            setNames(
-              list(lev),
-              current_var
-            )
-          )
+          conds <- c(conditions,setNames(list(lev),current_var))
 
-          sub <- subset_by_conditions(
-            data,
-            conds
-          )
+          sub <- subset_by_conditions(data,conds)
 
           stats_df <- compute_cell_stats(sub)
 
-          lab <- make_ordered_label_info(
-            conds,
-            split_var = top_split_var
-          )
+          lab <- make_ordered_label_info(conds,split_var = top_split_var)
 
           positive_cell <- data.frame(
             label = lab$display,
@@ -2198,20 +2081,15 @@ ContrastMultPred <- function(model,
             stringsAsFactors = FALSE
           )
 
-          positive_cell$.prediction_data <-
-            stats_df$.prediction_data
+          positive_cell$.prediction_data <- stats_df$.prediction_data
 
-          positive_cell$.prediction_weights <-
-            stats_df$.prediction_weights
+          positive_cell$.prediction_weights <- stats_df$.prediction_weights
 
           positive_cell
         }
       )
 
-      pos_cells <- do.call(
-        rbind,
-        pos_cells
-      )
+      pos_cells <- do.call(rbind,pos_cells)
 
       neg_cells <- lapply(
         seq_along(neg_levels),
@@ -2227,17 +2105,11 @@ ContrastMultPred <- function(model,
             )
           )
 
-          sub <- subset_by_conditions(
-            data,
-            conds
-          )
+          sub <- subset_by_conditions(data,conds)
 
           stats_df <- compute_cell_stats(sub)
 
-          lab <- make_ordered_label_info(
-            conds,
-            split_var = top_split_var
-          )
+          lab <- make_ordered_label_info(conds,split_var = top_split_var)
 
           negative_cell <- data.frame(
             label = lab$display,
@@ -2249,20 +2121,15 @@ ContrastMultPred <- function(model,
             stringsAsFactors = FALSE
           )
 
-          negative_cell$.prediction_data <-
-            stats_df$.prediction_data
+          negative_cell$.prediction_data <- stats_df$.prediction_data
 
-          negative_cell$.prediction_weights <-
-            stats_df$.prediction_weights
+          negative_cell$.prediction_weights <- stats_df$.prediction_weights
 
           negative_cell
         }
       )
 
-      neg_cells <- do.call(
-        rbind,
-        neg_cells
-      )
+      neg_cells <- do.call(rbind,neg_cells)
 
       if (estimate_type == "raw") {
 
@@ -2303,17 +2170,13 @@ ContrastMultPred <- function(model,
         pos_stats <- positive_aggregation$statistics
         neg_stats <- negative_aggregation$statistics
 
-        positive_prediction_data <-
-          positive_aggregation$prediction_data
+        positive_prediction_data <- positive_aggregation$prediction_data
 
-        positive_prediction_weights <-
-          positive_aggregation$prediction_weights
+        positive_prediction_weights <- positive_aggregation$prediction_weights
 
-        negative_prediction_data <-
-          negative_aggregation$prediction_data
+        negative_prediction_data <- negative_aggregation$prediction_data
 
-        negative_prediction_weights <-
-          negative_aggregation$prediction_weights
+        negative_prediction_weights <- negative_aggregation$prediction_weights
       }
 
       pos_var_cols <- make_variable_columns(pos_cells$named_label, factor_vars)
@@ -2347,11 +2210,9 @@ ContrastMultPred <- function(model,
         pos_var_cols
       )
 
-      positive_result$.prediction_data <-
-        list(positive_prediction_data)
+      positive_result$.prediction_data <- list(positive_prediction_data)
 
-      positive_result$.prediction_weights <-
-        list(positive_prediction_weights)
+      positive_result$.prediction_weights <- list(positive_prediction_weights)
 
 
       negative_result <- cbind(
@@ -2661,14 +2522,7 @@ ContrastMultPred <- function(model,
     ".prediction_weights"
   )
 
-  out <- out[
-    ,
-    setdiff(
-      names(out),
-      internal_prediction_columns
-    ),
-    drop = FALSE
-  ]
+  out <- out[ ,setdiff(names(out),internal_prediction_columns),drop = FALSE]
 
   # ============================================================
   # 23. Add significance information
@@ -2726,16 +2580,9 @@ ContrastMultPred <- function(model,
     "configuration_semantic"
   )
 
-  decomposition_columns <- intersect(
-    decomposition_columns,
-    names(out)
-  )
+  decomposition_columns <- intersect(decomposition_columns,names(out))
 
-  decomposition <- out[
-    ,
-    decomposition_columns,
-    drop = FALSE
-  ]
+  decomposition <- out[ ,decomposition_columns,drop = FALSE]
 
   decomposition$decomposition_path <- ifelse(
     is.na(decomposition$inner_side) |
