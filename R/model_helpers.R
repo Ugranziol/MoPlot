@@ -277,9 +277,7 @@
     variance_object <- variance_object$cond
   }
 
-  variance_matrix <- as.matrix(
-    variance_object
-  )
+  variance_matrix <- as.matrix(variance_object)
 
   fixed_effects <- .extract_fixef(model)
   coefficient_names <- names(fixed_effects)
@@ -643,18 +641,11 @@
     )
   }
 
-  all_p_values <- coefficient_table[
-    ,
-    p_column[1L]
-  ]
+  all_p_values <- coefficient_table[ ,p_column[1L]]
 
-  names(all_p_values) <- rownames(
-    coefficient_table
-  )
+  names(all_p_values) <- rownames(coefficient_table)
 
-  requested_p_values <- all_p_values[
-    coefficient_names
-  ]
+  requested_p_values <- all_p_values[coefficient_names]
 
   significance <- ifelse(
     is.na(requested_p_values),
@@ -701,13 +692,9 @@
     return(NULL)
   }
 
-  fixed_variables <- all.vars(
-    fixed_formula
-  )
+  fixed_variables <- all.vars(fixed_formula)
 
-  fixed_variables <- fixed_variables[
-    fixed_variables %in% names(model_frame)
-  ]
+  fixed_variables <- fixed_variables[fixed_variables %in% names(model_frame)]
 
   factor_variables <- fixed_variables[
     vapply(
@@ -797,16 +784,12 @@
 
   fixed_formula <- .extract_fixed_formula(model)
 
-  terms_object <- stats::delete.response(
-    stats::terms(fixed_formula)
-  )
+  terms_object <- stats::delete.response(stats::terms(fixed_formula))
 
   fixed_effects <- .extract_fixef(model)
   coefficient_names <- names(fixed_effects)
 
-  original_contrasts <- .extract_original_contrasts(
-    model
-  )
+  original_contrasts <- .extract_original_contrasts(model)
 
   xlevels <- .extract_xlevels(
     model,
@@ -982,11 +965,7 @@
     )
   }
 
-  new_model_matrix[
-    ,
-    coefficient_names,
-    drop = FALSE
-  ]
+  new_model_matrix[ ,coefficient_names,drop = FALSE]
 }
 # ============================================================
 # 13. POPULATION-LEVEL PREDICTIONS
@@ -1000,9 +979,7 @@
                                        ),
                                        conf_level = 0.95) {
 
-  prediction_scale <- match.arg(
-    prediction_scale
-  )
+  prediction_scale <- match.arg(prediction_scale)
 
   if (!is.numeric(conf_level) ||
       length(conf_level) != 1L ||
@@ -1024,9 +1001,7 @@
     newdata = newdata
   )
 
-  linear_predictor <- as.numeric(
-    model_matrix %*% fixed_effects
-  )
+  linear_predictor <- as.numeric(model_matrix %*% fixed_effects)
 
   linear_predictor_covariance <- model_matrix %*%
     variance_matrix %*%
@@ -1039,15 +1014,11 @@
     )
   )
 
-  critical_value <- stats::qnorm(
-    1 - (1 - conf_level) / 2
-  )
+  critical_value <- stats::qnorm(1 - (1 - conf_level) / 2)
 
-  ci_low_link <- linear_predictor -
-    critical_value * linear_predictor_se
+  ci_low_link <- linear_predictor - critical_value * linear_predictor_se
 
-  ci_high_link <- linear_predictor +
-    critical_value * linear_predictor_se
+  ci_high_link <- linear_predictor + critical_value * linear_predictor_se
 
   family_object <- .extract_family(model)
 
@@ -1067,15 +1038,9 @@
     inverse_link <- family_object$linkinv
     inverse_link_derivative <- family_object$mu.eta
 
-    response_estimate <- inverse_link(
-      linear_predictor
-    )
+    response_estimate <- inverse_link(linear_predictor)
 
-    response_se <- abs(
-      inverse_link_derivative(
-        linear_predictor
-      )
-    ) * linear_predictor_se
+    response_se <- abs(inverse_link_derivative(linear_predictor)) * linear_predictor_se
 
     predictions <- data.frame(
       estimate = response_estimate,
@@ -1110,9 +1075,7 @@
                                         conf_level = 0.95,
                                         weights = NULL) {
 
-  prediction_scale <- match.arg(
-    prediction_scale
-  )
+  prediction_scale <- match.arg(prediction_scale)
 
   predictions <- .compute_fixed_predictions(
     model = model,
@@ -1160,10 +1123,7 @@
 
   if (is.null(weights)) {
 
-    weights <- rep(
-      1,
-      number_predictions
-    )
+    weights <- rep(1,number_predictions)
   }
 
   if (!is.numeric(weights) ||
@@ -1191,28 +1151,16 @@
     )
   }
 
-  normalized_weights <- weights /
-    sum(weights)
+  normalized_weights <- weights / sum(weights)
 
-  critical_value <- stats::qnorm(
-    1 - (1 - conf_level) / 2
-  )
+  critical_value <- stats::qnorm(1 - (1 - conf_level) / 2)
 
   if (prediction_scale == "link" ||
       is.null(family_object)) {
 
-    average_model_row <- matrix(
-      colSums(
-        model_matrix *
-          normalized_weights
-      ),
-      nrow = 1L
-    )
+    average_model_row <- matrix(colSums(model_matrix *normalized_weights),nrow = 1L)
 
-    estimate <- sum(
-      normalized_weights *
-        linear_predictor
-    )
+    estimate <- sum(normalized_weights *linear_predictor)
 
     estimate_variance <- as.numeric(
       average_model_row %*%
@@ -1225,14 +1173,9 @@
     inverse_link <- family_object$linkinv
     inverse_link_derivative <- family_object$mu.eta
 
-    response_predictions <- inverse_link(
-      linear_predictor
-    )
+    response_predictions <- inverse_link(linear_predictor)
 
-    estimate <- sum(
-      normalized_weights *
-        response_predictions
-    )
+    estimate <- sum(normalized_weights * response_predictions)
 
     # For
     #
@@ -1241,34 +1184,14 @@
     # the gradient is:
     #
     #   sum_i a_i g^{-1}'(eta_i) X_i.
-    gradient <- colSums(
-      model_matrix *
-        as.numeric(
-          inverse_link_derivative(
-            linear_predictor
-          )
-        ) *
-        normalized_weights
-    )
+    gradient <- colSums(model_matrix * as.numeric(inverse_link_derivative(linear_predictor)) * normalized_weights)
 
-    gradient <- matrix(
-      gradient,
-      nrow = 1L
-    )
+    gradient <- matrix(gradient,nrow = 1L)
 
-    estimate_variance <- as.numeric(
-      gradient %*%
-        variance_matrix %*%
-        t(gradient)
-    )
+    estimate_variance <- as.numeric(gradient %*% variance_matrix %*% t(gradient))
   }
 
-  estimate_se <- sqrt(
-    max(
-      estimate_variance,
-      0
-    )
-  )
+  estimate_se <- sqrt(max(estimate_variance,0))
 
   data.frame(
     estimate = estimate,
