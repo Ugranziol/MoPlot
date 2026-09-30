@@ -343,25 +343,15 @@ MoPlot_multpred <- function(
   # 1. ARGUMENT MATCHING
   # ============================================================
 
-  split_rule <- match.arg(
-    split_rule
-  )
+  split_rule <- match.arg(split_rule)
 
-  estimate_type <- match.arg(
-    estimate_type
-  )
+  estimate_type <- match.arg(estimate_type)
 
-  prediction_scale <- match.arg(
-    prediction_scale
-  )
+  prediction_scale <- match.arg(prediction_scale)
 
-  coefficient_scale <- match.arg(
-    coefficient_scale
-  )
+  coefficient_scale <- match.arg(coefficient_scale)
 
-  style <- match.arg(
-    style
-  )
+  style <- match.arg(style)
 
 
 
@@ -410,22 +400,15 @@ MoPlot_multpred <- function(
     configuration = NULL
   )
 
-  message(
-    plot_methodological_note
-  )
+  message(plot_methodological_note)
 
   # ============================================================
   # 3. PREPARE UPPER-PANEL DATA
   # ============================================================
 
-  prep <- .prepare_moplot_multpred_data(
-    contrast_output
-  )
+  prep <- .prepare_moplot_multpred_data(contrast_output)
 
-  label_key <- .collect_moplot_label_key(
-    prep = prep,
-    max_chars = 5L
-  )
+  label_key <- .collect_moplot_label_key(prep = prep, max_chars = 5L)
 
   # ============================================================
   # 3.1 CAPTION
