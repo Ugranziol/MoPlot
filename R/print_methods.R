@@ -1,13 +1,11 @@
 # ============================================================
-# PRINT METHODS FOR MODEL CONTRAST TABLE OBJECTS
+# PRINT METHODS FOR MODEL CONTRAST TABLE OBJECTS (INTERNAL)
 # ============================================================
 #
 # These S3 methods control how ModelContrastTable() results are
-# displayed in the console.
+# displayed in the console internally within the package.
 #
 # The underlying objects remain ordinary lists and data frames.
-# Therefore, users can still extract, transform, export, or test
-# the returned values using standard R operations.
 # ============================================================
 
 
@@ -17,16 +15,14 @@
 
 #' Print a complete model contrast summary
 #'
-#' @description
-#' Prints the complete output returned by
-#' [ModelContrastTable()] when `type = "all"`.
-#'
 #' @param x An object of class `"model_contrast_table"`.
-#' @param ... Additional arguments. Currently unused.
+#' @param ... Additional arguments passed to [print()].
 #'
-#' @return The input object, invisibly.
+#' @return The input object `x`, invisibly.
 #'
-#' @export
+#' @importFrom cli cli_h1 cli_h2
+#' @importFrom tibble as_tibble
+#' @noRd
 print.model_contrast_table <- function(x, ...) {
 
   cli::cli_h1("Model Contrast Summary")
@@ -36,11 +32,10 @@ print.model_contrast_table <- function(x, ...) {
   model_summary <- x[["Model-Level Summary"]]
 
   print(
-    tibble::as_tibble(
-      model_summary
-    ),
+    tibble::as_tibble(model_summary),
     n = Inf,
-    width = Inf
+    width = Inf,
+    ...
   )
 
   cli::cli_h2("Variable-level information")
@@ -48,11 +43,10 @@ print.model_contrast_table <- function(x, ...) {
   variable_summary <- x[["Variable-Level Summary"]]
 
   print(
-    tibble::as_tibble(
-      variable_summary
-    ),
+    tibble::as_tibble(variable_summary),
     n = Inf,
-    width = Inf
+    width = Inf,
+    ...
   )
 
   invisible(x)
@@ -65,28 +59,25 @@ print.model_contrast_table <- function(x, ...) {
 
 #' Print a model-level contrast summary
 #'
-#' @description
-#' Prints the model-level summary returned by
-#' [ModelContrastTable()] when `type = "summary"`.
-#'
 #' @param x An object of class `"model_contrast_summary"`.
-#' @param ... Additional arguments. Currently unused.
+#' @param ... Additional arguments passed to [print()].
 #'
-#' @return The input object, invisibly.
+#' @return The input object `x`, invisibly.
 #'
-#' @export
+#' @importFrom cli cli_h1
+#' @importFrom tibble as_tibble
+#' @noRd
 print.model_contrast_summary <- function(x, ...) {
 
   cli::cli_h1("Model-level summary")
 
-  printable_object <- as.data.frame(x,stringsAsFactors = FALSE)
+  printable_object <- as.data.frame(x, stringsAsFactors = FALSE)
 
   print(
-    tibble::as_tibble(
-      printable_object
-    ),
+    tibble::as_tibble(printable_object),
     n = Inf,
-    width = Inf
+    width = Inf,
+    ...
   )
 
   invisible(x)
@@ -99,28 +90,25 @@ print.model_contrast_summary <- function(x, ...) {
 
 #' Print a variable-level contrast summary
 #'
-#' @description
-#' Prints a variable-level summary returned by
-#' [ModelContrastTable()] when `type` is `"x&y"`, `"x"`, or `"y"`.
-#'
 #' @param x An object of class `"model_contrast_variables"`.
-#' @param ... Additional arguments. Currently unused.
+#' @param ... Additional arguments passed to [print()].
 #'
-#' @return The input object, invisibly.
+#' @return The input object `x`, invisibly.
 #'
-#' @export
+#' @importFrom cli cli_h1
+#' @importFrom tibble as_tibble
+#' @noRd
 print.model_contrast_variables <- function(x, ...) {
 
   cli::cli_h1("Variable-level summary")
 
-  printable_object <- as.data.frame(x,stringsAsFactors = FALSE)
+  printable_object <- as.data.frame(x, stringsAsFactors = FALSE)
 
   print(
-    tibble::as_tibble(
-      printable_object
-    ),
+    tibble::as_tibble(printable_object),
     n = Inf,
-    width = Inf
+    width = Inf,
+    ...
   )
 
   invisible(x)
