@@ -1448,9 +1448,29 @@ ContrastsOnePred <- function(model = NULL,
     # independent. The sum-contrast Grand Mean is handled separately
     # with the complete fixed-effect covariance matrix when predicted
     # estimates are requested.
-    positive_se <- sqrt(sum(level_se_values[positive_levels]^2,na.rm = TRUE)) / length(positive_levels)
+    if (estimate_type == "predicted" && !is.null(attr(level_estimates, "model_matrix")) && !is.null(attr(level_estimates, "vcov_beta"))) {
+      mm <- attr(level_estimates, "model_matrix")
+      vcov_b <- attr(level_estimates, "vcov_beta")
+      fam <- attr(level_estimates, "family")
+      eta_val <- attr(level_estimates, "eta")
 
-    negative_se <- sqrt(sum(level_se_values[negative_levels]^2,na.rm = TRUE)) / length(negative_levels)
+      # Positive side
+      p_rows <- matrix(colMeans(mm[positive_levels, , drop = FALSE]), nrow = 1L)
+      if (prediction_scale == "response" && !is.null(fam)) {
+        p_rows <- matrix(colMeans(mm[positive_levels, , drop = FALSE] * fam$mu.eta(eta_val[positive_levels])), nrow = 1L)
+      }
+      positive_se <- sqrt(max(as.numeric(p_rows %*% vcov_b %*% t(p_rows)), 0))
+
+      # Negative side
+      n_rows <- matrix(colMeans(mm[negative_levels, , drop = FALSE]), nrow = 1L)
+      if (prediction_scale == "response" && !is.null(fam)) {
+        n_rows <- matrix(colMeans(mm[negative_levels, , drop = FALSE] * fam$mu.eta(eta_val[negative_levels])), nrow = 1L)
+      }
+      negative_se <- sqrt(max(as.numeric(n_rows %*% vcov_b %*% t(n_rows)), 0))
+    } else {
+      positive_se <- sqrt(sum(level_se_values[positive_levels]^2, na.rm = TRUE)) / length(positive_levels)
+      negative_se <- sqrt(sum(level_se_values[negative_levels]^2, na.rm = TRUE)) / length(negative_levels)
+    }
 
     positive_ci_low <- positive_estimate - z_value * positive_se
 
