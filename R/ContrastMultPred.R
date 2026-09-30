@@ -726,9 +726,7 @@ ContrastMultPred <- function(model,
 
   if (is.null(data)) {
 
-    data <- .extract_analysis_data(
-      model
-    )
+    data <- .extract_analysis_data(model)
 
     if (is.null(data)) {
       stop(
