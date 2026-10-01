@@ -609,3 +609,113 @@ test_that("models without an intercept are rejected with an explanation", {
     "requires a model with an intercept"
   )
 })
+
+
+simulate_outcome_data <- function() {
+  set.seed(81)
+  data <- data.frame(
+    group = factor(rep(c("A", "B", "C"), each = 40)),
+    x = stats::rexp(120) + 0.1
+  )
+  data$y <- exp(stats::rnorm(120, as.integer(data$group) / 2))
+  data$answer <- factor(
+    ifelse(stats::runif(120) < c(0.2, 0.4, 0.6)[data$group], "yes", "no"),
+    levels = c("no", "yes")
+  )
+  data$successes <- stats::rbinom(120, 5, 0.4)
+  data
+}
+
+
+test_that("factor and logical outcomes of binomial models are converted to 0/1", {
+
+  data <- simulate_outcome_data()
+
+  factor_result <- quiet_contrasts(
+    model = stats::glm(answer ~ group, family = stats::binomial, data = data),
+    predictor = "group",
+    outcome = "answer",
+    data = data,
+    estimate_type = "observed"
+  )
+
+  observed_proportions <- tapply(data$answer == "yes", data$group, mean)
+
+  expect_equal(
+    factor_result$Estimate[match(c("A", "B", "C"), factor_result$Levels)],
+    as.numeric(observed_proportions)
+  )
+
+  data$answer_logical <- data$answer == "yes"
+
+  logical_result <- quiet_contrasts(
+    model = stats::glm(answer_logical ~ group, family = stats::binomial, data = data),
+    predictor = "group",
+    outcome = "answer_logical",
+    data = data,
+    estimate_type = "observed"
+  )
+
+  expect_equal(logical_result$Estimate, factor_result$Estimate)
+})
+
+
+test_that("observed estimates use the transformed response of the model", {
+
+  data <- simulate_outcome_data()
+
+  result <- quiet_contrasts(
+    model = stats::lm(log(y) ~ group, data = data),
+    predictor = "group",
+    outcome = "y",
+    data = data,
+    estimate_type = "observed"
+  )
+
+  expect_equal(
+    result$Estimate[result$Levels == "A"][1],
+    mean(log(data$y[data$group == "A"]))
+  )
+})
+
+
+test_that("two-column binomial responses support predicted estimates only", {
+
+  data <- simulate_outcome_data()
+
+  model <- stats::glm(cbind(successes, 5 - successes) ~ group, family = stats::binomial, data = data)
+
+  expect_error(
+    quiet_contrasts(model = model, predictor = "group", outcome = "successes", data = data, estimate_type = "observed"),
+    "several columns"
+  )
+
+  result <- quiet_contrasts(
+    model = model,
+    predictor = "group",
+    outcome = "successes",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  expect_true(all(result$Estimate > 0 & result$Estimate < 1))
+})
+
+
+test_that("the analysis data are recovered with fitted rows and contrasts", {
+
+  data <- simulate_outcome_data()
+  data$y[1:3] <- NA
+  stats::contrasts(data$group) <- stats::contr.sum(3)
+
+  model <- stats::lm(y ~ group + log(x), data = data)
+
+  # The data are modified after fitting.
+  stats::contrasts(data$group) <- stats::contr.treatment(3)
+
+  analysis_data <- .extract_analysis_data(model)
+
+  expect_true("x" %in% names(analysis_data))
+  expect_identical(nrow(analysis_data), 117L)
+  expect_equal(unname(stats::contrasts(analysis_data$group)), unname(stats::contr.sum(3)))
+})

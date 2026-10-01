@@ -25,7 +25,12 @@ predictor whose contrasts should be summarized. The corresponding
 variable in data must be a factor.}
 
 \item{outcome}{Character string indicating the name of the dependent
-variable. The corresponding variable in data must be numeric.}
+variable. It is used only for observed estimates, which summarize the
+response of the model evaluated in \code{data}: a transformed response such as
+\code{log(y)} is summarized on the scale of the model, and a logical response or
+a factor response of a binomial model is converted to 0/1 as in
+\code{\link[stats:glm]{stats::glm()}} (the first level is 0). Observed estimates are not available
+for responses with several columns, such as \code{cbind(successes, failures)}.}
 
 \item{data}{A data frame containing the variables used to fit \code{model}.
 The contrast matrix assigned to \code{data[[predictor]]} must correspond to

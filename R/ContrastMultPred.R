@@ -22,13 +22,17 @@
 #'   [lme4::glmer()], [nlme::lme()], and [glmmTMB::glmmTMB()].
 #'
 #' @param data Optional data frame containing the variables used to fit
-#'   `model`. If `NULL`, the function attempts to recover the analysis data
-#'   from the fitted model using `stats::model.frame()`. Supplying `data`
-#'   explicitly remains recommended when the model does not retain a usable
-#'   model frame or when a specific analysis data set should be used.
+#'   `model`. If `NULL`, the data supplied in the model call are recovered,
+#'   restricted to the rows used for fitting; the model frame is used only when
+#'   they are unavailable. The original variables are needed for model-based
+#'   estimates when the model contains transformed terms such as `log(x)`.
 #'
 #' @param response Character string indicating the name of the response
 #'   variable. By default, the response is extracted from the model formula.
+#'   It is used only for raw estimates, which summarize the response of the
+#'   model evaluated in `data`: a transformed response such as `log(y)` is
+#'   summarized on the scale of the model, and a logical response or a factor
+#'   response of a binomial model is converted to 0/1 as in [stats::glm()].
 #'
 #' @param interaction Optional character string identifying the interaction
 #'   term to decompose, for example `"A:B"` or `"A:B:C"`. When supplied,
@@ -809,8 +813,26 @@ ContrastMultPred <- function(model,
     stop("'data' must be a data frame.",call. = FALSE)
   }
 
-  if (!response %in% names(data)) {
-    stop("The response variable is not present in 'data'.",call. = FALSE)
+  # Raw estimates summarize the response of the model evaluated in
+  # 'data': a transformed response such as log(y) is summarized on the
+  # scale of the model, and logical responses or factors of binomial
+  # models are converted to 0/1. The values are stored in a reserved
+  # column so that they follow every subset of the data. Model-based
+  # estimates do not use the response values.
+  response_column <- ".moplot_response"
+
+  response_values <- if (estimate_type == "raw") {
+    .response_values(
+      model = model,
+      data = data,
+      outcome = response
+    )
+  } else {
+    NULL
+  }
+
+  if (estimate_type == "raw") {
+    data[[response_column]] <- response_values
   }
 
   # ============================================================
@@ -896,7 +918,7 @@ ContrastMultPred <- function(model,
   # means (see .observed_interval()).
   response_range_type <- .response_range_type(
     family_object = .extract_family(model),
-    values = data[[response]]
+    values = response_values
   )
 
   # ============================================================
@@ -1394,7 +1416,7 @@ ContrastMultPred <- function(model,
 
   compute_raw_cell_stats <- function(sub) {
 
-    x <- sub[[response]]
+    x <- sub[[response_column]]
     x <- x[!is.na(x)]
     n <- length(x)
 
@@ -2405,7 +2427,7 @@ ContrastMultPred <- function(model,
           )
         }
 
-        cell_mean <- mean(subset_by_conditions(data, conditions)[[response]], na.rm = TRUE)
+        cell_mean <- mean(subset_by_conditions(data, conditions)[[response_column]], na.rm = TRUE)
 
         if (.is_generalized_model(model)) {
           cell_mean <- suppressWarnings(family_object$linkfun(cell_mean))

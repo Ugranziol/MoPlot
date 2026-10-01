@@ -27,13 +27,17 @@ returned by \code{\link[stats:lm]{stats::lm()}}, \code{\link[stats:glm]{stats::g
 \code{\link[lme4:glmer]{lme4::glmer()}}, \code{\link[nlme:lme]{nlme::lme()}}, and \code{\link[glmmTMB:glmmTMB]{glmmTMB::glmmTMB()}}.}
 
 \item{data}{Optional data frame containing the variables used to fit
-\code{model}. If \code{NULL}, the function attempts to recover the analysis data
-from the fitted model using \code{stats::model.frame()}. Supplying \code{data}
-explicitly remains recommended when the model does not retain a usable
-model frame or when a specific analysis data set should be used.}
+\code{model}. If \code{NULL}, the data supplied in the model call are recovered,
+restricted to the rows used for fitting; the model frame is used only when
+they are unavailable. The original variables are needed for model-based
+estimates when the model contains transformed terms such as \code{log(x)}.}
 
 \item{response}{Character string indicating the name of the response
-variable. By default, the response is extracted from the model formula.}
+variable. By default, the response is extracted from the model formula.
+It is used only for raw estimates, which summarize the response of the
+model evaluated in \code{data}: a transformed response such as \code{log(y)} is
+summarized on the scale of the model, and a logical response or a factor
+response of a binomial model is converted to 0/1 as in \code{\link[stats:glm]{stats::glm()}}.}
 
 \item{interaction}{Optional character string identifying the interaction
 term to decompose, for example \code{"A:B"} or \code{"A:B:C"}. When supplied,

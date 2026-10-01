@@ -17,6 +17,12 @@
 #' @param predictor A single character string identifying the categorical
 #'   predictor to display.
 #'
+#' @param data Optional data frame containing the variables used to fit
+#'   `model`. If `NULL`, the data supplied in the model call are recovered;
+#'   the model frame is used only when they are unavailable. The original
+#'   variables are needed for model-based estimates when the model contains
+#'   transformed terms such as `log(x)`.
+#'
 #' @param siglevel A numeric value between 0 and 1 defining the significance
 #'   threshold used for the contrast labels. The default is `0.05`.
 #'
@@ -183,6 +189,7 @@
 MoPlot_onepred <- function(
     model,
     predictor,
+    data = NULL,
     siglevel = 0.05,
     level = 0.95,
     estimate_type = c("auto", "observed", "predicted"),
@@ -341,7 +348,8 @@ MoPlot_onepred <- function(
     estimate_type = estimate_type,
     prediction_scale = prediction_scale,
     coefficient_scale = coefficient_scale,
-    per_difference = per_difference
+    per_difference = per_difference,
+    data = data
   )
 
   factor_levels <- levels(.extract_model_frame(model)[[predictor]])

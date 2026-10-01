@@ -812,3 +812,33 @@ test_that("MoPlot_multpred() handles variable and level names with underscores",
 
   expect_identical(unique(decomposition$variable_path), "drug_type > time_point")
 })
+
+
+test_that("MoPlot_multpred() handles transformed covariates and factor outcomes", {
+
+  set.seed(92)
+
+  dat <- expand.grid(A = factor(c("a1", "a2", "a3")), B = factor(c("b1", "b2")), replicate = 1:15)
+  dat$x <- stats::rexp(nrow(dat)) + 0.1
+  dat$y <- stats::rnorm(nrow(dat), (dat$A == "a3") * (dat$B == "b2") + log(dat$x))
+  dat$answer <- factor(ifelse(stats::runif(nrow(dat)) < 0.4, "yes", "no"))
+
+  plot <- suppressMessages(
+    MoPlot_multpred(
+      stats::lm(y ~ A * B + log(x), data = dat),
+      estimate_type = "predicted",
+      caption = FALSE,
+      interaction_info = FALSE
+    )
+  )
+  expect_s3_class(plot, "patchwork")
+
+  plot <- suppressMessages(
+    MoPlot_multpred(
+      stats::glm(answer ~ A * B, family = stats::binomial, data = dat),
+      caption = FALSE,
+      interaction_info = FALSE
+    )
+  )
+  expect_s3_class(plot, "patchwork")
+})

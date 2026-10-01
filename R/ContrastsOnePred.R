@@ -21,7 +21,12 @@
 #' variable in data must be a factor.
 #'
 #' @param outcome Character string indicating the name of the dependent
-#' variable. The corresponding variable in data must be numeric.
+#' variable. It is used only for observed estimates, which summarize the
+#' response of the model evaluated in `data`: a transformed response such as
+#' `log(y)` is summarized on the scale of the model, and a logical response or
+#' a factor response of a binomial model is converted to 0/1 as in
+#' [stats::glm()] (the first level is 0). Observed estimates are not available
+#' for responses with several columns, such as `cbind(successes, failures)`.
 #'
 #' @param data A data frame containing the variables used to fit `model`.
 #'   The contrast matrix assigned to `data[[predictor]]` must correspond to
@@ -673,16 +678,8 @@ ContrastsOnePred <- function(model = NULL,
     stop("The predictor was not found in 'data'.",call. = FALSE)
   }
 
-  if (!outcome %in% names(data)) {
-    stop("The outcome was not found in 'data'.",call. = FALSE)
-  }
-
   if (!is.factor(data[[predictor]])) {
     stop("The predictor must be represented by a factor variable.",call. = FALSE)
-  }
-
-  if (!is.numeric(data[[outcome]])) {
-    stop("The dependent variable must be numeric.",call. = FALSE)
   }
 
   if (!is.numeric(sig.level) ||
@@ -723,6 +720,21 @@ ContrastsOnePred <- function(model = NULL,
 
   z_value <- stats::qnorm(1 - (1 - level) / 2)
 
+  # Observed estimates use the response of the model evaluated in
+  # 'data': a transformed response such as log(y) is summarized on the
+  # scale of the model, and logical responses or factors of binomial
+  # models are converted to 0/1. Model-based estimates do not use the
+  # outcome values.
+  response_values <- if (estimate_type == "observed") {
+    .response_values(
+      model = model,
+      data = data,
+      outcome = outcome
+    )
+  } else {
+    NULL
+  }
+
   # ============================================================
   # 3. INTERNAL FUNCTION: LEVEL-SPECIFIC ESTIMATES
   # ============================================================
@@ -739,8 +751,6 @@ ContrastsOnePred <- function(model = NULL,
 
     n_levels <- length(level_names)
 
-    z_value <- stats::qnorm(1 - (1 - level) / 2)
-
     # ----------------------------------------------------------
     # OBSERVED ESTIMATES
     # ----------------------------------------------------------
@@ -748,21 +758,21 @@ ContrastsOnePred <- function(model = NULL,
     if (estimate_type == "observed") {
 
       level_means <- tapply(
-        data[[outcome]],
+        response_values,
         data[[predictor]],
         mean,
         na.rm = TRUE
       )
 
       level_sds <- tapply(
-        data[[outcome]],
+        response_values,
         data[[predictor]],
         stats::sd,
         na.rm = TRUE
       )
 
       level_ns <- tapply(
-        data[[outcome]],
+        response_values,
         data[[predictor]],
         function(x) {
           sum(!is.na(x))
@@ -1250,7 +1260,7 @@ ContrastsOnePred <- function(model = NULL,
   # means.
   response_range_type <- .response_range_type(
     family_object = family_object,
-    values = data[[outcome]]
+    values = response_values
   )
 
   # ============================================================

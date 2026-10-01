@@ -1465,26 +1465,159 @@
 
 #' Extract analysis data from a fitted model
 #'
+#' Internal helper. The model frame contains transformed columns such as
+#' `log(x)` rather than the original variables, which are needed to build
+#' prediction data. The data supplied in the model call are therefore
+#' recovered when available, restricted to the rows used for fitting, and
+#' given the contrasts stored in the model frame (those used for fitting).
+#' The model frame is returned when the original data cannot be recovered.
+#'
 #' @param model A fitted model object.
 #'
-#' @return The model frame as a data frame when it can be recovered,
-#'   otherwise `NULL`.
+#' @return A data frame, or `NULL`.
 #'
 #' @keywords internal
 #' @noRd
 .extract_analysis_data <- function(model) {
 
-  out <- tryCatch(
-    stats::model.frame(model),
+  model_frame <- tryCatch(
+    .extract_model_frame(model),
     error = function(e) NULL
   )
 
-  if (
-    !is.null(out) &&
-    is.data.frame(out)
-  ) {
-    return(out)
+  # nlme::getData() already returns the original variables.
+  if (inherits(model, "lme")) {
+    return(model_frame)
   }
 
-  NULL
+  call_data <- tryCatch(
+    eval(
+      stats::getCall(model)$data,
+      environment(stats::formula(model))
+    ),
+    error = function(e) NULL
+  )
+
+  if (!is.data.frame(call_data) ||
+      is.null(model_frame) ||
+      !all(all.vars(stats::formula(model)) %in% names(call_data))) {
+
+    return(if (is.data.frame(model_frame)) model_frame else NULL)
+  }
+
+  # Keep the rows used for fitting (incomplete rows are dropped).
+  if (all(rownames(model_frame) %in% rownames(call_data))) {
+    call_data <- call_data[rownames(model_frame), , drop = FALSE]
+  }
+
+  # Use the contrasts stored at fitting time, in case the data were
+  # modified afterwards.
+  for (variable_name in intersect(names(model_frame), names(call_data))) {
+
+    fitted_contrasts <- attr(model_frame[[variable_name]], "contrasts")
+
+    if (is.factor(call_data[[variable_name]]) &&
+        !is.null(fitted_contrasts)) {
+
+      stats::contrasts(call_data[[variable_name]]) <- fitted_contrasts
+    }
+  }
+
+  call_data
+}
+
+
+#' Numeric response values for observed estimates
+#'
+#' Internal helper. Evaluates the response of the model in `data`, so that a
+#' transformed response such as `log(y)` yields the values on the scale of
+#' the model, and converts the result to numbers: logical responses and
+#' factors of binomial models become 0/1 with the convention of
+#' [stats::glm()] (the first level is 0).
+#'
+#' @param model A fitted model.
+#' @param data A data frame with the original variables.
+#' @param outcome Name of the response variable, or the deparsed response
+#'   expression.
+#'
+#' @return A numeric vector with one value per row of `data`.
+#'
+#' @keywords internal
+#' @noRd
+.response_values <- function(model,
+                             data,
+                             outcome) {
+
+  fixed_formula <- .extract_fixed_formula(model)
+
+  values <- NULL
+
+  if (length(fixed_formula) == 3L) {
+
+    response_expression <- fixed_formula[[2L]]
+
+    if (outcome %in% all.vars(response_expression) ||
+        identical(outcome, paste(deparse(response_expression), collapse = ""))) {
+
+      values <- tryCatch(
+        eval(response_expression, data, environment(fixed_formula)),
+        error = function(e) NULL
+      )
+    }
+  }
+
+  if (is.null(values)) {
+    values <- data[[outcome]]
+  }
+
+  if (is.null(values)) {
+
+    stop(
+      paste0("The outcome '", outcome, "' was not found in 'data'."),
+      call. = FALSE
+    )
+  }
+
+  if (is.matrix(values)) {
+
+    stop(
+      paste0(
+        "Observed estimates are not available for a response with several ",
+        "columns, such as cbind(successes, failures). Use ",
+        "estimate_type = \"predicted\"."
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (is.logical(values)) {
+    return(as.numeric(values))
+  }
+
+  if (is.factor(values)) {
+
+    family_object <- .extract_family(model)
+
+    if (is.null(family_object) ||
+        !family_object$family %in% c("binomial", "quasibinomial")) {
+
+      stop(
+        "A factor outcome is supported only for binomial models.",
+        call. = FALSE
+      )
+    }
+
+    # As in glm(): the first level denotes failure, all others success.
+    return(as.numeric(values != levels(values)[1L]))
+  }
+
+  if (!is.numeric(values)) {
+
+    stop(
+      "The dependent variable must be numeric, logical, or a factor of a binomial model.",
+      call. = FALSE
+    )
+  }
+
+  as.numeric(values)
 }

@@ -22,10 +22,10 @@
 #'   [glmmTMB::glmmTMB()].
 #'
 #' @param data Optional data frame containing the variables used to fit
-#'   `model`. If `NULL`, the function attempts to recover the analysis data
-#'   from the fitted model using `stats::model.frame()`. Supplying `data`
-#'   explicitly remains recommended when the model does not retain a usable
-#'   model frame or when a specific analysis data set should be used.
+#'   `model`. If `NULL`, the data supplied in the model call are recovered,
+#'   restricted to the rows used for fitting; the model frame is used only when
+#'   they are unavailable. The original variables are needed for model-based
+#'   estimates when the model contains transformed terms such as `log(x)`.
 #'
 #' @param interaction Optional character string identifying the interaction
 #'   term to display, for example `"A:B:C"`.

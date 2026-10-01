@@ -207,6 +207,8 @@
 #' @param coefficient_scale Scale used for the lower-panel estimate.
 #' @param per_difference Logical. Should lower-panel coefficients be divided
 #'   by their scale factor?
+#' @param data Optional data frame with the original variables; recovered
+#'   from the model when `NULL`.
 #'
 #' @return An object of class `"moplot_onepred_data"`.
 #'
@@ -220,7 +222,8 @@
     estimate_type = c("auto", "observed", "predicted"),
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
-    per_difference = FALSE
+    per_difference = FALSE,
+    data = NULL
 ) {
 
   # ==========================================================================
@@ -287,6 +290,20 @@
   # ==========================================================================
 
   model_frame <- .extract_model_frame(model)
+
+  # Prediction data need the original variables (x for a term such as
+  # log(x)), which the model frame does not contain.
+  analysis_data <- if (is.null(data)) .extract_analysis_data(model) else data
+
+  if (!is.data.frame(analysis_data)) {
+    stop(
+      paste0(
+        "The data used to fit the model could not be recovered. ",
+        "Supply them through `data`."
+      ),
+      call. = FALSE
+    )
+  }
 
   if (!predictor %in% names(model_frame)) {
     stop(
@@ -435,7 +452,7 @@
     model = model,
     predictor = predictor,
     outcome = outcome,
-    data = model_frame,
+    data = analysis_data,
     sig.level = siglevel,
     level = level,
     estimate_type = resolved_estimate_type,
@@ -579,38 +596,10 @@
     include_intercept = FALSE
   )
 
-  model_matrix <- stats::model.matrix(terms_object,data = model_frame)
-
-  assignment <- attr(model_matrix,"assign")
-
-  if (is.null(assignment)) {
-    stop(
-      "The term assignment of the fixed-effect model matrix was unavailable.",
-      call. = FALSE
-    )
-  }
-
-  normalized_term_labels <- gsub(
-    "`",
-    "",
-    term_labels,
-    fixed = TRUE
+  focal_matrix_columns <- .focal_coefficient_names(
+    model = model,
+    predictor = predictor
   )
-
-  focal_term_index <- which(normalized_term_labels == predictor)
-
-  if (length(focal_term_index) != 1L) {
-    stop(
-      paste0(
-        "The fixed-effect term corresponding to `",
-        predictor,
-        "` could not be uniquely identified."
-      ),
-      call. = FALSE
-    )
-  }
-
-  focal_matrix_columns <- colnames(model_matrix)[assignment == focal_term_index]
 
   parameter_indices <- match(focal_matrix_columns,parameter_table$Parameter)
 
@@ -751,12 +740,18 @@
   # 9. RAW DATA
   # ==========================================================================
 
-  raw_level_values <- as.character(model_frame[[predictor]])
+  raw_level_values <- as.character(analysis_data[[predictor]])
 
-  raw_outcome_values <- model_frame[[outcome]]
+  # Raw observations are shown on the scale of the model response
+  # (log(y) for a log-transformed response, 0/1 for binary factors).
+  raw_outcome_values <- .response_values(
+    model = model,
+    data = analysis_data,
+    outcome = outcome
+  )
 
   raw_data_list <- lapply(
-    levels(model_frame[[predictor]]),
+    levels(analysis_data[[predictor]]),
     function(current_level) {
 
       # A level can intentionally appear at multiple horizontal positions,

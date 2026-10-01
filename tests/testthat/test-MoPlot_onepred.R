@@ -283,3 +283,34 @@ test_that("per_difference rescales ratios on the log scale", {
     tolerance = 1e-8
   )
 })
+
+
+test_that("MoPlot_onepred() handles transformed covariates and factor outcomes", {
+
+  set.seed(91)
+
+  dat <- data.frame(
+    group = factor(rep(c("A", "B", "C"), each = 30)),
+    x = stats::rexp(90) + 0.1
+  )
+  dat$y <- stats::rnorm(90, as.integer(dat$group) + log(dat$x))
+  dat$answer <- factor(ifelse(stats::runif(90) < c(0.2, 0.5, 0.7)[dat$group], "yes", "no"))
+
+  plot <- suppressMessages(
+    MoPlot_onepred(stats::lm(y ~ group + log(x), data = dat), "group", caption = FALSE)
+  )
+  expect_s3_class(plot, "patchwork")
+
+  plot <- suppressMessages(
+    MoPlot_onepred(stats::lm(y ~ group + log(x), data = dat), "group", data = dat, caption = FALSE)
+  )
+  expect_s3_class(plot, "patchwork")
+
+  binomial_model <- stats::glm(answer ~ group, family = stats::binomial, data = dat)
+
+  prep <- suppressMessages(
+    .prepare_moplot_onepred(binomial_model, "group", estimate_type = "observed")
+  )
+
+  expect_setequal(unique(prep$raw_data$y), c(0, 1))
+})
