@@ -389,6 +389,12 @@
       paste0(
         "estimate_type='predicted' returns model-based predictions computed ",
         "from the fixed effects and their variance-covariance matrix."
+      ),
+      paste0(
+        "Predictions are computed on a reference grid: numeric predictors are ",
+        "fixed at their mean, and the other factors are averaged with equal ",
+        "weights, or held at the levels at which the coefficient is defined ",
+        "when they interact with its variables."
       )
     )
   }
@@ -1700,6 +1706,34 @@
             values,
             collapse = ","
           ),
+          ")"
+        )
+      )
+    }
+
+    # Weighted groups: "W(level weight, level weight)". Level names may
+    # contain spaces, so the weight is taken as the last token.
+    if (grepl("^W\\(.*\\)$", x)) {
+
+      entries <- trimws(
+        strsplit(
+          sub("^W\\((.*)\\)$", "\\1", x),
+          ",",
+          fixed = TRUE
+        )[[1L]]
+      )
+
+      level_names <- sub("\\s+\\S+$", "", entries)
+      weights <- sub("^.*\\s+(\\S+)$", "\\1", entries)
+
+      replace <- level_names %in% names(lookup)
+
+      level_names[replace] <- unname(lookup[level_names[replace]])
+
+      return(
+        paste0(
+          "W(",
+          paste(level_names, weights, collapse = ", "),
           ")"
         )
       )
@@ -3239,7 +3273,9 @@
     model,
     coefficient_data,
     level = 0.95,
-    coefficient_scale = c("model", "interpreted")
+    coefficient_scale = c("model", "interpreted"),
+    scale_factors = NULL,
+    per_difference = FALSE
 ) {
 
   # ============================================================
@@ -3308,6 +3344,56 @@
 
   interaction_parameters <- parameter_table[parameter_indices, ,drop = FALSE]
 
+  ratio_types <- c(
+    "Odds ratio",
+    "Incidence rate ratio",
+    "Hazard ratio",
+    "Multiplicative ratio",
+    "Exponentiated coefficient"
+  )
+
+  # Each interaction coefficient equals its scale factor multiplied by
+  # the displayed difference of differences on the linear-predictor
+  # scale. Dividing by the scale factor expresses the coefficient per
+  # unit of that difference; test statistics, p-values, and Cohen's d
+  # are unchanged.
+  if (isTRUE(per_difference)) {
+
+    if (is.null(scale_factors) ||
+        anyNA(scale_factors[coefficient_data$coefficient])) {
+
+      stop(
+        "Scale factors are required when `per_difference = TRUE`.",
+        call. = FALSE
+      )
+    }
+
+    coefficient_scales <- unname(scale_factors[coefficient_data$coefficient])
+    is_ratio <- interaction_parameters$Estimate_type %in% ratio_types
+
+    interaction_parameters$Estimate <- interaction_parameters$Estimate / coefficient_scales
+    interaction_parameters$CI_low <- interaction_parameters$CI_low / coefficient_scales
+    interaction_parameters$CI_high <- interaction_parameters$CI_high / coefficient_scales
+
+    interaction_parameters$Interpreted_Estimate <- ifelse(
+      is_ratio,
+      exp(interaction_parameters$Estimate),
+      interaction_parameters$Interpreted_Estimate / coefficient_scales
+    )
+
+    interaction_parameters$Interpreted_CI_low <- ifelse(
+      is_ratio,
+      exp(interaction_parameters$CI_low),
+      interaction_parameters$Interpreted_CI_low / coefficient_scales
+    )
+
+    interaction_parameters$Interpreted_CI_high <- ifelse(
+      is_ratio,
+      exp(interaction_parameters$CI_high),
+      interaction_parameters$Interpreted_CI_high / coefficient_scales
+    )
+  }
+
   # ============================================================
   # 3. DISPLAY SCALE
   # ============================================================
@@ -3333,14 +3419,6 @@
     display_ci_high <- interaction_parameters$Interpreted_CI_high
 
     display_type <- interaction_parameters$Estimate_type
-
-    ratio_types <- c(
-      "Odds ratio",
-      "Incidence rate ratio",
-      "Hazard ratio",
-      "Multiplicative ratio",
-      "Exponentiated coefficient"
-    )
 
     null_value <- if (
       all(interaction_parameters$Estimate_type %in% ratio_types)
@@ -3380,7 +3458,8 @@
     parameter_data = parameter_data,
     parameter_table = interaction_parameters,
     null_value = null_value,
-    coefficient_scale = coefficient_scale
+    coefficient_scale = coefficient_scale,
+    per_difference = isTRUE(per_difference)
   )
 }
 
@@ -3603,6 +3682,16 @@
     estimate_abbreviation,
     character(1)
   )
+
+  # Rescaled model coefficients are labelled explicitly. Ratios keep
+  # their usual label: exp(beta / s) is the ratio for the displayed
+  # comparison itself.
+  if (isTRUE(parameters$per_difference)) {
+
+    is_coefficient <- parameter_data$Estimate_label == "\u03b2"
+
+    parameter_data$Estimate_label[is_coefficient] <- "\u03b2/s"
+  }
 
   formatted_estimate <- ifelse(
     is.na(
@@ -3886,7 +3975,7 @@
           "model"
         )
       ) {
-        "Model estimate"
+        if (isTRUE(parameters$per_difference)) "Model estimate / s" else "Model estimate"
       } else {
         unique(
           parameter_data$Display_type
@@ -4024,6 +4113,7 @@ MoPlotStele_multpred <- function(
     siglevel = 0.05,
     coef = TRUE,
     coefficient_scale = c("model", "interpreted"),
+    per_difference = FALSE,
     estimate_type,
     prediction_scale,
     label_key= NULL
@@ -4505,6 +4595,58 @@ MoPlotStele_multpred <- function(
     )
   }
 
+  # Each interaction coefficient equals the product of the scale
+  # factors of its components multiplied by the displayed difference
+  # of differences on the linear-predictor scale.
+  scale_description <- NULL
+
+  scale_factors <- attr(contrast_output, "scale_factors")
+
+  if (
+    length(scale_factors) > 0L &&
+    any(abs(scale_factors - 1) > 1e-8)
+  ) {
+
+    scale_list <- paste0(
+      "s = ",
+      .format_scale_factor(scale_factors),
+      " for ",
+      names(scale_factors),
+      collapse = ", "
+    )
+
+    scale_description <- if (isTRUE(per_difference) && isTRUE(coef)) {
+      paste0(
+        "Under this coding, each interaction coefficient equals a scale factor ",
+        "s multiplied by the displayed interaction contrast (",
+        scale_list,
+        "); the lower panel reports the coefficients divided by s, whereas ",
+        "test statistics, p-values, and Cohen's d are unaffected by this ",
+        "rescaling."
+      )
+    } else {
+      paste0(
+        "Under this coding, each interaction coefficient equals a scale factor ",
+        "s multiplied by the displayed interaction contrast on the ",
+        "linear-predictor scale (",
+        scale_list,
+        ")."
+      )
+    }
+  }
+
+  weighted_description <- if (
+    any(grepl("W(", as.matrix(contrast_output), fixed = TRUE))
+  ) {
+    paste0(
+      "Labels of the form W(a1 .20, a3 .80) denote weighted means of the ",
+      "listed levels with the indicated weights, as implied by the ",
+      "hypothesis matrix of the coding."
+    )
+  } else {
+    NULL
+  }
+
   # ==========================================================================
   # 11. CAPTION
   # ==========================================================================
@@ -4515,9 +4657,11 @@ MoPlotStele_multpred <- function(
     contrast_coding_description,
     upper_description,
     interaction_description,
+    weighted_description,
     abbreviation_description,
     label_description,
-    coefficient_description
+    coefficient_description,
+    scale_description
   )
 
   caption_parts <- caption_parts[

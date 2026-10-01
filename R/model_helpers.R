@@ -1080,13 +1080,13 @@
 
   linear_predictor <- as.numeric(model_matrix %*% fixed_effects)
 
-  linear_predictor_covariance <- model_matrix %*%
-    variance_matrix %*%
-    t(model_matrix)
+  # Only the diagonal of X V X' is needed. Computing it row by row
+  # avoids building an n x n matrix.
+  linear_predictor_variance <- rowSums((model_matrix %*% variance_matrix) * model_matrix)
 
   linear_predictor_se <- sqrt(
     pmax(
-      diag(linear_predictor_covariance),
+      linear_predictor_variance,
       0
     )
   )

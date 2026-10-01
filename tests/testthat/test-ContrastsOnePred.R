@@ -187,7 +187,7 @@ test_that("glm coefficients are reconstructed on the link scale", {
 })
 
 
-test_that("a focal predictor in an interaction triggers a warning", {
+test_that("an interaction with a numeric predictor triggers a warning", {
 
   data <- simulate_one_predictor_data(k = 3)
 
@@ -248,4 +248,58 @@ test_that("ModelContrastTable() uses the shared classification", {
     variables$Contrast_Matrix_Type[variables$Variable == "group"],
     "Sum"
   )
+})
+
+
+test_that("other factors are averaged or held where the coefficients are defined", {
+
+  set.seed(31)
+
+  data <- expand.grid(
+    group = factor(c("A", "B", "C")),
+    other = factor(c("u", "v")),
+    replicate = 1:25
+  )
+  data$x <- stats::rnorm(nrow(data), mean = data$other == "v")
+  data$y <- stats::rnorm(
+    nrow(data),
+    as.integer(data$group) + 2 * (data$other == "v") + (data$group == "C") * (data$other == "v") + data$x
+  )
+
+  for (coding in list(stats::contr.treatment(2), stats::contr.sum(2))) {
+
+    stats::contrasts(data$other) <- coding
+
+    model <- stats::lm(y ~ group * other + x, data = data)
+
+    expect_silent(
+      result <- quiet_contrasts(
+        model = model,
+        predictor = "group",
+        outcome = "y",
+        data = data,
+        estimate_type = "predicted"
+      )
+    )
+
+    expect_equal(displayed_coefficients(result), unname(stats::coef(model)[2:3]), tolerance = 1e-8)
+  }
+
+  # Without an interaction, the other factor is averaged with equal weights.
+  model <- stats::lm(y ~ group + other, data = data)
+
+  result <- quiet_contrasts(
+    model = model,
+    predictor = "group",
+    outcome = "y",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  balanced <- stats::predict(
+    model,
+    newdata = expand.grid(group = factor("A", levels = c("A", "B", "C")), other = factor(c("u", "v")))
+  )
+
+  expect_equal(result$Estimate[result$Levels == "A"][1], mean(balanced))
 })

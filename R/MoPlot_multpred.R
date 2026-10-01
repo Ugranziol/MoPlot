@@ -126,6 +126,17 @@
 #'
 #'   The default is `"model"`.
 #'
+#' @param per_difference Logical. Should the lower-panel coefficients be
+#'   divided by their scale factor? The default is `FALSE`.
+#'
+#'   Each interaction coefficient equals the product of the scale factors of
+#'   its components multiplied by the displayed difference of differences
+#'   (for example `s = 1/3` when a Helmert contrast with `s = 1/3` interacts
+#'   with a sum contrast). When `per_difference = TRUE`, the lower panel
+#'   reports `beta / s` and its confidence interval; with
+#'   `coefficient_scale = "interpreted"`, ratios are computed as
+#'   `exp(beta / s)`. Test statistics, p-values, and Cohen's d are unaffected.
+#'
 #' @param coef Logical. Should the lower coefficient panel be displayed?
 #'   The default is `TRUE`.
 #'
@@ -331,6 +342,7 @@ MoPlot_multpred <- function(
     estimate_type = c("raw", "predicted"),
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
+    per_difference = FALSE,
     coef = TRUE,
     style = c("minimal", "tree"),
     caption = TRUE,
@@ -353,6 +365,16 @@ MoPlot_multpred <- function(
 
   style <- match.arg(style)
 
+  if (
+    !is.logical(per_difference) ||
+    length(per_difference) != 1L ||
+    is.na(per_difference)
+  ) {
+    stop(
+      "`per_difference` must be either TRUE or FALSE.",
+      call. = FALSE
+    )
+  }
 
 
   # ============================================================
@@ -425,6 +447,7 @@ MoPlot_multpred <- function(
       siglevel = siglevel,
       coef = coef,
       coefficient_scale = coefficient_scale,
+      per_difference = per_difference,
       estimate_type = estimate_type,
       prediction_scale = prediction_scale,
       label_key=label_key
@@ -505,7 +528,9 @@ MoPlot_multpred <- function(
     model = model,
     coefficient_data = prep$coefficient_data,
     level = level,
-    coefficient_scale = coefficient_scale
+    coefficient_scale = coefficient_scale,
+    scale_factors = attr(contrast_output, "scale_factors"),
+    per_difference = per_difference
   )
 
   # ============================================================

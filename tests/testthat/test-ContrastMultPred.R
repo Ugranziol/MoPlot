@@ -112,3 +112,220 @@ test_that("ContrastMultPred() recovers analysis data from model", {
     out_explicit
   )
 })
+
+
+# ============================================================
+# HYPOTHESIS MATRIX, REFERENCE GRID, AND SCALE FACTORS
+# ============================================================
+
+simulate_two_way_data <- function(n_per_cell = 30) {
+  set.seed(21)
+  data <- expand.grid(
+    A = factor(c("a1", "a2", "a3")),
+    B = factor(c("b1", "b2")),
+    replicate = seq_len(n_per_cell)
+  )
+  data$replicate <- NULL
+  # The covariate distribution differs between cells.
+  data$x <- stats::rnorm(nrow(data), mean = 2 * (data$A == "a3" & data$B == "b2"))
+  data$y <- stats::rnorm(
+    nrow(data),
+    mean = (data$A == "a2") + 1.5 * (data$A == "a3") * (data$B == "b2") + 0.8 * data$x
+  )
+  data$success <- stats::rbinom(nrow(data), 1, stats::plogis(-0.5 + (data$A == "a3") * (data$B == "b2")))
+  data
+}
+
+# For a two-way coefficient the rows are ordered as positive/positive,
+# positive/negative, negative/positive, negative/negative.
+displayed_interactions <- function(result) {
+  vapply(
+    unique(result$coefficient),
+    function(coefficient_name) {
+      rows <- result[result$coefficient == coefficient_name, ]
+      rows$scale_factor[1] *
+        ((rows$estimate[1] - rows$estimate[2]) - (rows$estimate[3] - rows$estimate[4]))
+    },
+    numeric(1)
+  )
+}
+
+quiet_mult <- function(...) {
+  suppressMessages(ContrastMultPred(..., methodological_note = FALSE))
+}
+
+
+test_that("raw interaction contrasts reconstruct the coefficients for every coding", {
+
+  data <- simulate_two_way_data()
+
+  codings <- list(
+    treatment_base_3 = stats::contr.treatment(3, base = 3),
+    sum = stats::contr.sum(3),
+    helmert = stats::contr.helmert(3),
+    sliding = MASS::contr.sdif(3),
+    custom = cbind(c(-3, 1, 2) / 6, c(0, -1, 1) / 2)
+  )
+
+  for (coding_name in names(codings)) {
+
+    stats::contrasts(data$A) <- codings[[coding_name]]
+    stats::contrasts(data$B) <- stats::contr.sum(2)
+
+    model <- stats::lm(y ~ A * B, data = data)
+
+    result <- quiet_mult(model = model, data = data, split_rule = "first_variable")
+
+    expect_equal(
+      unname(displayed_interactions(result)),
+      unname(stats::coef(model)[grep(":", names(stats::coef(model)))]),
+      tolerance = 1e-8,
+      info = coding_name
+    )
+
+    expect_true(all(attr(result, "identity_holds")), info = coding_name)
+  }
+})
+
+
+test_that("predicted interaction contrasts are not biased by unbalanced covariates", {
+
+  data <- simulate_two_way_data()
+  stats::contrasts(data$A) <- stats::contr.helmert(3)
+
+  model <- stats::lm(y ~ A * B + x, data = data)
+
+  result <- quiet_mult(
+    model = model,
+    data = data,
+    estimate_type = "predicted",
+    split_rule = "first_variable"
+  )
+
+  expect_equal(
+    unname(displayed_interactions(result)),
+    unname(stats::coef(model)[grep(":", names(stats::coef(model)))]),
+    tolerance = 1e-8
+  )
+
+  expect_equal(unname(attr(result, "scale_factors")), c(1 / 2, 1 / 3))
+})
+
+
+test_that("predicted interaction contrasts reconstruct glm coefficients on the link scale", {
+
+  data <- simulate_two_way_data()
+  stats::contrasts(data$A) <- stats::contr.helmert(3)
+
+  model <- stats::glm(success ~ A * B + x, family = stats::binomial, data = data)
+
+  result <- quiet_mult(
+    model = model,
+    data = data,
+    estimate_type = "predicted",
+    prediction_scale = "link",
+    split_rule = "first_variable"
+  )
+
+  expect_equal(
+    unname(displayed_interactions(result)),
+    unname(stats::coef(model)[grep(":", names(stats::coef(model)))]),
+    tolerance = 1e-8
+  )
+})
+
+
+test_that("lower-order coefficients are evaluated where they are defined", {
+
+  set.seed(22)
+
+  data <- expand.grid(
+    A = factor(c("a1", "a2")),
+    B = factor(c("b1", "b2")),
+    C = factor(c("c1", "c2", "c3")),
+    replicate = 1:20
+  )
+  data$y <- stats::rnorm(nrow(data), (data$A == "a2") * (data$B == "b2") * as.integer(data$C))
+
+  stats::contrasts(data$A) <- stats::contr.sum(2)
+  stats::contrasts(data$B) <- stats::contr.sum(2)
+
+  # With treatment-coded C, the A:B coefficient refers to C = c1.
+  result <- quiet_mult(
+    model = stats::lm(y ~ A * B * C, data = data),
+    data = data,
+    coefficients = "A1:B1",
+    estimate_type = "predicted"
+  )
+
+  expect_true(attr(result, "identity_holds")[["A1:B1"]])
+})
+
+
+test_that("non-orthogonal custom codings produce weighted labels and a note", {
+
+  data <- simulate_two_way_data()
+  stats::contrasts(data$A) <- cbind(c(-3, 1, 2) / 6, c(0, -1, 1) / 2)
+
+  expect_message(
+    result <- ContrastMultPred(
+      model = stats::lm(y ~ A * B, data = data),
+      data = data,
+      configuration = "all",
+      methodological_note = FALSE
+    ),
+    "suggests a3 vs a2"
+  )
+
+  expect_true("W(a1 .20, a3 .80)" %in% result$A)
+  expect_true(any(startsWith(result$configuration_semantic, "W(a1 .20, a3 .80)_")))
+})
+
+
+test_that("an interaction with a numeric predictor triggers a warning", {
+
+  data <- simulate_two_way_data()
+
+  expect_warning(
+    quiet_mult(
+      model = stats::lm(y ~ A * B * x, data = data),
+      data = data,
+      interaction = "A:B",
+      estimate_type = "predicted"
+    ),
+    "do not reconstruct"
+  )
+})
+
+
+test_that("MoPlot_multpred() per_difference divides coefficients by their scale", {
+
+  data <- simulate_two_way_data()
+  stats::contrasts(data$A) <- stats::contr.helmert(3)
+  stats::contrasts(data$B) <- stats::contr.sum(2)
+
+  model <- stats::lm(y ~ A * B, data = data)
+
+  output <- quiet_mult(model = model, data = data, configuration = "all")
+  prep <- .prepare_moplot_multpred_data(output)
+
+  parameters <- .prepare_moplot_multpred_parameters(
+    model = model,
+    coefficient_data = prep$coefficient_data,
+    scale_factors = attr(output, "scale_factors"),
+    per_difference = TRUE
+  )
+
+  coefficients <- stats::coef(model)[parameters$parameter_data$Parameter]
+
+  expect_equal(
+    parameters$parameter_data$Display_estimate,
+    unname(coefficients / attr(output, "scale_factors")[parameters$parameter_data$Parameter])
+  )
+
+  plot <- suppressMessages(
+    MoPlot_multpred(model = model, data = data, per_difference = TRUE, caption = FALSE, interaction_info = FALSE)
+  )
+
+  expect_s3_class(plot, "patchwork")
+})

@@ -18,6 +18,7 @@ MoPlot_multpred(
   estimate_type = c("raw", "predicted"),
   prediction_scale = c("response", "link"),
   coefficient_scale = c("model", "interpreted"),
+  per_difference = FALSE,
   coef = TRUE,
   style = c("minimal", "tree"),
   caption = TRUE,
@@ -136,6 +137,17 @@ ratio.
 }
 
 The default is \code{"model"}.}
+
+\item{per_difference}{Logical. Should the lower-panel coefficients be
+divided by their scale factor? The default is \code{FALSE}.
+
+Each interaction coefficient equals the product of the scale factors of
+its components multiplied by the displayed difference of differences
+(for example \code{s = 1/3} when a Helmert contrast with \code{s = 1/3} interacts
+with a sum contrast). When \code{per_difference = TRUE}, the lower panel
+reports \code{beta / s} and its confidence interval; with
+\code{coefficient_scale = "interpreted"}, ratios are computed as
+\code{exp(beta / s)}. Test statistics, p-values, and Cohen's d are unaffected.}
 
 \item{coef}{Logical. Should the lower coefficient panel be displayed?
 The default is \code{TRUE}.}

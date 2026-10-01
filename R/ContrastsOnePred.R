@@ -96,10 +96,22 @@
 #' predictions. Predicted estimates are therefore population-level or
 #' fixed-effects predictions.
 #'
-#' Other numeric predictors are fixed at their observed means. Other
-#' categorical predictors are fixed at their first factor level. Consequently,
-#' model-based estimates are conditional predictions rather than averages over
-#' all values of the remaining predictors.
+#' Model-based estimates are computed on a reference grid. Other numeric
+#' predictors are fixed at their observed means. Each level-specific estimate
+#' averages over the levels of the other categorical predictors with equal
+#' weights (a balanced average, independent of the observed cell sizes). A
+#' categorical predictor that interacts with `predictor` is instead held at the
+#' combination of its levels at which the coefficients of `predictor` are
+#' defined, given by the first row of its hypothesis matrix: this is again the
+#' balanced average for sum, Helmert, and sliding-difference coding, and the
+#' reference level for treatment coding. On the linear-predictor scale, the
+#' displayed comparisons therefore reconstruct the coefficients exactly; if
+#' `predictor` interacts with a numeric predictor, its coefficients refer to the
+#' value zero of that predictor and the function issues a warning.
+#'
+#' On the response scale, level estimates that average over other factors are
+#' means of the response-scale predictions, and their confidence intervals are
+#' obtained with the multivariate delta method.
 #'
 #' For generalized models with prediction_scale = "response", estimates are
 #' transformed using the inverse link function. Standard errors on the response
@@ -771,81 +783,80 @@ ContrastsOnePred <- function(model = NULL,
     # MODEL-BASED ESTIMATES
     # ----------------------------------------------------------
     #
-    # Create one prediction row for each level of the focal
-    # predictor. Other numeric predictors are fixed at their
-    # observed means, whereas other factors are fixed at their
-    # first level.
+    # Predictions are computed on a reference grid: numeric
+    # predictors are fixed at their mean, and each level estimate
+    # averages over the levels of the other factors (balanced, or at
+    # the levels at which the focal coefficients are defined when a
+    # factor interacts with the focal predictor). See
+    # .reference_grid().
     #
     # Contrast matrices are not assigned manually here. They are
     # recovered from the fitted model and applied centrally by
     # .build_fixed_model_matrix().
     # ----------------------------------------------------------
 
-    newdata <- data[rep(1L, n_levels), ,drop = FALSE]
-
-    for (variable_name in names(newdata)) {
-
-      if (is.factor(data[[variable_name]])) {
-
-        newdata[[variable_name]] <- factor(
-          rep(
-            levels(data[[variable_name]])[1L],
-            n_levels
-          ),
-          levels = levels(data[[variable_name]]),
-          ordered = is.ordered(data[[variable_name]])
-        )
-
-      } else if (is.numeric(data[[variable_name]])) {
-
-        newdata[[variable_name]] <- rep(
-          mean(
-            data[[variable_name]],
-            na.rm = TRUE
-          ),
-          n_levels
-        )
-      }
-    }
-
-    # Replace the focal predictor with one row for each of its levels.
-    newdata[[predictor]] <- factor(
-      level_names,
-      levels = level_names,
-      ordered = is.ordered(data[[predictor]])
+    grid_information <- .reference_grid(
+      model = model,
+      data = data,
+      focal_variables = predictor
     )
 
-    # The shared prediction helper guarantees the same fixed-effect
-    # extraction, model-matrix construction, variance propagation,
-    # inverse-link transformation, and delta-method logic used by
-    # the other package functions.
     predictions <- .compute_fixed_predictions(
       model = model,
-      newdata = newdata,
+      newdata = grid_information$grid,
       prediction_scale = prediction_scale,
       conf_level = level
     )
 
+    # One row per level: weights of the grid rows forming that level.
+    level_weights <- t(
+      vapply(
+        level_names,
+        function(level_name) {
+          .grid_cell_weights(
+            grid_information,
+            stats::setNames(list(level_name), predictor)
+          )
+        },
+        numeric(nrow(grid_information$grid))
+      )
+    )
+
+    level_summaries <- do.call(
+      rbind,
+      lapply(
+        seq_len(n_levels),
+        function(level_index) {
+          .summarize_grid_predictions(
+            predictions = predictions,
+            weights = level_weights[level_index, ],
+            prediction_scale = prediction_scale,
+            conf_level = level
+          )
+        }
+      )
+    )
+
     estimates <- data.frame(
       Levels = level_names,
-      Estimate = predictions$estimate,
-      SE = predictions$se,
-      CI_low = predictions$ci_low,
-      CI_high = predictions$ci_high,
+      Estimate = level_summaries$estimate,
+      SE = level_summaries$se,
+      CI_low = level_summaries$ci_low,
+      CI_high = level_summaries$ci_high,
       SD = NA_real_,
       N = NA_real_,
       stringsAsFactors = FALSE
     )
 
-    # Preserve intermediate prediction quantities required for the
-    # predicted Grand Mean in sum contrasts.
-    attr(estimates, "model_matrix") <- attr(predictions, "model_matrix")
+    # Preserve the quantities needed to combine levels into groups
+    # and to check the coefficient identity on the link scale.
+    attr(estimates, "predictions") <- predictions
 
-    attr(estimates, "vcov_beta") <- attr(predictions, "vcov_beta")
+    attr(estimates, "level_weights") <- level_weights
 
-    attr(estimates, "eta") <- attr(predictions, "eta")
+    attr(estimates, "eta") <- as.numeric(level_weights %*% attr(predictions, "eta"))
 
-    attr(estimates, "family") <- attr(predictions, "family")
+    attr(estimates, "grid_information") <- grid_information
 
     estimates
   }
@@ -901,10 +912,11 @@ ContrastsOnePred <- function(model = NULL,
 
     # Model-based predictions are correlated; the shared helper uses
     # the complete fixed-effect covariance matrix and, on the
-    # response scale, the multivariate delta method.
-    combined <- .combine_fixed_predictions(
-      predictions = level_estimates,
-      weights = weights,
+    # response scale, the multivariate delta method. The group weights
+    # over levels are translated into weights over the grid rows.
+    combined <- .summarize_grid_predictions(
+      predictions = attr(level_estimates, "predictions"),
+      weights = as.numeric(crossprod(attr(level_estimates, "level_weights"), weights)),
       prediction_scale = prediction_scale,
       conf_level = level
     )
@@ -949,7 +961,11 @@ ContrastsOnePred <- function(model = NULL,
         disclaimer_text,
         paste0(
           "Estimates are model-based predictions computed from ",
-          "the fixed effects and their variance-covariance matrix."
+          "the fixed effects and their variance-covariance matrix, on a ",
+          "reference grid in which numeric predictors are fixed at their ",
+          "mean and the other factors are averaged with equal weights, or ",
+          "held at the levels at which the coefficients are defined when ",
+          "they interact with the predictor."
         )
       )
 
@@ -1236,9 +1252,9 @@ ContrastsOnePred <- function(model = NULL,
         "The displayed comparisons do not reconstruct the model ",
         "coefficients of '",
         predictor,
-        "'. This usually means that the predictor is involved in an ",
-        "interaction, so that its coefficients are conditional on the ",
-        "other terms of the interaction."
+        "'. This usually means that the predictor interacts with a numeric ",
+        "predictor: its coefficients refer to the value zero of that ",
+        "predictor, whereas the predictions fix it at its mean."
       ),
       call. = FALSE
     )

@@ -12,7 +12,6 @@ Imports:
     effectsize,
     ggplot2,
     glmmTMB,
-    hypr,
     lme4,
     lmerTest,
     MASS,

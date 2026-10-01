@@ -187,10 +187,22 @@ In mixed-effects models, random effects are excluded from model-based
 predictions. Predicted estimates are therefore population-level or
 fixed-effects predictions.
 
-Other numeric predictors are fixed at their observed means. Other
-categorical predictors are fixed at their first factor level. Consequently,
-model-based estimates are conditional predictions rather than averages over
-all values of the remaining predictors.
+Model-based estimates are computed on a reference grid. Other numeric
+predictors are fixed at their observed means. Each level-specific estimate
+averages over the levels of the other categorical predictors with equal
+weights (a balanced average, independent of the observed cell sizes). A
+categorical predictor that interacts with \code{predictor} is instead held at the
+combination of its levels at which the coefficients of \code{predictor} are
+defined, given by the first row of its hypothesis matrix: this is again the
+balanced average for sum, Helmert, and sliding-difference coding, and the
+reference level for treatment coding. On the linear-predictor scale, the
+displayed comparisons therefore reconstruct the coefficients exactly; if
+\code{predictor} interacts with a numeric predictor, its coefficients refer to the
+value zero of that predictor and the function issues a warning.
+
+On the response scale, level estimates that average over other factors are
+means of the response-scale predictions, and their confidence intervals are
+obtained with the multivariate delta method.
 
 For generalized models with prediction_scale = "response", estimates are
 transformed using the inverse link function. Standard errors on the response
