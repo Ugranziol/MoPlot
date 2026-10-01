@@ -19,6 +19,7 @@ MoPlot_multpred(
   prediction_scale = c("response", "link"),
   coefficient_scale = c("model", "interpreted"),
   per_difference = FALSE,
+  bounds = NULL,
   coef = TRUE,
   style = c("minimal", "tree"),
   caption = TRUE,
@@ -148,6 +149,12 @@ with a sum contrast). When \code{per_difference = TRUE}, the lower panel
 reports \code{beta / s} and its confidence interval; with
 \code{coefficient_scale = "interpreted"}, ratios are computed as
 \code{exp(beta / s)}. Test statistics, p-values, and Cohen's d are unaffected.}
+
+\item{bounds}{Optional numeric vector \code{c(lower, upper)} giving the natural
+range of a response analyzed with a Gaussian (identity link) model, such
+as \code{c(1, 7)} for a Likert score or \code{c(0, Inf)} for a reaction time, so that
+confidence intervals remain within it. Ignored, with a warning, for
+generalized models. See \code{\link[=ContrastMultPred]{ContrastMultPred()}}.}
 
 \item{coef}{Logical. Should the lower coefficient panel be displayed?
 The default is \code{TRUE}.}

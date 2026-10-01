@@ -125,6 +125,14 @@
 #'   `TRUE`. The note is stored as an attribute of the returned object
 #'   regardless of this setting.
 #'
+#' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
+#'   range of a response analyzed with a Gaussian (identity link) model, such
+#'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time. When
+#'   supplied, confidence intervals of raw and predicted estimates are computed
+#'   on a transformed scale (logit or logarithm) and transformed back, so that
+#'   they remain within the bounds. Ignored, with a warning, for generalized
+#'   models. See [ContrastsOnePred()].
+#'
 #' @details
 #' Each interaction coefficient is separated into its contrast-coded
 #' components. The function then identifies:
@@ -761,7 +769,8 @@ ContrastMultPred <- function(model,
                              configuration = c("none", "all", "explicit", "semantic"),
                              estimate_type = c("raw", "predicted"),
                              prediction_scale = c("response", "link"),
-                             methodological_note = TRUE) {
+                             methodological_note = TRUE,
+                             bounds = NULL) {
 
   # ============================================================
   # 1. Argument matching and basic checks
@@ -833,6 +842,29 @@ ContrastMultPred <- function(model,
 
   if (estimate_type == "raw") {
     data[[response_column]] <- response_values
+  }
+
+  # Natural range declared by the user for Gaussian responses.
+  bounds <- .validate_bounds(bounds, model)
+
+  if (estimate_type == "raw") {
+    .check_values_within_bounds(response_values, bounds)
+  }
+
+  bound_critical <- stats::qnorm(1 - (1 - conf_level) / 2)
+
+  # Model-based intervals within the bounds (identity-link models only).
+  apply_bounds <- function(statistics) {
+
+    if (!is.null(bounds)) {
+
+      bounded <- .bounded_interval(statistics$estimate, statistics$se, bounds, bound_critical)
+
+      statistics$ci_low <- bounded$ci_low
+      statistics$ci_high <- bounded$ci_high
+    }
+
+    statistics
   }
 
   # ============================================================
@@ -1446,7 +1478,8 @@ ContrastMultPred <- function(model,
       n = n,
       range_type = response_range_type,
       conf_level = conf_level,
-      critical = crit
+      critical = crit,
+      bounds = bounds
     )
 
     data.frame(
@@ -1495,11 +1528,13 @@ ContrastMultPred <- function(model,
 
     weights <- .grid_cell_weights(prediction_context$grid, conditions)
 
-    prediction <- .summarize_grid_predictions(
-      predictions = prediction_context$predictions,
-      weights = weights,
-      prediction_scale = prediction_scale,
-      conf_level = conf_level
+    prediction <- apply_bounds(
+      .summarize_grid_predictions(
+        predictions = prediction_context$predictions,
+        weights = weights,
+        prediction_scale = prediction_scale,
+        conf_level = conf_level
+      )
     )
 
     statistics <- data.frame(
@@ -1586,7 +1621,8 @@ ContrastMultPred <- function(model,
       range_type = response_range_type,
       conf_level = conf_level,
       critical = crit,
-      single_cell = FALSE
+      single_cell = FALSE,
+      bounds = bounds
     )
 
     data.frame(
@@ -1654,11 +1690,13 @@ ContrastMultPred <- function(model,
       )
     )
 
-    statistics <- .summarize_grid_predictions(
-      predictions = prediction_context$predictions,
-      weights = combined_weights,
-      prediction_scale = prediction_scale,
-      conf_level = conf_level
+    statistics <- apply_bounds(
+      .summarize_grid_predictions(
+        predictions = prediction_context$predictions,
+        weights = combined_weights,
+        prediction_scale = prediction_scale,
+        conf_level = conf_level
+      )
     )
 
     list(
@@ -2567,6 +2605,10 @@ ContrastMultPred <- function(model,
 
   out <- do.call(rbind, out_list)
 
+  if (estimate_type == "predicted") {
+    .warn_estimates_outside_bounds(out$estimate, bounds)
+  }
+
   coefficient_scales <- unlist(coefficient_scales)
   coefficient_identity <- unlist(coefficient_identity)
 
@@ -2780,7 +2822,18 @@ ContrastMultPred <- function(model,
   # ============================================================
 
   # Notes on non-orthogonal custom codings are part of the note.
-  attr(out, "note") <- paste(c(disclaimer_note, divergence_notes), collapse = " ")
+  bounds_note <- if (is.null(bounds)) {
+    NULL
+  } else {
+    paste0(
+      "Confidence intervals were computed within bounds = c(",
+      bounds[1L], ", ", bounds[2L], ") on a transformed scale, so that they ",
+      "remain within the range of the response."
+    )
+  }
+
+  attr(out, "note") <- paste(c(disclaimer_note, bounds_note, divergence_notes), collapse = " ")
+  attr(out, "bounds") <- bounds
   attr(out, "estimate_type") <- estimate_type
   attr(out, "prediction_scale") <- if (estimate_type == "raw") NA_character_ else prediction_scale
   attr(out, "estimate_info") <- estimate_info

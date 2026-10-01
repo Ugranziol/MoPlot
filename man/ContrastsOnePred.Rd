@@ -12,7 +12,8 @@ ContrastsOnePred(
   sig.level = 0.05,
   level = 0.95,
   estimate_type = c("auto", "observed", "predicted"),
-  prediction_scale = c("response", "link")
+  prediction_scale = c("response", "link"),
+  bounds = NULL
 )
 }
 \arguments{
@@ -77,6 +78,22 @@ Predictions are reported on the linear-predictor scale.
 }
 }
 This argument is relevant only when estimate_type = "predicted".}
+
+\item{bounds}{Optional numeric vector \code{c(lower, upper)} giving the natural
+range of the response, for responses analyzed with a Gaussian (identity
+link) model, such as a Likert score (\code{c(1, 7)}), a percentage
+(\code{c(0, 100)}), or a reaction time (\code{c(0, Inf)}). The bounds cannot be
+inferred from the data, because the observed range need not coincide with
+the possible range. When supplied, confidence intervals of observed and
+predicted estimates are computed on a transformed scale and transformed
+back, so that they remain within the bounds: the logit of
+\eqn{(m - a)/(b - a)} for two finite bounds, and the logarithm of the
+distance from the finite bound otherwise. Estimates are unchanged. The
+argument is ignored, with a warning, for generalized models, whose
+intervals already respect the range implied by their family. Bounds
+correct the representation of uncertainty, not the model: when many
+observations lie at a bound, a model suited to the scale of the response
+(for example an ordinal model) is more appropriate.}
 }
 \value{
 A data frame with one or more rows per contrast.

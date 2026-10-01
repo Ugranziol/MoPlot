@@ -209,6 +209,8 @@
 #'   by their scale factor?
 #' @param data Optional data frame with the original variables; recovered
 #'   from the model when `NULL`.
+#' @param bounds Optional natural range of the response, passed to
+#'   `ContrastsOnePred()`.
 #'
 #' @return An object of class `"moplot_onepred_data"`.
 #'
@@ -223,7 +225,8 @@
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
-    data = NULL
+    data = NULL,
+    bounds = NULL
 ) {
 
   # ==========================================================================
@@ -456,7 +459,8 @@
     sig.level = siglevel,
     level = level,
     estimate_type = resolved_estimate_type,
-    prediction_scale = prediction_scale
+    prediction_scale = prediction_scale,
+    bounds = bounds
   )
 
   contrast_family <- attr(contrast_data,"family")

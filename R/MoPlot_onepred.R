@@ -81,6 +81,12 @@
 #'   is a difference on the link scale. Codings with `s = 1` for every
 #'   contrast (treatment, sum, sliding differences) are unaffected.
 #'
+#' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
+#'   range of a response analyzed with a Gaussian (identity link) model, such
+#'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time, so that
+#'   confidence intervals remain within it. Ignored, with a warning, for
+#'   generalized models. See [ContrastsOnePred()].
+#'
 #' @param coef Logical. Should the lower coefficient panel be displayed?
 #'   The default is `TRUE`.
 #'
@@ -196,6 +202,7 @@ MoPlot_onepred <- function(
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
+    bounds = NULL,
     coef = TRUE,
     show_data = FALSE,
     style = c("minimal", "publication"),
@@ -349,7 +356,8 @@ MoPlot_onepred <- function(
     prediction_scale = prediction_scale,
     coefficient_scale = coefficient_scale,
     per_difference = per_difference,
-    data = data
+    data = data,
+    bounds = bounds
   )
 
   factor_levels <- levels(.extract_model_frame(model)[[predictor]])

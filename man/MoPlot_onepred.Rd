@@ -14,6 +14,7 @@ MoPlot_onepred(
   prediction_scale = c("response", "link"),
   coefficient_scale = c("model", "interpreted"),
   per_difference = FALSE,
+  bounds = NULL,
   coef = TRUE,
   show_data = FALSE,
   style = c("minimal", "publication"),
@@ -92,6 +93,12 @@ both panels refer to the same difference; with
 p-values, and Cohen's d are unaffected. For generalized models, \code{beta / s}
 is a difference on the link scale. Codings with \code{s = 1} for every
 contrast (treatment, sum, sliding differences) are unaffected.}
+
+\item{bounds}{Optional numeric vector \code{c(lower, upper)} giving the natural
+range of a response analyzed with a Gaussian (identity link) model, such
+as \code{c(1, 7)} for a Likert score or \code{c(0, Inf)} for a reaction time, so that
+confidence intervals remain within it. Ignored, with a warning, for
+generalized models. See \code{\link[=ContrastsOnePred]{ContrastsOnePred()}}.}
 
 \item{coef}{Logical. Should the lower coefficient panel be displayed?
 The default is \code{TRUE}.}

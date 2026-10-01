@@ -18,7 +18,8 @@ ContrastMultPred(
   configuration = c("none", "all", "explicit", "semantic"),
   estimate_type = c("raw", "predicted"),
   prediction_scale = c("response", "link"),
-  methodological_note = TRUE
+  methodological_note = TRUE,
+  bounds = NULL
 )
 }
 \arguments{
@@ -129,6 +130,14 @@ This argument is ignored when \code{estimate_type = "raw"}.}
 the settings relevant to the current analysis be printed? The default is
 \code{TRUE}. The note is stored as an attribute of the returned object
 regardless of this setting.}
+
+\item{bounds}{Optional numeric vector \code{c(lower, upper)} giving the natural
+range of a response analyzed with a Gaussian (identity link) model, such
+as \code{c(1, 7)} for a Likert score or \code{c(0, Inf)} for a reaction time. When
+supplied, confidence intervals of raw and predicted estimates are computed
+on a transformed scale (logit or logarithm) and transformed back, so that
+they remain within the bounds. Ignored, with a warning, for generalized
+models. See \code{\link[=ContrastsOnePred]{ContrastsOnePred()}}.}
 }
 \value{
 A data frame of class \code{"plot_ready_contrasts_df"} with one row per

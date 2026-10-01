@@ -74,6 +74,22 @@
 #' }
 #' This argument is relevant only when estimate_type = "predicted".
 #'
+#' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
+#'   range of the response, for responses analyzed with a Gaussian (identity
+#'   link) model, such as a Likert score (`c(1, 7)`), a percentage
+#'   (`c(0, 100)`), or a reaction time (`c(0, Inf)`). The bounds cannot be
+#'   inferred from the data, because the observed range need not coincide with
+#'   the possible range. When supplied, confidence intervals of observed and
+#'   predicted estimates are computed on a transformed scale and transformed
+#'   back, so that they remain within the bounds: the logit of
+#'   \eqn{(m - a)/(b - a)} for two finite bounds, and the logarithm of the
+#'   distance from the finite bound otherwise. Estimates are unchanged. The
+#'   argument is ignored, with a warning, for generalized models, whose
+#'   intervals already respect the range implied by their family. Bounds
+#'   correct the representation of uncertainty, not the model: when many
+#'   observations lie at a bound, a model suited to the scale of the response
+#'   (for example an ordinal model) is more appropriate.
+#'
 #' @details
 #' The function retrieves the contrast (coding) matrix used for predictor and
 #' derives from it the hypothesis matrix, which states the combination of
@@ -632,7 +648,8 @@ ContrastsOnePred <- function(model = NULL,
                              sig.level = .05,
                              level = .95,
                              estimate_type = c("auto", "observed", "predicted"),
-                             prediction_scale = c("response", "link")) {
+                             prediction_scale = c("response", "link"),
+                             bounds = NULL) {
 
   # ============================================================
   # 1. ARGUMENT MATCHING AND BASIC VALIDATION
@@ -735,6 +752,13 @@ ContrastsOnePred <- function(model = NULL,
     NULL
   }
 
+  # Natural range declared by the user for Gaussian responses.
+  bounds <- .validate_bounds(bounds, model)
+
+  if (estimate_type == "observed") {
+    .check_values_within_bounds(response_values, bounds)
+  }
+
   # ============================================================
   # 3. INTERNAL FUNCTION: LEVEL-SPECIFIC ESTIMATES
   # ============================================================
@@ -788,7 +812,8 @@ ContrastsOnePred <- function(model = NULL,
         se = level_ses,
         n = as.numeric(level_ns),
         range_type = response_range_type,
-        conf_level = level
+        conf_level = level,
+        bounds = bounds
       )
 
       return(
@@ -863,6 +888,14 @@ ContrastsOnePred <- function(model = NULL,
       )
     )
 
+    if (!is.null(bounds)) {
+
+      bounded <- .bounded_interval(level_summaries$estimate, level_summaries$se, bounds, z_value)
+
+      level_summaries$ci_low <- bounded$ci_low
+      level_summaries$ci_high <- bounded$ci_high
+    }
+
     estimates <- data.frame(
       Levels = level_names,
       Estimate = level_summaries$estimate,
@@ -932,7 +965,8 @@ ContrastsOnePred <- function(model = NULL,
         n = sum(level_estimates$N[weights > 0]),
         range_type = response_range_type,
         conf_level = level,
-        single_cell = FALSE
+        single_cell = FALSE,
+        bounds = bounds
       )
 
       return(
@@ -956,6 +990,14 @@ ContrastsOnePred <- function(model = NULL,
       conf_level = level
     )
 
+    if (!is.null(bounds)) {
+
+      bounded <- .bounded_interval(combined$estimate, combined$se, bounds, z_value)
+
+      combined$ci_low <- bounded$ci_low
+      combined$ci_high <- bounded$ci_high
+    }
+
     list(
       Estimate = combined$estimate,
       SE = combined$se,
@@ -977,7 +1019,8 @@ ContrastsOnePred <- function(model = NULL,
                                scale_factors,
                                identity_holds,
                                divergence_notes,
-                               range_type) {
+                               range_type,
+                               bounds) {
 
     disclaimer_text <- character()
 
@@ -1120,6 +1163,18 @@ ContrastsOnePred <- function(model = NULL,
           "effects, or levels with all-zero or all-one outcomes; use ",
           "estimate_type = \"predicted\" for displayed differences that ",
           "correspond to the coefficients."
+        )
+      )
+    }
+
+    if (!is.null(bounds)) {
+
+      disclaimer_text <- c(
+        disclaimer_text,
+        paste0(
+          "Confidence intervals were computed within bounds = c(",
+          bounds[1L], ", ", bounds[2L], ") on a transformed scale, so that ",
+          "they remain within the range of the response."
         )
       )
     }
@@ -1501,8 +1556,13 @@ ContrastsOnePred <- function(model = NULL,
     scale_factors = scale_factors,
     identity_holds = identity_holds,
     divergence_notes = as.character(divergence_notes),
-    range_type = response_range_type
+    range_type = response_range_type,
+    bounds = bounds
   )
+
+  if (estimate_type == "predicted") {
+    .warn_estimates_outside_bounds(results$Estimate, bounds)
+  }
 
   # Levels holds structural labels: a factor level, "Mean(A, B)",
   # "W(A .20, C .80)", or "Grand Mean". They are already display-ready.
@@ -1515,6 +1575,7 @@ ContrastsOnePred <- function(model = NULL,
   attr(results, "prediction_scale") <- prediction_scale
   attr(results, "contrast_type") <- contrast_type
   attr(results, "hypothesis_matrix") <- hypotheses$hypothesis_matrix
+  attr(results, "bounds") <- bounds
 
   message(disclaimer)
 
