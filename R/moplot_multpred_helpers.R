@@ -2532,14 +2532,14 @@
 
     # For a two-way interaction, the first tree level is already the final
     # contrast. There is no intermediate branching structure, so the final
-    # formula is placed below the estimates and the final X below the formula.
+    # X is placed below the estimates, with its formula on the same line.
     tree_node_data$Entry_y[first_level_final_rows] <- tree_top_y
 
-    tree_node_data$Formula_y[first_level_final_rows] <- tree_top_y - tree_formula_gap
+    tree_node_data$Formula_y[first_level_final_rows] <- tree_top_y - tree_final_x_gap
 
     tree_node_data$Tree_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
 
-    tree_node_data$Final_x_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows] - tree_final_x_gap
+    tree_node_data$Final_x_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
 
     # ------------------------------------------------------------------------
     # 10.4. POSITION SUCCESSIVE TREE LEVELS
@@ -2594,12 +2594,17 @@
 
         tree_node_data$Tree_y[current_nonfinal_rows] <- current_formula_y - tree_outgoing_gap
 
-        # The final node does not need an outgoing branch. Tree_y is retained
-        # at the formula position only as a valid internal coordinate.
-        tree_node_data$Tree_y[current_final_rows] <- current_formula_y
+        # The final node does not need an outgoing branch. Its X and its
+        # formula share one line below the incoming branch, so that their
+        # separation is horizontal and does not depend on the height of
+        # the plot. Tree_y is retained as a valid internal coordinate.
+        final_line_y <- current_entry_y - tree_final_x_gap
 
-        # The single final X is positioned below the final formula.
-        tree_node_data$Final_x_y[current_final_rows] <- current_formula_y - tree_final_x_gap
+        tree_node_data$Formula_y[current_final_rows] <- final_line_y
+
+        tree_node_data$Tree_y[current_final_rows] <- final_line_y
+
+        tree_node_data$Final_x_y[current_final_rows] <- final_line_y
       }
     }
 
@@ -3093,8 +3098,12 @@
     # ------------------------------------------------------------------------
     # 19.3. FINAL TREE FORMULA AND X
     #
-    # The final formula is placed below the final incoming branch. The only
-    # X retained in tree style is then positioned below that formula.
+    # The X marks the final contrast at the centre of its block, aligned with
+    # the coefficient in the lower panel. Its formula is written on the same
+    # line, to its right. A negative hjust shifts the text by a fraction of
+    # its own width, so the gap is a physical distance: stacking the formula
+    # and the X vertically required a gap in data units, which overlapped on
+    # short panels or with a small range of the data.
     # ------------------------------------------------------------------------
 
     tree_final_data <- tree_node_data[
@@ -3126,9 +3135,9 @@
           size =
             contrast_label_size,
           hjust =
-            0.5,
+            -0.25,
           vjust =
-            1
+            0.5
         )
 
       plot <- plot +
