@@ -514,3 +514,98 @@ test_that("nlme::lme models are supported", {
 
   expect_equal(displayed_coefficients(result), unname(nlme::fixef(model)[2:3]), tolerance = 1e-8)
 })
+
+
+simulate_ordered_data <- function() {
+  set.seed(71)
+  data <- data.frame(
+    dose = ordered(rep(c("low", "mid", "high"), each = 50), levels = c("low", "mid", "high")),
+    z = stats::rnorm(150, mean = 5)
+  )
+  data$y <- stats::rnorm(150, c(1, 3, 4)[as.integer(data$dose)] + 0.5 * data$z)
+  data$success <- stats::rbinom(150, 1, c(0.1, 0.4, 0.5)[as.integer(data$dose)])
+  data
+}
+
+polynomial_components <- function(result) {
+  split(result, result$Contrast)
+}
+
+
+test_that("polynomial curves are centred on the displayed estimates", {
+
+  data <- simulate_ordered_data()
+
+  result <- quiet_contrasts(
+    model = stats::lm(y ~ dose + z, data = data),
+    predictor = "dose",
+    outcome = "y",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  for (component in polynomial_components(result)) {
+    expect_equal(mean(component$Polynomial_fit), mean(component$Estimate))
+  }
+
+  expect_identical(result$Weight[result$Levels == "mid" & endsWith(result$Contrast, ".L")], 0)
+})
+
+
+test_that("polynomial components reconstruct the level estimates on the link scale", {
+
+  data <- simulate_ordered_data()
+
+  result <- quiet_contrasts(
+    model = stats::glm(success ~ dose, family = stats::binomial, data = data),
+    predictor = "dose",
+    outcome = "success",
+    data = data,
+    estimate_type = "predicted",
+    prediction_scale = "link"
+  )
+
+  components <- polynomial_components(result)
+  estimates <- components[[1]]$Estimate
+  baseline <- mean(estimates)
+
+  reconstructed <- baseline + Reduce(
+    `+`,
+    lapply(components, function(component) component$Polynomial_fit - baseline)
+  )
+
+  expect_equal(reconstructed, estimates)
+})
+
+
+test_that("polynomial curves are on the response scale with response-scale estimates", {
+
+  data <- simulate_ordered_data()
+
+  result <- quiet_contrasts(
+    model = stats::glm(success ~ dose, family = stats::binomial, data = data),
+    predictor = "dose",
+    outcome = "success",
+    data = data,
+    estimate_type = "predicted",
+    prediction_scale = "response"
+  )
+
+  expect_true(all(result$Polynomial_fit > 0 & result$Polynomial_fit < 1))
+})
+
+
+test_that("models without an intercept are rejected with an explanation", {
+
+  data <- simulate_ordered_data()
+
+  expect_error(
+    quiet_contrasts(
+      model = stats::lm(y ~ 0 + dose, data = data),
+      predictor = "dose",
+      outcome = "y",
+      data = data
+    ),
+    "requires a model with an intercept"
+  )
+})

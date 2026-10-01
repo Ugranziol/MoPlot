@@ -378,8 +378,14 @@
 #' Polynomial contrast weight associated with each factor level.
 #' }
 #' \item{Polynomial_fit}{
-#' Fitted value implied by the intercept, the polynomial coefficient, and
-#' the polynomial weight.
+#' Curve implied by the single polynomial component: the mean of the level
+#' estimates on the linear-predictor scale plus the component coefficient
+#' multiplied by the polynomial weight, transformed to the scale of
+#' `Estimate` (for example with the inverse logit for a binomial model on the
+#' response scale). The baseline is computed on the same reference grid as
+#' the estimates, so that the curve passes through the region of the
+#' displayed points. On the linear-predictor scale, the baseline plus the sum
+#' of all components reproduces every level estimate.
 #' }
 #' }
 #'
@@ -1047,8 +1053,11 @@ ContrastsOnePred <- function(model = NULL,
         paste0(
           "For polynomial contrasts, Weight reports the polynomial ",
           "weight and Polynomial_fit reports the curve implied by each ",
-          "single polynomial contrast, computed as intercept plus the ",
-          "contrast coefficient multiplied by the polynomial weight."
+          "single polynomial component: the mean of the level estimates on ",
+          "the linear-predictor scale plus the component coefficient ",
+          "multiplied by the polynomial weight, expressed on the scale of ",
+          "the displayed estimates. On the linear-predictor scale, the ",
+          "baseline plus all components reproduces each level estimate."
         )
       )
 
@@ -1172,6 +1181,22 @@ ContrastsOnePred <- function(model = NULL,
   # ============================================================
 
   fixed_effects <- .extract_fixef(model)
+
+  # Without an intercept, a factor is coded with one indicator per
+  # level and its coefficients are level means, not contrasts.
+  if (attr(stats::terms(.extract_fixed_formula(model)), "intercept") == 0L) {
+
+    stop(
+      paste0(
+        "ContrastsOnePred() requires a model with an intercept. Without ",
+        "an intercept, '",
+        predictor,
+        "' is coded with one indicator per level and its coefficients are ",
+        "level means rather than contrasts."
+      ),
+      call. = FALSE
+    )
+  }
 
   focal_coefficient_names <- .focal_coefficient_names(
     model = model,
@@ -1304,7 +1329,27 @@ ContrastsOnePred <- function(model = NULL,
 
   if (identical(contrast_type, "Polynomial")) {
 
-    intercept <- as.numeric(fixed_effects[1L])
+    # Each component is drawn around the mean of the level estimates on
+    # the linear-predictor scale, i.e. on the same reference grid as the
+    # displayed estimates. Because the polynomial columns are orthogonal
+    # to the intercept, this baseline plus the sum of all components
+    # reproduces every level estimate on that scale. The curve is then
+    # transformed to the scale of the displayed estimates.
+    polynomial_baseline <- if (all(is.finite(link_level_values))) {
+      mean(link_level_values)
+    } else {
+      NA_real_
+    }
+
+    estimates_on_response_scale <- generalized_model &&
+      !is.null(family_object) &&
+      (estimate_type == "observed" || prediction_scale == "response")
+
+    to_displayed_scale <- if (estimates_on_response_scale) {
+      family_object$linkinv
+    } else {
+      identity
+    }
 
     polynomial_names <- colnames(stats::contr.poly(length(level_names)))
 
@@ -1315,6 +1360,10 @@ ContrastsOnePred <- function(model = NULL,
         function(contrast_index) {
 
           polynomial_weights <- as.numeric(coding_matrix[, contrast_index])
+
+          # Remove numerical residues such as -7.85e-17 for the middle
+          # level of an odd number of levels.
+          polynomial_weights[abs(polynomial_weights) < 1e-12] <- 0
 
           data.frame(
             Contrast = paste0(
@@ -1329,9 +1378,11 @@ ContrastsOnePred <- function(model = NULL,
             CI_low = level_estimates$CI_low,
             CI_high = level_estimates$CI_high,
             Weight = polynomial_weights,
-            Polynomial_fit = intercept +
-              as.numeric(contrast_coefficients[contrast_index]) *
-              polynomial_weights,
+            Polynomial_fit = to_displayed_scale(
+              polynomial_baseline +
+                as.numeric(contrast_coefficients[contrast_index]) *
+                polynomial_weights
+            ),
             Significance = significance_labels[contrast_index],
             stringsAsFactors = FALSE
           )

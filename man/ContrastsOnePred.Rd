@@ -124,8 +124,14 @@ includes:
 Polynomial contrast weight associated with each factor level.
 }
 \item{Polynomial_fit}{
-Fitted value implied by the intercept, the polynomial coefficient, and
-the polynomial weight.
+Curve implied by the single polynomial component: the mean of the level
+estimates on the linear-predictor scale plus the component coefficient
+multiplied by the polynomial weight, transformed to the scale of
+\code{Estimate} (for example with the inverse logit for a binomial model on the
+response scale). The baseline is computed on the same reference grid as
+the estimates, so that the curve passes through the region of the
+displayed points. On the linear-predictor scale, the baseline plus the sum
+of all components reproduces every level estimate.
 }
 }
 
