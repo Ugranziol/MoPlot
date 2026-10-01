@@ -15,6 +15,7 @@
 #'
 #' @importFrom cli cli_h1 cli_h2
 #' @importFrom tibble as_tibble
+#' @exportS3Method
 #' @noRd
 print.model_contrast_table <- function(x, ...) {
 
@@ -56,6 +57,7 @@ print.model_contrast_table <- function(x, ...) {
 #'
 #' @importFrom cli cli_h1
 #' @importFrom tibble as_tibble
+#' @exportS3Method
 #' @noRd
 print.model_contrast_summary <- function(x, ...) {
 
@@ -86,6 +88,7 @@ print.model_contrast_summary <- function(x, ...) {
 #'
 #' @importFrom cli cli_h1
 #' @importFrom tibble as_tibble
+#' @exportS3Method
 #' @noRd
 print.model_contrast_variables <- function(x, ...) {
 

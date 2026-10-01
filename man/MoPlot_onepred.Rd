@@ -12,6 +12,7 @@ MoPlot_onepred(
   estimate_type = c("auto", "observed", "predicted"),
   prediction_scale = c("response", "link"),
   coefficient_scale = c("model", "interpreted"),
+  per_difference = FALSE,
   coef = TRUE,
   show_data = FALSE,
   style = c("minimal", "publication"),
@@ -66,6 +67,21 @@ Displays the interpreted estimate returned by \code{extract_param()},
 such as an odds ratio or incidence rate ratio when appropriate.
 }
 }}
+
+\item{per_difference}{Logical. Should the lower-panel coefficients be
+divided by their scale factor? The default is \code{FALSE}.
+
+For some codings, such as Helmert and reverse Helmert contrasts or
+custom matrices, each model coefficient equals a scale factor \code{s}
+multiplied by the difference displayed in the upper panel (for example
+\code{s = 1/3} for the second Helmert contrast). When \code{per_difference = TRUE},
+the lower panel reports \code{beta / s} and its confidence interval, so that
+both panels refer to the same difference; with
+\code{coefficient_scale = "interpreted"}, ratios are computed as
+\code{exp(beta / s)}, the ratio for the displayed comparison. Test statistics,
+p-values, and Cohen's d are unaffected. For generalized models, \code{beta / s}
+is a difference on the link scale. Codings with \code{s = 1} for every
+contrast (treatment, sum, sliding differences) are unaffected.}
 
 \item{coef}{Logical. Should the lower coefficient panel be displayed?
 The default is \code{TRUE}.}

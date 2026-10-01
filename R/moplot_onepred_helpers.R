@@ -136,7 +136,7 @@
 
     if (any(previously_seen)) {
 
-      block_positions[previously_seen] <- unname(osition_map[structural_labels[previously_seen]])
+      block_positions[previously_seen] <- unname(position_map[structural_labels[previously_seen]])
 
       new_indices <- which(!previously_seen)
 
@@ -205,6 +205,8 @@
 #' @param estimate_type Type of upper-panel estimates.
 #' @param prediction_scale Prediction scale for model-based estimates.
 #' @param coefficient_scale Scale used for the lower-panel estimate.
+#' @param per_difference Logical. Should lower-panel coefficients be divided
+#'   by their scale factor?
 #'
 #' @return An object of class `"moplot_onepred_data"`.
 #'
@@ -217,7 +219,8 @@
     level = 0.95,
     estimate_type = c("auto", "observed", "predicted"),
     prediction_scale = c("response", "link"),
-    coefficient_scale = c("model", "interpreted")
+    coefficient_scale = c("model", "interpreted"),
+    per_difference = FALSE
 ) {
 
   # ==========================================================================
@@ -706,6 +709,52 @@
     stringsAsFactors = FALSE
   )
 
+  ratio_types <- c(
+    "Odds ratio",
+    "Incidence rate ratio",
+    "Hazard ratio",
+    "Multiplicative ratio",
+    "Exponentiated coefficient"
+  )
+
+  # Each coefficient equals its scale factor multiplied by the displayed
+  # difference on the linear-predictor scale (for example 1/3 for the
+  # second Helmert contrast).
+  parameter_data$Scale_factor <- contrast_data$Scale_factor[
+    match(contrast_ids, contrast_data$Contrast)
+  ]
+
+  if (isTRUE(per_difference)) {
+
+    # Dividing by the scale factor expresses each coefficient per unit
+    # of the displayed difference. Test statistics, p-values, and
+    # Cohen's d are unchanged by this rescaling.
+    scale_factors <- parameter_data$Scale_factor
+    is_ratio <- parameter_data$Estimate_type %in% ratio_types
+
+    parameter_data$Estimate <- parameter_data$Estimate / scale_factors
+    parameter_data$CI_low <- parameter_data$CI_low / scale_factors
+    parameter_data$CI_high <- parameter_data$CI_high / scale_factors
+
+    parameter_data$Interpreted_Estimate <- ifelse(
+      is_ratio,
+      exp(parameter_data$Estimate),
+      parameter_data$Interpreted_Estimate / scale_factors
+    )
+
+    parameter_data$Interpreted_CI_low <- ifelse(
+      is_ratio,
+      exp(parameter_data$CI_low),
+      parameter_data$Interpreted_CI_low / scale_factors
+    )
+
+    parameter_data$Interpreted_CI_high <- ifelse(
+      is_ratio,
+      exp(parameter_data$CI_high),
+      parameter_data$Interpreted_CI_high / scale_factors
+    )
+  }
+
   if (identical(coefficient_scale, "model")) {
 
     parameter_data$Display_estimate <- parameter_data$Estimate
@@ -727,14 +776,6 @@
     parameter_data$Display_CI_high <- parameter_data$Interpreted_CI_high
 
     parameter_data$Display_type <- parameter_data$Estimate_type
-
-    ratio_types <- c(
-      "Odds ratio",
-      "Incidence rate ratio",
-      "Hazard ratio",
-      "Multiplicative ratio",
-      "Exponentiated coefficient"
-    )
 
     null_value <- if (
       all(parameter_data$Estimate_type %in% ratio_types)
@@ -837,6 +878,7 @@
     prediction_scale = contrast_prediction_scale,
 
     coefficient_scale = coefficient_scale,
+    per_difference = isTRUE(per_difference),
     position_layout = position_layout,
     axis_breaks = axis_breaks,
     axis_labels = axis_labels,
@@ -1424,6 +1466,8 @@
 #' @param show_data Whether raw observations are displayed.
 #' @param coef Whether the coefficient panel is displayed.
 #' @param coefficient_scale Scale used for the lower-panel estimates.
+#' @param per_difference Whether lower-panel coefficients are divided by
+#'   their scale factor.
 #'
 #' @return A character vector of length one.
 #'
@@ -1437,6 +1481,7 @@ MoPlotStele <- function(
     show_data = FALSE,
     coef = TRUE,
     coefficient_scale = c("model", "interpreted"),
+    per_difference = FALSE,
     family,
     link,
     estimate_type,
@@ -1718,9 +1763,63 @@ MoPlotStele <- function(
       "The lower panel displays the ",
       lower_quantity,
       " for each contrast, together with its confidence interval and an ",
-      "approximate Cohen's d. Each coefficient (indicated as Coef.1, Coef.2 ans so forth) is horizontally aligned with ",
+      "approximate Cohen's d. Each coefficient (indicated as Coef. 1, Coef. 2, and so forth) is horizontally aligned with ",
       "the center of the corresponding comparison in the upper panel."
     )
+  }
+
+  # Groups with unequal weights are labelled W(level weight, ...).
+  weighted_description <- if (
+    any(grepl("^W\\(", contrast_output$Levels))
+  ) {
+    paste0(
+      "Labels of the form W(A .20, C .80) denote weighted means of the ",
+      "listed levels with the indicated weights, as implied by the ",
+      "hypothesis matrix of the coding."
+    )
+  } else {
+    NULL
+  }
+
+  # Each coefficient equals its scale factor s multiplied by the
+  # displayed difference on the linear-predictor scale.
+  scale_description <- NULL
+
+  scale_factors <- contrast_output$Scale_factor[
+    !duplicated(contrast_output$Contrast)
+  ]
+
+  if (
+    length(scale_factors) > 0L &&
+    any(abs(scale_factors - 1) > 1e-8)
+  ) {
+
+    scale_list <- paste0(
+      "s = ",
+      .format_scale_factor(scale_factors),
+      " for C",
+      seq_along(scale_factors),
+      collapse = ", "
+    )
+
+    scale_description <- if (isTRUE(per_difference) && isTRUE(coef)) {
+      paste0(
+        "Under this coding, each model coefficient equals a scale factor s ",
+        "multiplied by the difference displayed in the upper panel (",
+        scale_list,
+        "); the lower panel reports the coefficients divided by s, so that ",
+        "each value refers to the displayed difference, whereas test ",
+        "statistics, p-values, and Cohen's d are unaffected by this rescaling."
+      )
+    } else {
+      paste0(
+        "Under this coding, each model coefficient equals a scale factor s ",
+        "multiplied by the difference displayed in the upper panel on the ",
+        "linear-predictor scale (",
+        scale_list,
+        ")."
+      )
+    }
   }
 
   introduction <- paste0(
@@ -1735,10 +1834,12 @@ MoPlotStele <- function(
     introduction,
     contrast_description,
     upper_description,
+    weighted_description,
     abbreviation_description,
     label_description,
     raw_description,
-    coefficient_description
+    coefficient_description,
+    scale_description
   )
 
   caption_parts <- caption_parts[
@@ -1984,6 +2085,16 @@ MoPlotStele <- function(
     estimate_abbreviation,
     character(1)
   )
+
+  # Rescaled model coefficients are labelled explicitly. Ratios keep
+  # their usual label: exp(beta / s) is the ratio for the displayed
+  # comparison itself.
+  if (isTRUE(prep$per_difference)) {
+
+    is_coefficient <- parameter_data$Estimate_label == "\u03b2"
+
+    parameter_data$Estimate_label[is_coefficient] <- "\u03b2/s"
+  }
 
   formatted_estimate <- ifelse(
     is.na(parameter_data$Display_estimate),
@@ -2235,7 +2346,7 @@ MoPlotStele <- function(
           "model"
         )
       ) {
-        "Model estimate"
+        if (isTRUE(prep$per_difference)) "Model estimate / s" else "Model estimate"
       } else {
         unique(
           parameter_data$Display_type

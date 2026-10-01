@@ -675,6 +675,83 @@
 }
 
 
+#' Coefficient names associated with the main effect of one predictor
+#'
+#' Internal helper. Identifies the fixed-effect coefficients of a main-effect
+#' term through the `assign` attribute of the fixed-effect model matrix, in
+#' the order of the contrast columns. Matching by name prefix is avoided
+#' because another variable may share the predictor's prefix (for example
+#' `group` and `group_size`).
+#'
+#' @param model A fitted model supported by the package.
+#' @param predictor Name of the predictor.
+#'
+#' @return A character vector of coefficient names.
+#'
+#' @keywords internal
+#' @noRd
+.focal_coefficient_names <- function(model,
+                                     predictor) {
+
+  terms_object <- stats::delete.response(
+    stats::terms(
+      .extract_fixed_formula(model)
+    )
+  )
+
+  term_labels <- gsub(
+    "`",
+    "",
+    attr(terms_object, "term.labels"),
+    fixed = TRUE
+  )
+
+  term_index <- which(term_labels == predictor)
+
+  if (length(term_index) != 1L) {
+
+    stop(
+      paste0(
+        "The predictor '",
+        predictor,
+        "' does not appear as a main-effect term in the model."
+      ),
+      call. = FALSE
+    )
+  }
+
+  # The model frame carries its own terms, so transformed variables
+  # such as log(x) do not need to be re-evaluated.
+  model_matrix <- stats::model.matrix(
+    terms_object,
+    data = .extract_model_frame(model)
+  )
+
+  coefficient_names <- colnames(model_matrix)[attr(model_matrix, "assign") == term_index]
+
+  unmatched_names <- setdiff(
+    coefficient_names,
+    names(.extract_fixef(model))
+  )
+
+  if (length(unmatched_names) > 0L) {
+
+    stop(
+      paste0(
+        "The following model-matrix columns of '",
+        predictor,
+        "' were not found among the fixed-effect coefficients: ",
+        paste(unmatched_names, collapse = ", "),
+        "."
+      ),
+      call. = FALSE
+    )
+  }
+
+  coefficient_names
+}
+
+
 # ============================================================
 # 11. ORIGINAL CONTRASTS AND FACTOR LEVELS
 # ============================================================
@@ -1084,6 +1161,47 @@
     conf_level = conf_level
   )
 
+  .combine_fixed_predictions(
+    predictions = predictions,
+    weights = weights,
+    prediction_scale = prediction_scale,
+    conf_level = conf_level
+  )
+}
+
+
+# ============================================================
+# 15. WEIGHTED COMBINATION OF EXISTING PREDICTIONS
+# ============================================================
+
+#' Combine population-level predictions with arbitrary weights
+#'
+#' Internal helper. Operates on the object returned by
+#' `.compute_fixed_predictions()`, so that several weighted averages of the
+#' same predictions can be obtained without rebuilding the model matrix.
+#' The standard error uses the complete fixed-effect covariance matrix, so
+#' correlations between the combined predictions are taken into account.
+#'
+#' @param predictions Object returned by `.compute_fixed_predictions()`.
+#' @param weights Non-negative weights, one per prediction row. `NULL` gives
+#'   equal weights. Weights are normalized to sum to one.
+#' @param prediction_scale `"response"` or `"link"`.
+#' @param conf_level Confidence level.
+#'
+#' @return A one-row data frame with `estimate`, `se`, `ci_low`, `ci_high`.
+#'
+#' @keywords internal
+#' @noRd
+.combine_fixed_predictions <- function(predictions,
+                                       weights = NULL,
+                                       prediction_scale = c(
+                                         "response",
+                                         "link"
+                                       ),
+                                       conf_level = 0.95) {
+
+  prediction_scale <- match.arg(prediction_scale)
+
   model_matrix <- attr(
     predictions,
     "model_matrix"
@@ -1103,6 +1221,19 @@
     predictions,
     "family"
   )
+
+  if (is.null(model_matrix) ||
+      is.null(variance_matrix) ||
+      is.null(linear_predictor)) {
+
+    stop(
+      paste0(
+        "'predictions' must be an object returned by ",
+        ".compute_fixed_predictions()."
+      ),
+      call. = FALSE
+    )
+  }
 
   number_predictions <- nrow(
     model_matrix
@@ -1132,7 +1263,7 @@
     stop(
       paste0(
         "'weights' must be a numeric vector containing one value ",
-        "for each row of 'newdata'."
+        "for each prediction."
       ),
       call. = FALSE
     )
@@ -1203,63 +1334,6 @@
     stringsAsFactors = FALSE
   )
 }
-
-#' Format level labels for display
-#'
-#' Internal helper used by `ContrastsOnePred()`.
-#'
-#' @param levels Character vector containing structural level labels.
-#'
-#' @return A character vector containing display-ready labels.
-#'
-#' @keywords internal
-#' @noRd
-.format_display_levels <- function(levels) {
-
-  if (!is.character(levels)) {
-    levels <- as.character(levels)
-  }
-
-  vapply(
-    levels,
-    function(level_label) {
-
-      if (
-        is.na(level_label) ||
-        !nzchar(level_label) ||
-        identical(level_label, "Grand Mean")
-      ) {
-        return(level_label)
-      }
-
-      if (grepl(",", level_label, fixed = TRUE)) {
-
-        aggregated_levels <- trimws(
-          strsplit(
-            level_label,
-            split = ",",
-            fixed = TRUE
-          )[[1L]]
-        )
-
-        return(
-          paste0(
-            "Mean(",
-            paste(
-              aggregated_levels,
-              collapse = ", "
-            ),
-            ")"
-          )
-        )
-      }
-
-      level_label
-    },
-    character(1)
-  )
-}
-
 
 #' Generate contrast colours for MoPlot
 #'

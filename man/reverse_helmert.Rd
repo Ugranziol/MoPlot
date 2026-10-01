@@ -4,10 +4,13 @@
 \alias{reverse_helmert}
 \title{Reverse Helmert Contrasts}
 \usage{
-reverse_helmert(n)
+reverse_helmert(n, contrasts = TRUE)
 }
 \arguments{
-\item{n}{Number of factor levels.}
+\item{n}{A factor vector, factor levels, or a positive integer scalar
+specifying the number of factor levels (must be at least 2).}
+
+\item{contrasts}{Logical indicating whether to return contrasts (default \code{TRUE}).}
 }
 \value{
 A numeric matrix with \code{n} rows and \code{n - 1} columns containing
@@ -28,7 +31,7 @@ sequential comparisons are defined.
 }
 \examples{
 reverse_helmert(3)
-reverse_helmert(4)
+reverse_helmert(c("Control", "Trt1", "Trt2"))
 
 dat <- data.frame(
   group = factor(rep(c("A", "B", "C"), each = 10)),

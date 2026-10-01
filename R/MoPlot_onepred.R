@@ -57,6 +57,21 @@
 #'     }
 #'   }
 #'
+#' @param per_difference Logical. Should the lower-panel coefficients be
+#'   divided by their scale factor? The default is `FALSE`.
+#'
+#'   For some codings, such as Helmert and reverse Helmert contrasts or
+#'   custom matrices, each model coefficient equals a scale factor `s`
+#'   multiplied by the difference displayed in the upper panel (for example
+#'   `s = 1/3` for the second Helmert contrast). When `per_difference = TRUE`,
+#'   the lower panel reports `beta / s` and its confidence interval, so that
+#'   both panels refer to the same difference; with
+#'   `coefficient_scale = "interpreted"`, ratios are computed as
+#'   `exp(beta / s)`, the ratio for the displayed comparison. Test statistics,
+#'   p-values, and Cohen's d are unaffected. For generalized models, `beta / s`
+#'   is a difference on the link scale. Codings with `s = 1` for every
+#'   contrast (treatment, sum, sliding differences) are unaffected.
+#'
 #' @param coef Logical. Should the lower coefficient panel be displayed?
 #'   The default is `TRUE`.
 #'
@@ -170,6 +185,7 @@ MoPlot_onepred <- function(
     estimate_type = c("auto", "observed", "predicted"),
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
+    per_difference = FALSE,
     coef = TRUE,
     show_data = FALSE,
     style = c("minimal", "publication"),
@@ -194,6 +210,17 @@ MoPlot_onepred <- function(
   # ==========================================================================
   # 2. ARGUMENT VALIDATION
   # ==========================================================================
+
+  if (
+    !is.logical(per_difference) ||
+    length(per_difference) != 1L ||
+    is.na(per_difference)
+  ) {
+    stop(
+      "`per_difference` must be either TRUE or FALSE.",
+      call. = FALSE
+    )
+  }
 
   if (
     !is.logical(coef) ||
@@ -310,7 +337,8 @@ MoPlot_onepred <- function(
     level = level,
     estimate_type = estimate_type,
     prediction_scale = prediction_scale,
-    coefficient_scale = coefficient_scale
+    coefficient_scale = coefficient_scale,
+    per_difference = per_difference
   )
 
   factor_levels <- levels(.extract_model_frame(model)[[predictor]])
@@ -355,6 +383,7 @@ MoPlot_onepred <- function(
       show_data = show_data,
       coef = coef,
       coefficient_scale = coefficient_scale,
+      per_difference = per_difference,
       family = prep$family,
       link = prep$link,
       estimate_type = prep$estimate_type,

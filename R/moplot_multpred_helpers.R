@@ -1851,6 +1851,34 @@
       )
     }
 
+    # Weighted groups: "W(level weight, level weight)". Level names may
+    # contain spaces, so the weight is taken as the last token.
+    if (grepl("^W\\(.*\\)$", x)) {
+
+      entries <- trimws(
+        strsplit(
+          sub("^W\\((.*)\\)$", "\\1", x),
+          ",",
+          fixed = TRUE
+        )[[1L]]
+      )
+
+      level_names <- sub("\\s+\\S+$", "", entries)
+      weights <- sub("^.*\\s+(\\S+)$", "\\1", entries)
+
+      replace <- level_names %in% names(lookup)
+
+      level_names[replace] <- unname(lookup[level_names[replace]])
+
+      return(
+        paste0(
+          "W(",
+          paste(level_names, weights, collapse = ", "),
+          ")"
+        )
+      )
+    }
+
     if (x %in% names(lookup)) {
       return(
         unname(
