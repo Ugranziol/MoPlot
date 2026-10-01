@@ -1566,6 +1566,71 @@
   )
 }
 
+#' Shortest unique abbreviations of a set of labels
+#'
+#' Internal helper. A label whose first three characters are unique among the
+#' labels is abbreviated as its first half (at least three characters)
+#' followed by a period. Labels that share their first three characters, such
+#' as `Treatment1` and `Treatment2`, keep a three-character prefix followed by
+#' the part that distinguishes them (`Tre.1`, `Tre.2`). A label whose
+#' abbreviation would still collide is kept in full.
+#'
+#' @param labels Character vector of unique labels to abbreviate.
+#' @param reserved Labels that must not be produced as abbreviations.
+#'
+#' @return A character vector of abbreviations, one per label.
+#'
+#' @keywords internal
+#' @noRd
+.unique_abbreviations <- function(labels,
+                                  reserved = character(0)) {
+
+  # Labels with a unique three-character start: first half of the label.
+  abbreviations <- paste0(
+    substr(labels, 1L, pmax(3L, ceiling(nchar(labels) / 2))),
+    "."
+  )
+
+  # Labels sharing their first three characters, such as Treatment1 and
+  # Treatment2 or TreatmentHigh and TreatmentLow, would be hard to tell
+  # apart by prefixes alone: they keep a three-character prefix followed
+  # by the part that distinguishes them within the group.
+  start <- substr(labels, 1L, 3L)
+
+  for (shared_start in unique(start[duplicated(start)])) {
+
+    group <- which(start == shared_start)
+
+    group_labels <- labels[group]
+
+    shortest <- min(nchar(group_labels))
+
+    common_length <- 0L
+
+    while (common_length < shortest &&
+           length(unique(substr(group_labels, common_length + 1L, common_length + 1L))) == 1L) {
+
+      common_length <- common_length + 1L
+    }
+
+    abbreviations[group] <- paste0(
+      substr(group_labels, 1L, min(3L, common_length)),
+      ".",
+      substr(group_labels, common_length + 1L, nchar(group_labels))
+    )
+  }
+
+  collides <- duplicated(abbreviations) |
+    duplicated(abbreviations, fromLast = TRUE) |
+    abbreviations %in% reserved
+
+  # Any remaining collision keeps the full label.
+  abbreviations[collides] <- labels[collides]
+
+  abbreviations
+}
+
+
 #' Abbreviate long factor labels for graphical display
 #'
 #' Internal helper used to abbreviate long factor-level labels while
@@ -1601,6 +1666,20 @@
       )
     }
 
+    # Weighted groups: "W(level weight, level weight)".
+    if (grepl("^W\\(.*\\)$", x)) {
+
+      entries <- trimws(
+        strsplit(
+          sub("^W\\((.*)\\)$", "\\1", x),
+          ",",
+          fixed = TRUE
+        )[[1L]]
+      )
+
+      return(sub("\\s+\\S+$", "", entries))
+    }
+
     x
   }
 
@@ -1628,50 +1707,25 @@
     )
   }
 
-  prefix_length <- pmax(
-    3L,
-    ceiling(
-      nchar(long_labels) / 2
-    )
+  abbreviations <- .unique_abbreviations(
+    labels = long_labels,
+    reserved = setdiff(atomic_labels, long_labels)
   )
 
-  abbreviations <- paste0(
-    substr(
-      long_labels,
-      1L,
-      prefix_length
-    ),
-    "."
-  )
+  # An abbreviation is useful only if it is shorter than the label.
+  shortened <- nchar(abbreviations) < nchar(long_labels)
 
-  while (anyDuplicated(abbreviations)) {
+  long_labels <- long_labels[shortened]
+  abbreviations <- abbreviations[shortened]
 
-    duplicated_groups <- abbreviations[duplicated(abbreviations) | duplicated(abbreviations, fromLast = TRUE)]
+  if (length(long_labels) == 0L) {
 
-    duplicated_rows <- abbreviations %in% duplicated_groups
-
-    prefix_length[duplicated_rows] <- pmin(
-      prefix_length[duplicated_rows] + 1L,
-      nchar(long_labels[duplicated_rows])
-    )
-
-    abbreviations <- paste0(
-      substr(
-        long_labels,
-        1L,
-        prefix_length
-      ),
-      "."
-    )
-
-    if (
-      all(
-        prefix_length[duplicated_rows] >=
-        nchar(long_labels[duplicated_rows])
+    return(
+      list(
+        labels = labels,
+        key = NULL
       )
-    ) {
-      break
-    }
+    )
   }
 
   lookup <- stats::setNames(abbreviations,long_labels)
