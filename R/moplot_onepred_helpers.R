@@ -312,8 +312,6 @@
 
   model_information <- ModelContrastTable(model,type = "all")
 
-  model_summary <- model_information[["Model-Level Summary"]]
-
   variable_summary <- model_information[["Variable-Level Summary"]]
 
   outcome_names <- variable_summary$Variable[variable_summary$Role == "Dependent"]
@@ -421,50 +419,13 @@
   # 4. RESOLVE AUTOMATIC ESTIMATE TYPE
   # ==========================================================================
 
-  resolved_estimate_type <- estimate_type
-
-  if (identical(resolved_estimate_type, "auto")) {
-
-    number_predictors <- suppressWarnings(
-      as.integer(
-        model_summary$Value[
-          model_summary$Metric == "Predictors"
-        ]
-      )
-    )
-
-    number_interactions <- suppressWarnings(
-      as.integer(
-        model_summary$Value[
-          model_summary$Metric == "Interactions"
-        ]
-      )
-    )
-
-    if (
-      length(number_predictors) != 1L ||
-      is.na(number_predictors)
-    ) {
-      stop(
-        paste0(
-          "The number of model predictors could not be determined when ",
-          "`estimate_type = \"auto\"`."
-        ),
-        call. = FALSE
-      )
-    }
-
-    if (
-      number_predictors == 1L &&
-      length(number_interactions) == 1L &&
-      !is.na(number_interactions) &&
-      number_interactions == 0L
-    ) {
-      resolved_estimate_type <- "observed"
-    } else {
-      resolved_estimate_type <- "predicted"
-    }
-  }
+  # The same rule as ContrastsOnePred(); see .resolve_estimate_type().
+  resolved_estimate_type <- .resolve_estimate_type(
+    model = model,
+    predictor = predictor,
+    estimate_type = estimate_type,
+    prediction_scale = prediction_scale
+  )
 
   # ==========================================================================
   # 5. CONTRAST ESTIMATES

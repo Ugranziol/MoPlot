@@ -38,9 +38,12 @@
 #'
 #'   \describe{
 #'     \item{`"auto"`}{
-#'       Uses observed means for models containing only the focal predictor
-#'       and no interactions. Model-based predictions are used when the model
-#'       contains additional predictors or interaction terms.
+#'       Uses observed means when the fixed part of the model contains only
+#'       the focal predictor, the model has no random effects, and, for
+#'       generalized models, `prediction_scale = "response"`. Model-based
+#'       predictions are used otherwise: with other predictors or
+#'       interactions, with random effects (observed means would ignore the
+#'       clustering of the observations), and for estimates on the link scale.
 #'     }
 #'     \item{`"observed"`}{
 #'       Computes observed means directly from the supplied data.
@@ -702,38 +705,15 @@ ContrastsOnePred <- function(model = NULL,
   # 2. AUTOMATIC ESTIMATE-TYPE SELECTION
   # ============================================================
 
-  if (identical(estimate_type, "auto")) {
-
-    model_information <- ModelContrastTable(model,type = "summary")
-
-    number_predictors <- as.integer(model_information$Value[model_information$Metric == "Predictors"])
-
-    number_interactions <- as.integer(model_information$Value[model_information$Metric == "Interactions"])
-
-    if (
-      length(number_predictors) != 1L ||
-      is.na(number_predictors)
-    ) {
-      stop(
-        paste0(
-          "The number of model predictors could not be determined ",
-          "when `estimate_type = \"auto\"`."
-        ),
-        call. = FALSE
-      )
-    }
-
-    if (
-      number_predictors == 1L &&
-      !is.na(number_interactions) &&
-      number_interactions == 0L
-    ) {
-      estimate_type <- "observed"
-    } else {
-      estimate_type <- "predicted"
-    }
-  }
-
+  # Observed means are used only for a fixed part containing the
+  # predictor alone, without random effects, and on the response
+  # scale for generalized models. See .resolve_estimate_type().
+  estimate_type <- .resolve_estimate_type(
+    model = model,
+    predictor = predictor,
+    estimate_type = estimate_type,
+    prediction_scale = prediction_scale
+  )
 
   z_value <- stats::qnorm(1 - (1 - level) / 2)
 

@@ -446,3 +446,71 @@ test_that("observed intervals of unbounded responses are unchanged", {
 
   expect_equal(result$CI_high - result$Estimate, result$Estimate - result$CI_low)
 })
+
+
+test_that("estimate_type = 'auto' follows the model and the requested scale", {
+
+  set.seed(61)
+
+  data <- data.frame(
+    group = factor(rep(c("A", "B", "C"), 60)),
+    id = factor(rep(1:30, each = 6)),
+    z = stats::rnorm(180)
+  )
+  data$y <- stats::rnorm(180, as.integer(data$group))
+  data$success <- stats::rbinom(180, 1, 0.4)
+
+  resolved <- function(model, outcome, prediction_scale = "response") {
+    attr(
+      suppressWarnings(
+        quiet_contrasts(
+          model = model,
+          predictor = "group",
+          outcome = outcome,
+          data = data,
+          prediction_scale = prediction_scale
+        )
+      ),
+      "estimate_type"
+    )
+  }
+
+  glm_model <- stats::glm(success ~ group, family = stats::binomial, data = data)
+
+  expect_identical(resolved(stats::lm(y ~ group, data = data), "y"), "observed")
+  expect_identical(resolved(glm_model, "success"), "observed")
+  expect_identical(resolved(glm_model, "success", prediction_scale = "link"), "predicted")
+  expect_identical(resolved(stats::lm(y ~ group + z, data = data), "y"), "predicted")
+  expect_identical(resolved(lme4::lmer(y ~ group + (1 | id), data = data), "y"), "predicted")
+})
+
+
+test_that("nlme::lme models are supported", {
+
+  set.seed(62)
+
+  data <- data.frame(
+    group = factor(rep(c("A", "B", "C"), 60)),
+    id = factor(rep(1:30, each = 6)),
+    unused = stats::rnorm(180)
+  )
+  data$y <- stats::rnorm(180, as.integer(data$group)) + stats::rnorm(30)[data$id]
+  stats::contrasts(data$group) <- stats::contr.helmert(3)
+
+  model <- nlme::lme(y ~ group, random = ~ 1 | id, data = data)
+
+  variables <- ModelContrastTable(model, type = "x&y")
+
+  expect_setequal(variables$Variable[variables$Role == "Predictor"], c("group", "id"))
+  expect_identical(variables$Variable[variables$Role == "Dependent"], "y")
+
+  result <- quiet_contrasts(
+    model = model,
+    predictor = "group",
+    outcome = "y",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  expect_equal(displayed_coefficients(result), unname(nlme::fixef(model)[2:3]), tolerance = 1e-8)
+})

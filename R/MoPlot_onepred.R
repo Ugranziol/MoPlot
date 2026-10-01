@@ -28,9 +28,12 @@
 #'
 #'   \describe{
 #'     \item{`"auto"`}{
-#'       Uses observed means when the model contains only the focal predictor
-#'       and no interactions. Model-based predictions are used when additional
-#'       predictors are present.
+#'       Uses observed means when the fixed part of the model contains only
+#'       the focal predictor, the model has no random effects, and, for
+#'       generalized models, `prediction_scale = "response"`. Model-based
+#'       predictions are used otherwise: with other predictors or
+#'       interactions, with random effects (observed means would ignore the
+#'       clustering of the observations), and for estimates on the link scale.
 #'     }
 #'     \item{`"observed"`}{
 #'       Uses observed means computed directly from the model data.

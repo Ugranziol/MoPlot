@@ -39,6 +39,53 @@
 }
 
 
+#' Resolve `estimate_type = "auto"`
+#'
+#' Internal helper shared by `ContrastsOnePred()` and `MoPlot_onepred()`.
+#' Observed means are used only when they answer the same question as the
+#' model: the fixed part contains the focal predictor alone, the model has no
+#' random effects (observed means would ignore the clustering), and, for
+#' generalized models, estimates are requested on the response scale
+#' (observed means are not on the link scale). Otherwise model-based
+#' predictions are used.
+#'
+#' @param model A fitted model.
+#' @param predictor Name of the focal predictor.
+#' @param estimate_type `"auto"`, `"observed"`, or `"predicted"`.
+#' @param prediction_scale `"response"` or `"link"`.
+#'
+#' @return `"observed"` or `"predicted"`.
+#'
+#' @keywords internal
+#' @noRd
+.resolve_estimate_type <- function(model,
+                                   predictor,
+                                   estimate_type,
+                                   prediction_scale) {
+
+  if (!identical(estimate_type, "auto")) {
+    return(estimate_type)
+  }
+
+  focal_predictor_only <- identical(
+    .fixed_predictor_variables(model),
+    predictor
+  )
+
+  link_scale_requested <- .is_generalized_model(model) &&
+    identical(prediction_scale, "link")
+
+  if (focal_predictor_only &&
+      !.is_mixed_model(model) &&
+      !link_scale_requested) {
+
+    return("observed")
+  }
+
+  "predicted"
+}
+
+
 #' Build a reference grid for a set of focal factors
 #'
 #' Internal helper shared by `ContrastsOnePred()` and `ContrastMultPred()`.

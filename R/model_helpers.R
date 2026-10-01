@@ -127,6 +127,40 @@
 
 .extract_model_frame <- function(model) {
 
+  # For nlme::lme, stats::model.frame() returns the internal model
+  # structure rather than the data. getData() returns the data used
+  # for fitting, after removal of incomplete rows.
+  if (inherits(model, "lme")) {
+
+    .require_optional_package(
+      "nlme",
+      "to extract the data of this model"
+    )
+
+    model_data <- tryCatch(
+      nlme::getData(model),
+      error = function(e) NULL
+    )
+
+    if (is.data.frame(model_data)) {
+
+      # getData() returns every column of the original data; keep only
+      # the variables of the fixed and random formulas, as a model
+      # frame would.
+      model_variables <- unique(
+        c(
+          all.vars(stats::formula(model)),
+          all.vars(model$call$random),
+          all.vars(nlme::getGroupsFormula(model))
+        )
+      )
+
+      model_variables <- intersect(model_variables, names(model_data))
+
+      return(model_data[, model_variables, drop = FALSE])
+    }
+  }
+
   model_frame <- tryCatch(
     stats::model.frame(model),
     error = function(e) NULL
