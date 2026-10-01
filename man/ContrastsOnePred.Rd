@@ -180,6 +180,17 @@ coefficients.
 For estimate_type = "observed", estimates are observed means computed
 directly from the data.
 
+Confidence intervals of observed means respect the natural range of the
+response. For proportions (binary outcomes or binomial models), the Wilson
+score interval is used; for averages of several levels or cells it is
+computed with the effective sample size \eqn{\hat{p}(1 - \hat{p}) /
+\mathrm{SE}^2}, which reduces to the classical Wilson interval for a single
+level. For positive responses analyzed with count or positive-continuous
+families (for example Poisson, negative binomial, or Gamma), the interval
+is computed on the log scale, \eqn{\exp(\log m \pm z\,\mathrm{SE}/m)}; a
+mean of zero receives the exact Poisson upper bound
+\eqn{-\log(\alpha/2)/n}. Other responses use symmetric intervals.
+
 For estimate_type = "predicted", estimates are computed from the
 fixed-effect coefficients and their variance-covariance matrix.
 
@@ -206,9 +217,20 @@ obtained with the multivariate delta method.
 
 For generalized models with prediction_scale = "response", estimates are
 transformed using the inverse link function. Standard errors on the response
-scale are approximated using the delta method. Confidence intervals for
-individual factor levels are first computed on the linear-predictor scale
-and then transformed to the response scale.
+scale are approximated using the delta method.
+
+On the response scale, the confidence interval of a prediction or of an
+average of predictions \eqn{\hat{\theta}} is computed on the link scale and
+transformed back,
+
+\deqn{g^{-1}\left(g(\hat{\theta}) \pm z \,
+  \frac{\mathrm{SE}(\hat{\theta})}{\left|g^{-1\prime}(g(\hat{\theta}))\right|}\right),}
+
+so that its bounds remain within the range of the response (for example
+between 0 and 1 for probabilities). For a single prediction this is the
+interval computed on the linear predictor and transformed with the inverse
+link. The interval is therefore generally asymmetric around the estimate,
+whereas the reported standard error refers to the response scale.
 
 For non-polynomial contrasts involving more than one level on the positive
 or negative side, the reported group estimate is the weighted mean of the
@@ -222,7 +244,7 @@ Standard errors of groups of observed means treat the level means as
 independent. Standard errors of groups of model-based predictions use the
 complete variance-covariance matrix of the fixed effects; on the response
 scale they are obtained with the multivariate delta method, and the
-corresponding confidence intervals are symmetric on the response scale.
+confidence intervals are computed on the link scale as described above.
 
 The Significance label refers to the p-value of the model coefficient
 associated with the corresponding contrast. It does not represent a direct

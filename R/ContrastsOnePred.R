@@ -89,6 +89,17 @@
 #' For estimate_type = "observed", estimates are observed means computed
 #' directly from the data.
 #'
+#' Confidence intervals of observed means respect the natural range of the
+#' response. For proportions (binary outcomes or binomial models), the Wilson
+#' score interval is used; for averages of several levels or cells it is
+#' computed with the effective sample size \eqn{\hat{p}(1 - \hat{p}) /
+#' \mathrm{SE}^2}, which reduces to the classical Wilson interval for a single
+#' level. For positive responses analyzed with count or positive-continuous
+#' families (for example Poisson, negative binomial, or Gamma), the interval
+#' is computed on the log scale, \eqn{\exp(\log m \pm z\,\mathrm{SE}/m)}; a
+#' mean of zero receives the exact Poisson upper bound
+#' \eqn{-\log(\alpha/2)/n}. Other responses use symmetric intervals.
+#'
 #' For estimate_type = "predicted", estimates are computed from the
 #' fixed-effect coefficients and their variance-covariance matrix.
 #'
@@ -115,9 +126,20 @@
 #'
 #' For generalized models with prediction_scale = "response", estimates are
 #' transformed using the inverse link function. Standard errors on the response
-#' scale are approximated using the delta method. Confidence intervals for
-#' individual factor levels are first computed on the linear-predictor scale
-#' and then transformed to the response scale.
+#' scale are approximated using the delta method.
+#'
+#' On the response scale, the confidence interval of a prediction or of an
+#' average of predictions \eqn{\hat{\theta}} is computed on the link scale and
+#' transformed back,
+#'
+#' \deqn{g^{-1}\left(g(\hat{\theta}) \pm z \,
+#'   \frac{\mathrm{SE}(\hat{\theta})}{\left|g^{-1\prime}(g(\hat{\theta}))\right|}\right),}
+#'
+#' so that its bounds remain within the range of the response (for example
+#' between 0 and 1 for probabilities). For a single prediction this is the
+#' interval computed on the linear predictor and transformed with the inverse
+#' link. The interval is therefore generally asymmetric around the estimate,
+#' whereas the reported standard error refers to the response scale.
 #'
 #' For non-polynomial contrasts involving more than one level on the positive
 #' or negative side, the reported group estimate is the weighted mean of the
@@ -131,7 +153,7 @@
 #' independent. Standard errors of groups of model-based predictions use the
 #' complete variance-covariance matrix of the fixed effects; on the response
 #' scale they are obtained with the multivariate delta method, and the
-#' corresponding confidence intervals are symmetric on the response scale.
+#' confidence intervals are computed on the link scale as described above.
 #'
 #' The Significance label refers to the p-value of the model coefficient
 #' associated with the corresponding contrast. It does not represent a direct
@@ -763,15 +785,23 @@ ContrastsOnePred <- function(model = NULL,
 
       level_ses <- as.numeric(level_sds / sqrt(level_ns))
 
+      # Intervals respect the natural range of the response, for
+      # example [0, 1] for proportions (see .observed_interval()).
+      level_intervals <- .observed_interval(
+        estimate = as.numeric(level_means),
+        se = level_ses,
+        n = as.numeric(level_ns),
+        range_type = response_range_type,
+        conf_level = level
+      )
+
       return(
         data.frame(
           Levels = level_names,
           Estimate = as.numeric(level_means),
           SE = level_ses,
-          CI_low = as.numeric(level_means) -
-            z_value * level_ses,
-          CI_high = as.numeric(level_means) +
-            z_value * level_ses,
+          CI_low = level_intervals$ci_low,
+          CI_high = level_intervals$ci_high,
           SD = as.numeric(level_sds),
           N = as.numeric(level_ns),
           stringsAsFactors = FALSE
@@ -900,12 +930,21 @@ ContrastsOnePred <- function(model = NULL,
 
       group_se <- sqrt(sum(weights^2 * level_estimates$SE^2))
 
+      group_interval <- .observed_interval(
+        estimate = group_estimate,
+        se = group_se,
+        n = sum(level_estimates$N[weights > 0]),
+        range_type = response_range_type,
+        conf_level = level,
+        single_cell = FALSE
+      )
+
       return(
         list(
           Estimate = group_estimate,
           SE = group_se,
-          CI_low = group_estimate - z_value * group_se,
-          CI_high = group_estimate + z_value * group_se
+          CI_low = group_interval$ci_low,
+          CI_high = group_interval$ci_high
         )
       )
     }
@@ -941,7 +980,8 @@ ContrastsOnePred <- function(model = NULL,
                                contrast_type,
                                scale_factors,
                                identity_holds,
-                               divergence_notes) {
+                               divergence_notes,
+                               range_type) {
 
     disclaimer_text <- character()
 
@@ -952,6 +992,18 @@ ContrastsOnePred <- function(model = NULL,
         paste0(
           "Estimates are observed/raw means computed directly ",
           "from the data."
+        ),
+        switch(
+          range_type,
+          "proportion" = paste0(
+            "Confidence intervals of proportions are Wilson score intervals, ",
+            "which remain within [0, 1]."
+          ),
+          "positive" = paste0(
+            "Confidence intervals of positive means are computed on the log ",
+            "scale, so that they remain positive."
+          ),
+          NULL
         )
       )
 
@@ -987,11 +1039,10 @@ ContrastsOnePred <- function(model = NULL,
           disclaimer_text,
           paste0(
             "For generalized models, predictions are reported on the ",
-            "response scale. Individual confidence intervals are computed ",
-            "on the linear-predictor scale and transformed using the ",
-            "inverse link; confidence intervals of groups of levels are ",
-            "computed on the response scale using the multivariate delta ",
-            "method."
+            "response scale. Confidence intervals are computed on the ",
+            "link scale and transformed using the inverse link, so that ",
+            "they remain within the range of the response; standard errors ",
+            "of averages of predictions use the multivariate delta method."
           )
         )
       }
@@ -1189,6 +1240,13 @@ ContrastsOnePred <- function(model = NULL,
   generalized_model <- .is_generalized_model(model)
 
   family_object <- .extract_family(model)
+
+  # Natural range of the response, used for the intervals of observed
+  # means.
+  response_range_type <- .response_range_type(
+    family_object = family_object,
+    values = data[[outcome]]
+  )
 
   # ============================================================
   # 8. LEVEL-SPECIFIC ESTIMATES
@@ -1401,7 +1459,8 @@ ContrastsOnePred <- function(model = NULL,
     contrast_type = contrast_type,
     scale_factors = scale_factors,
     identity_holds = identity_holds,
-    divergence_notes = as.character(divergence_notes)
+    divergence_notes = as.character(divergence_notes),
+    range_type = response_range_type
   )
 
   # Levels holds structural labels: a factor level, "Mean(A, B)",

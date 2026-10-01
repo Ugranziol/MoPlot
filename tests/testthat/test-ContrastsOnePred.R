@@ -303,3 +303,146 @@ test_that("other factors are averaged or held where the coefficients are defined
 
   expect_equal(result$Estimate[result$Levels == "A"][1], mean(balanced))
 })
+
+
+test_that("response-scale intervals stay within the range of the response", {
+
+  set.seed(41)
+
+  data <- data.frame(
+    group = factor(rep(c("A", "B", "C"), each = 40)),
+    other = factor(rep(c("u", "v"), 60)),
+    z = stats::rnorm(120)
+  )
+  data$success <- stats::rbinom(120, 1, c(0.03, 0.02, 0.5)[data$group])
+  data$count <- stats::rpois(120, c(0.2, 0.1, 3)[data$group])
+  stats::contrasts(data$group) <- stats::contr.helmert(3)
+
+  binomial_result <- quiet_contrasts(
+    model = stats::glm(success ~ group + other, family = stats::binomial, data = data),
+    predictor = "group",
+    outcome = "success",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  expect_true(all(binomial_result$CI_low > 0 & binomial_result$CI_high < 1))
+  expect_true(all(binomial_result$CI_low < binomial_result$Estimate))
+  expect_true(all(binomial_result$CI_high > binomial_result$Estimate))
+
+  poisson_result <- quiet_contrasts(
+    model = stats::glm(count ~ group + z, family = stats::poisson, data = data),
+    predictor = "group",
+    outcome = "count",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  expect_true(all(poisson_result$CI_low > 0))
+})
+
+
+test_that("the link-scale interval of an average reduces to the single-prediction interval", {
+
+  set.seed(42)
+
+  data <- data.frame(group = factor(rep(c("A", "B"), each = 50)), z = stats::rnorm(100))
+  data$success <- stats::rbinom(100, 1, c(0.2, 0.6)[data$group])
+
+  model <- stats::glm(success ~ group + z, family = stats::binomial, data = data)
+
+  predictions <- .compute_fixed_predictions(
+    model,
+    data.frame(group = factor("B", levels = c("A", "B")), z = 0),
+    prediction_scale = "response"
+  )
+
+  combined <- .combine_fixed_predictions(predictions, weights = 1, prediction_scale = "response")
+
+  expect_equal(combined$ci_low, predictions$ci_low)
+  expect_equal(combined$ci_high, predictions$ci_high)
+})
+
+
+test_that("intervals are ordered for decreasing links", {
+
+  set.seed(43)
+
+  data <- data.frame(group = factor(rep(c("A", "B", "C"), each = 40)), z = stats::rnorm(120))
+  data$y <- stats::rgamma(120, shape = 2, rate = 2 / c(1, 2, 4)[data$group])
+
+  result <- quiet_contrasts(
+    model = stats::glm(y ~ group + z, family = stats::Gamma, data = data),
+    predictor = "group",
+    outcome = "y",
+    data = data,
+    estimate_type = "predicted"
+  )
+
+  expect_true(all(result$CI_low < result$Estimate & result$Estimate < result$CI_high))
+})
+
+
+test_that("observed proportions use Wilson intervals within [0, 1]", {
+
+  data <- data.frame(group = factor(rep(c("A", "B", "C"), each = 40)))
+  data$success <- c(rep(0, 40), rep(c(1, 0, 0, 0), 10), rep(c(1, 0), 20))
+  stats::contrasts(data$group) <- stats::contr.helmert(3)
+
+  result <- quiet_contrasts(
+    model = stats::glm(success ~ group, family = stats::binomial, data = data),
+    predictor = "group",
+    outcome = "success",
+    data = data,
+    estimate_type = "observed"
+  )
+
+  expect_true(all(result$CI_low >= 0 & result$CI_high <= 1))
+
+  level_a <- result[result$Levels == "A", ][1, ]
+  expect_identical(level_a$CI_low, 0)
+  expect_gt(level_a$CI_high, 0)
+
+  level_b <- result[result$Levels == "B", ][1, ]
+  expect_equal(
+    c(level_b$CI_low, level_b$CI_high),
+    as.numeric(stats::prop.test(10, 40, correct = FALSE)$conf.int)
+  )
+})
+
+
+test_that("observed counts use positive intervals", {
+
+  data <- data.frame(group = factor(rep(c("A", "B"), each = 30)))
+  data$count <- c(rep(0, 30), stats::rpois(30, 2))
+
+  result <- quiet_contrasts(
+    model = stats::glm(count ~ group, family = stats::poisson, data = data),
+    predictor = "group",
+    outcome = "count",
+    data = data,
+    estimate_type = "observed"
+  )
+
+  level_a <- result[result$Levels == "A", ][1, ]
+
+  expect_identical(level_a$CI_low, 0)
+  expect_equal(level_a$CI_high, -log(0.025) / 30)
+  expect_true(all(result$CI_low >= 0))
+})
+
+
+test_that("observed intervals of unbounded responses are unchanged", {
+
+  data <- simulate_one_predictor_data(k = 3)
+
+  result <- quiet_contrasts(
+    model = stats::lm(y ~ group, data = data),
+    predictor = "group",
+    outcome = "y",
+    data = data,
+    estimate_type = "observed"
+  )
+
+  expect_equal(result$CI_high - result$Estimate, result$Estimate - result$CI_low)
+})

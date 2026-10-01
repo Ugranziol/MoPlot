@@ -402,6 +402,17 @@ variance propagation.
 Confidence intervals for aggregated raw estimates use a
 Satterthwaite-like approximation to the degrees of freedom when sufficient
 information is available.
+
+Confidence intervals of observed means respect the natural range of the
+response. For proportions (binary outcomes or binomial models), the Wilson
+score interval is used; for averages of several cells it is
+computed with the effective sample size \eqn{\hat{p}(1 - \hat{p}) /
+\mathrm{SE}^2}, which reduces to the classical Wilson interval for a single
+cell. For positive responses analyzed with count or positive-continuous
+families (for example Poisson, negative binomial, or Gamma), the interval
+is computed on the log scale, \eqn{\exp(\log m \pm z\,\mathrm{SE}/m)}; a
+mean of zero receives the exact Poisson upper bound
+\eqn{-\log(\alpha/2)/n}. Other responses use symmetric intervals.
 }
 
 \section{Model-based predictions}{
@@ -550,6 +561,19 @@ and:
 
 This procedure preserves the covariance among the predictions entering
 each aggregate.
+
+On the response scale, the confidence interval of a prediction or of an
+average of predictions \eqn{\hat{\theta}} is computed on the link scale and
+transformed back,
+
+\deqn{g^{-1}\left(g(\hat{\theta}) \pm z \,
+  \frac{\mathrm{SE}(\hat{\theta})}{\left|g^{-1\prime}(g(\hat{\theta}))\right|}\right),}
+
+so that its bounds remain within the range of the response (for example
+between 0 and 1 for probabilities). For a single prediction this is the
+interval computed on the linear predictor and transformed with the inverse
+link. The interval is therefore generally asymmetric around the estimate,
+whereas the reported standard error refers to the response scale.
 }
 
 \section{Supported contrast types}{

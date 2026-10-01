@@ -475,7 +475,8 @@
       uncertainty_note <- paste0(
         uncertainty_note,
         " For response-scale generalized models, uncertainty is propagated ",
-        "through the multivariate delta method."
+        "through the multivariate delta method, and confidence intervals are ",
+        "computed on the link scale and transformed with the inverse link."
       )
     }
 

@@ -1119,11 +1119,16 @@
 
     response_se <- abs(inverse_link_derivative(linear_predictor)) * linear_predictor_se
 
+    # Decreasing links (for example the inverse link) reverse the order
+    # of the transformed bounds.
+    transformed_low <- inverse_link(ci_low_link)
+    transformed_high <- inverse_link(ci_high_link)
+
     predictions <- data.frame(
       estimate = response_estimate,
       se = response_se,
-      ci_low = inverse_link(ci_low_link),
-      ci_high = inverse_link(ci_high_link),
+      ci_low = pmin(transformed_low, transformed_high),
+      ci_high = pmax(transformed_low, transformed_high),
       stringsAsFactors = FALSE
     )
   }
@@ -1324,13 +1329,52 @@
 
   estimate_se <- sqrt(max(estimate_variance,0))
 
+  ci_low <- estimate - critical_value * estimate_se
+  ci_high <- estimate + critical_value * estimate_se
+
+  # On the response scale, a symmetric interval can leave the range of
+  # the response (for example a negative probability). The interval is
+  # therefore built on the link scale and transformed back:
+  #
+  #   g^{-1}( g(theta) +/- z * SE(theta) / g^{-1}'(g(theta)) ),
+  #
+  # where SE(theta) / g^{-1}'(g(theta)) is the delta-method standard
+  # error of g(theta). For a single prediction this reproduces exactly
+  # the interval computed on the linear predictor and transformed.
+  if (prediction_scale == "response" &&
+      !is.null(family_object)) {
+
+    link_estimate <- suppressWarnings(family_object$linkfun(estimate))
+
+    link_derivative <- if (is.finite(link_estimate)) {
+      as.numeric(family_object$mu.eta(link_estimate))
+    } else {
+      NA_real_
+    }
+
+    if (is.finite(link_derivative) &&
+        link_derivative != 0) {
+
+      link_se <- estimate_se / abs(link_derivative)
+
+      # Decreasing links (for example the inverse link) reverse the
+      # order of the bounds.
+      bounds <- sort(
+        family_object$linkinv(
+          link_estimate + c(-1, 1) * critical_value * link_se
+        )
+      )
+
+      ci_low <- bounds[1L]
+      ci_high <- bounds[2L]
+    }
+  }
+
   data.frame(
     estimate = estimate,
     se = estimate_se,
-    ci_low = estimate -
-      critical_value * estimate_se,
-    ci_high = estimate +
-      critical_value * estimate_se,
+    ci_low = ci_low,
+    ci_high = ci_high,
     stringsAsFactors = FALSE
   )
 }

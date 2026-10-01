@@ -329,3 +329,20 @@ test_that("MoPlot_multpred() per_difference divides coefficients by their scale"
 
   expect_s3_class(plot, "patchwork")
 })
+
+
+test_that("raw proportions in interaction decompositions stay within [0, 1]", {
+
+  set.seed(23)
+
+  data <- expand.grid(A = factor(c("a1", "a2", "a3")), B = factor(c("b1", "b2")), replicate = 1:25)
+  data$success <- stats::rbinom(nrow(data), 1, ifelse(data$A == "a1", 0.01, 0.4))
+  stats::contrasts(data$A) <- stats::contr.helmert(3)
+
+  result <- quiet_mult(
+    model = stats::glm(success ~ A * B, family = stats::binomial, data = data),
+    data = data
+  )
+
+  expect_true(all(result$ci_low >= 0 & result$ci_high <= 1))
+})
