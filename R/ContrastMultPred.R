@@ -2181,7 +2181,7 @@ ContrastMultPred <- function(model,
       current_var,
       paste0(
         current_var,
-        "_",
+        .moplot_variable_separator,
         pos_df$inner_variable_path
       )
     )
@@ -2192,7 +2192,7 @@ ContrastMultPred <- function(model,
       current_var,
       paste0(
         current_var,
-        "_",
+        .moplot_variable_separator,
         neg_df$inner_variable_path
       )
     )
@@ -2655,7 +2655,7 @@ ContrastMultPred <- function(model,
     decomposition$split_var,
     paste0(
       decomposition$split_var,
-      "_",
+      .moplot_variable_separator,
       decomposition$inner_variable_path
     )
   )
@@ -2774,3 +2774,9 @@ ContrastMultPred <- function(model,
 
   return(out)
 }
+
+
+# Separator between variable names in hierarchical variable paths, such
+# as "B > A". Variable names may contain underscores, so "_" cannot be
+# used: "drug_type_time_point" could not be split unambiguously.
+.moplot_variable_separator <- " > "

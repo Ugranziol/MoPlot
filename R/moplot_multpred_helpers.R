@@ -950,7 +950,7 @@
 
     variable_path <- strsplit(
       coefficient_variable_paths[1L],
-      "_",
+      .moplot_variable_separator,
       fixed = TRUE
     )[[1L]]
 
@@ -1510,7 +1510,7 @@
     vapply(
       variable_paths,
       paste,
-      collapse = "_",
+      collapse = .moplot_variable_separator,
       FUN.VALUE = character(1)
     )
   )

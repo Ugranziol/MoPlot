@@ -773,3 +773,42 @@ test_that("MoPlot_multpred() rejects removed delta style", {
     )
   )
 })
+
+
+test_that("MoPlot_multpred() handles variable and level names with underscores", {
+
+  set.seed(51)
+
+  dat <- expand.grid(
+    time_point = factor(c("t_1", "t_2", "t_3")),
+    drug_type = factor(c("d_a", "d_b")),
+    site_id = factor(c("s_1", "s_2")),
+    replicate = 1:10
+  )
+  dat$y <- stats::rnorm(nrow(dat), (dat$time_point == "t_3") * (dat$drug_type == "d_b"))
+
+  contrasts(dat$time_point) <- stats::contr.helmert(3)
+
+  two_way <- stats::lm(y ~ time_point * drug_type, data = dat)
+  three_way <- stats::lm(y ~ time_point * drug_type * site_id, data = dat)
+
+  for (style in c("minimal", "tree")) {
+
+    plot <- suppressMessages(
+      MoPlot_multpred(two_way, data = dat, style = style, caption = FALSE, interaction_info = FALSE)
+    )
+    expect_s3_class(plot, "patchwork")
+
+    plot <- suppressMessages(
+      MoPlot_multpred(three_way, data = dat, style = style, caption = FALSE, interaction_info = FALSE)
+    )
+    expect_s3_class(plot, "patchwork")
+  }
+
+  decomposition <- attr(
+    suppressMessages(ContrastMultPred(two_way, data = dat, methodological_note = FALSE)),
+    "decomposition"
+  )
+
+  expect_identical(unique(decomposition$variable_path), "drug_type > time_point")
+})
