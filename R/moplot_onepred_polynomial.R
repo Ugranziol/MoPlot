@@ -1,5 +1,5 @@
 # ============================================================
-# POLYNOMIAL CONTRASTS IN MoPlot_onepred()
+# POLYNOMIAL CONTRASTS IN moplot_onepred()
 # ============================================================
 #
 # Each polynomial component involves every level through its weight, so
@@ -9,7 +9,7 @@
 
 #' Format the lower-panel labels of model parameters
 #'
-#' Internal helper shared by the lower panels of `MoPlot_onepred()`.
+#' Internal helper shared by the lower panels of `moplot_onepred()`.
 #'
 #' @param parameter_data The `parameter_data` element of a
 #'   `"moplot_onepred_data"` object.
@@ -83,7 +83,7 @@
 
 #' Name a polynomial component
 #'
-#' @param contrast_ids Contrast identifiers returned by `ContrastsOnePred()`,
+#' @param contrast_ids Contrast identifiers returned by `contrasts_onepred()`,
 #'   such as `"Contrast_2_.Q"`.
 #'
 #' @return A character vector: `"Linear"`, `"Quadratic"`, `"Cubic"`,
@@ -140,9 +140,9 @@
 #' Each component curve is the baseline plus the component coefficient
 #' multiplied by the orthogonal polynomial, evaluated on a fine grid between
 #' the levels and transformed to the scale of the displayed estimates. At
-#' the levels it equals `Polynomial_fit` returned by `ContrastsOnePred()`.
+#' the levels it equals `Polynomial_fit` returned by `contrasts_onepred()`.
 #'
-#' @param contrast_data Output of `ContrastsOnePred()` with a column `x`.
+#' @param contrast_data Output of `contrasts_onepred()` with a column `x`.
 #' @param coefficients Model coefficients of the components, in order.
 #' @param significant Logical vector, one value per component.
 #' @param linkfun,linkinv Functions mapping the displayed scale to the
@@ -347,7 +347,7 @@
 
 #' Build the upper panel for polynomial contrasts
 #'
-#' Internal helper used by `MoPlot_onepred()`. One facet per component
+#' Internal helper used by `moplot_onepred()`. One facet per component
 #' shows the displayed estimates with their confidence intervals, the curve
 #' implied by the component alone around the baseline, and the value of
 #' the curve at each level.
@@ -520,7 +520,7 @@
 
 #' Build the lower panel for polynomial contrasts
 #'
-#' Internal helper used by `MoPlot_onepred()`. Each coefficient is shown
+#' Internal helper used by `moplot_onepred()`. Each coefficient is shown
 #' beneath the facet of its component, with its confidence interval and an
 #' approximate Cohen's d.
 #'

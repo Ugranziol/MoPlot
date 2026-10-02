@@ -1,7 +1,7 @@
 #' Plot contrasts for interacting categorical predictors
 #'
 #' @description
-#' `MoPlot_multpred()` creates a graphical representation of model
+#' `moplot_multpred()` creates a graphical representation of model
 #' interactions involving two or more categorical predictors.
 #'
 #' The function decomposes each selected interaction coefficient into the
@@ -73,18 +73,24 @@
 #'   force as the top-level split variable. When supplied, `top_split`
 #'   overrides `split_rule`.
 #'
-#' @param siglevel Numeric value between 0 and 1 defining the significance
+#' @param sig_level Numeric value between 0 and 1 defining the significance
 #'   threshold used for coefficient labels. The default is `0.05`.
 #'
-#' @param level Numeric value between 0 and 1 specifying the confidence level
-#'   used for displayed confidence intervals. The default is `0.95`.
+#' @param conf_level Numeric value between 0 and 1 specifying the confidence
+#'   level used for displayed confidence intervals. The default is `0.95`.
 #'
 #' @param estimate_type Character string specifying how quantities in the
 #'   upper panel are computed. Available options are:
 #'
 #'   \describe{
-#'     \item{`"raw"`}{
-#'       Displays observed/raw aggregated means computed directly from `data`.
+#'     \item{`"auto"`}{
+#'       Uses observed means when the selected interaction involves all the
+#'       predictors of the fixed part, the model has no random effects, and,
+#'       for generalized models, `prediction_scale = "response"`. Model-based
+#'       predictions are used otherwise.
+#'     }
+#'     \item{`"observed"`}{
+#'       Displays observed aggregated means computed directly from `data`.
 #'     }
 #'     \item{`"predicted"`}{
 #'       Displays model-based predictions computed from the fixed effects and
@@ -92,7 +98,7 @@
 #'     }
 #'   }
 #'
-#'   The default is `"raw"`.
+#'   The default is `"auto"`.
 #'
 #' @param prediction_scale Character string specifying the scale used for
 #'   model-based predictions when `estimate_type = "predicted"`.
@@ -108,7 +114,7 @@
 #'   }
 #'
 #'   The default is `"response"`. This argument is ignored when
-#'   `estimate_type = "raw"`.
+#'   `estimate_type = "observed"`.
 #'
 #' @param coefficient_scale Character string specifying the quantity displayed
 #'   in the lower panel. Available options are:
@@ -141,9 +147,9 @@
 #'   range of a response analyzed with a Gaussian (identity link) model, such
 #'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time, so that
 #'   confidence intervals remain within it. Ignored, with a warning, for
-#'   generalized models. See [ContrastMultPred()].
+#'   generalized models. See [contrasts_multpred()].
 #'
-#' @param coef Logical. Should the lower coefficient panel be displayed?
+#' @param show_coef Logical. Should the lower coefficient panel be displayed?
 #'   The default is `TRUE`.
 #'
 #' @param style Character string specifying the graphical representation of the
@@ -189,11 +195,11 @@
 #'
 #' @param panel_heights Numeric vector of length two specifying the relative
 #'   heights of the upper and lower panels. The default is `c(2, 1)`.
-#'   This argument is used only when `coef = TRUE`.
+#'   This argument is used only when `show_coef = TRUE`.
 #'
 #' @details
-#' `MoPlot_multpred()` is a graphical interface to the hierarchical
-#' decomposition performed by [ContrastMultPred()].
+#' `moplot_multpred()` is a graphical interface to the hierarchical
+#' decomposition performed by [contrasts_multpred()].
 #'
 #' Each selected interaction coefficient is decomposed according to the
 #' contrast matrices assigned to the categorical predictors involved in the
@@ -260,10 +266,10 @@
 #' styles.
 #'
 #' @return
-#' When `coef = FALSE`, a `ggplot` object containing the upper interaction
+#' When `show_coef = FALSE`, a `ggplot` object containing the upper interaction
 #' decomposition panel.
 #'
-#' When `coef = TRUE`, a `patchwork` object containing the aligned upper and
+#' When `show_coef = TRUE`, a `patchwork` object containing the aligned upper and
 #' lower panels.
 #'
 #' @examples
@@ -299,28 +305,28 @@
 #' )
 #'
 #' # Automatically display the unique highest-order interaction.
-#' MoPlot_multpred(
+#' moplot_multpred(
 #'   model = mod,
 #'   data = dat
 #' )
 #'
 #' # Display all coefficients from a specific interaction.
-#' MoPlot_multpred(
+#' moplot_multpred(
 #'   model = mod,
 #'   interaction = "A:B:C",
 #'   style = "tree"
 #' )
 #'
 #' # Display one specific coefficient using the minimal representation.
-#' MoPlot_multpred(
+#' moplot_multpred(
 #'   model = mod,
 #'   interaction = "A:B:C",
 #'   coefficients = "A1:B2-1:C2",
 #'   style = "minimal"
 #' )
 #'
-#' # Use model-based predictions instead of raw means.
-#' MoPlot_multpred(
+#' # Use model-based predictions instead of observed means.
+#' moplot_multpred(
 #'   model = mod,
 #'   interaction = "A:B:C",
 #'   estimate_type = "predicted",
@@ -330,7 +336,7 @@
 #'
 #' @importFrom patchwork wrap_plots
 #' @export
-MoPlot_multpred <- function(
+moplot_multpred <- function(
     model,
     data=NULL,
     interaction = NULL,
@@ -343,14 +349,14 @@ MoPlot_multpred <- function(
       "highest_complexity"
     ),
     top_split = NULL,
-    siglevel = 0.05,
-    level = 0.95,
-    estimate_type = c("raw", "predicted"),
+    sig_level = 0.05,
+    conf_level = 0.95,
+    estimate_type = c("auto", "observed", "predicted"),
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     bounds = NULL,
-    coef = TRUE,
+    show_coef = TRUE,
     style = c("minimal", "tree"),
     caption = TRUE,
     digits = 2L,
@@ -383,6 +389,16 @@ MoPlot_multpred <- function(
     )
   }
 
+  if (
+    !is.logical(show_coef) ||
+    length(show_coef) != 1L ||
+    is.na(show_coef)
+  ) {
+    stop(
+      "`show_coef` must be either TRUE or FALSE.",
+      call. = FALSE
+    )
+  }
 
   # ============================================================
   # 1.1 RESOLVE INTERACTION AND COEFFICIENT SELECTION
@@ -402,20 +418,23 @@ MoPlot_multpred <- function(
   # 2. COMPUTE INTERACTION CONTRASTS
   # ============================================================
 
-  contrast_output <- ContrastMultPred(
+  contrast_output <- contrasts_multpred(
     model = model,
     data = data,
     coefficients = coefficients,
     split_rule = split_rule,
     top_split = top_split,
-    conf_level = level,
-    alpha_sig = siglevel,
+    conf_level = conf_level,
+    sig_level = sig_level,
     configuration = "all",
     estimate_type = estimate_type,
     prediction_scale = prediction_scale,
     methodological_note = FALSE,
     bounds = bounds
   )
+
+  # estimate_type = "auto" is resolved by contrasts_multpred().
+  estimate_type <- attr(contrast_output, "estimate_type")
 
   # ============================================================
   # 2.1 METHODOLOGICAL NOTE
@@ -446,14 +465,14 @@ MoPlot_multpred <- function(
 
   if (isTRUE(caption)) {
 
-    caption_text <- MoPlotStele_multpred(
+    caption_text <- .moplot_multpred_caption(
       model = model,
       contrast_output = contrast_output,
       prep = prep,
       interaction = interaction,
       style = style,
-      siglevel = siglevel,
-      coef = coef,
+      sig_level = sig_level,
+      show_coef = show_coef,
       coefficient_scale = coefficient_scale,
       per_difference = per_difference,
       estimate_type = estimate_type,
@@ -509,14 +528,14 @@ MoPlot_multpred <- function(
   export_size <- .moplot_multpred_export_size(
     prep = prep,
     style = style,
-    coef = coef
+    show_coef = show_coef
   )
 
   # ============================================================
   # 5. RETURN UPPER PANEL ONLY
   # ============================================================
 
-  if (!isTRUE(coef)) {
+  if (!isTRUE(show_coef)) {
 
     attr(
       upper_plot,
@@ -535,7 +554,7 @@ MoPlot_multpred <- function(
   parameters <- .prepare_moplot_multpred_parameters(
     model = model,
     coefficient_data = prep$coefficient_data,
-    level = level,
+    conf_level = conf_level,
     coefficient_scale = coefficient_scale,
     scale_factors = attr(contrast_output, "scale_factors"),
     per_difference = per_difference

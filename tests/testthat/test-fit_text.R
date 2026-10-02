@@ -54,7 +54,7 @@ test_that("group labels are fitted to the size of the device", {
 })
 
 
-test_that("MoPlot_multpred() draws its group labels with the fitted geom", {
+test_that("moplot_multpred() draws its group labels with the fitted geom", {
 
   set.seed(6)
   data <- expand.grid(
@@ -71,7 +71,7 @@ test_that("MoPlot_multpred() draws its group labels with the fitted geom", {
   for (style in c("minimal", "tree")) {
 
     plot <- suppressMessages(suppressWarnings(
-      MoPlot_multpred(model, data = data, style = style, caption = FALSE, interaction_info = FALSE)
+      moplot_multpred(model, data = data, style = style, caption = FALSE, interaction_info = FALSE)
     ))
 
     geoms <- vapply(plot[[1L]]$layers, function(layer) class(layer$geom)[1L], character(1))
@@ -155,7 +155,7 @@ test_that("tree formulas sit inside their bands and fit at the recommended size"
     formula <- stats::as.formula(paste("y ~", paste(LETTERS[seq_len(ways)], collapse = " * ")))
 
     plot <- suppressMessages(suppressWarnings(
-      MoPlot_multpred(stats::lm(formula, data = data), data = data, style = "tree",
+      moplot_multpred(stats::lm(formula, data = data), data = data, style = "tree",
                       caption = FALSE, interaction_info = FALSE)
     ))
 

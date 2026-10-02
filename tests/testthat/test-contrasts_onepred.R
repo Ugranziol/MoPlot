@@ -10,7 +10,7 @@ simulate_one_predictor_data <- function(k = 4, n_per_level = 30) {
 }
 
 quiet_contrasts <- function(...) {
-  suppressMessages(ContrastsOnePred(...))
+  suppressMessages(contrasts_onepred(...))
 }
 
 # Each coefficient must equal Scale_factor times the displayed difference.
@@ -130,7 +130,7 @@ test_that("non-orthogonal custom contrasts show weights and a divergence note", 
   stats::contrasts(data$group) <- cbind(c(-3, 1, 2) / 6, c(0, -1, 1) / 2)
 
   expect_message(
-    result <- ContrastsOnePred(
+    result <- contrasts_onepred(
       model = stats::lm(y ~ group, data = data),
       predictor = "group",
       outcome = "y",
@@ -237,12 +237,12 @@ test_that("polynomial output carries the same attributes as other codings", {
 })
 
 
-test_that("ModelContrastTable() uses the shared classification", {
+test_that("model_contrast_table() uses the shared classification", {
 
   data <- simulate_one_predictor_data(k = 3)
   stats::contrasts(data$group) <- rbind(c(-1, -1), c(1, 0), c(0, 1))
 
-  variables <- ModelContrastTable(stats::lm(y ~ group, data = data), type = "x")
+  variables <- model_contrast_table(stats::lm(y ~ group, data = data), type = "x")
 
   expect_identical(
     variables$Contrast_Matrix_Type[variables$Variable == "group"],
@@ -499,7 +499,7 @@ test_that("nlme::lme models are supported", {
 
   model <- nlme::lme(y ~ group, random = ~ 1 | id, data = data)
 
-  variables <- ModelContrastTable(model, type = "x&y")
+  variables <- model_contrast_table(model, type = "x&y")
 
   expect_setequal(variables$Variable[variables$Role == "Predictor"], c("group", "id"))
   expect_identical(variables$Variable[variables$Role == "Dependent"], "y")
@@ -718,4 +718,17 @@ test_that("the analysis data are recovered with fitted rows and contrasts", {
   expect_true("x" %in% names(analysis_data))
   expect_identical(nrow(analysis_data), 117L)
   expect_equal(unname(stats::contrasts(analysis_data$group)), unname(stats::contr.sum(3)))
+})
+
+
+test_that("contrasts_onepred() recovers data and outcome from the model", {
+
+  data <- simulate_one_predictor_data()
+  stats::contrasts(data$group) <- stats::contr.helmert(4)
+  model <- stats::lm(y ~ group, data = data)
+
+  implicit <- quiet_contrasts(model, "group")
+  explicit <- quiet_contrasts(model, "group", data = data, outcome = "y")
+
+  expect_equal(implicit, explicit)
 })

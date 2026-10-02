@@ -18,7 +18,7 @@
 #' @param model A fitted statistical model supported by
 #'   `parameters::model_parameters()`.
 #'
-#' @param ci A single numeric value between 0 and 1 specifying the confidence
+#' @param conf_level A single numeric value between 0 and 1 specifying the confidence
 #'   level. The default is `0.95`.
 #'
 #' @param include_intercept Logical. Should the intercept be included in the
@@ -111,7 +111,7 @@
 #' scaled. The conversion from the log odds ratio refers to the coefficient
 #' as coded: for a contrast whose coefficient equals a scale factor \eqn{s}
 #' multiplied by the compared difference (for example Helmert contrasts; see
-#' [ContrastsOnePred()]), the d of the compared difference is \eqn{d / s}.
+#' [contrasts_onepred()]), the d of the compared difference is \eqn{d / s}.
 #' The plotting functions apply this rescaling.
 #'
 #' These conversions are approximations and assume conditions implicit in the
@@ -212,7 +212,7 @@
 
 extract_param <- function(
     model,
-    ci = 0.95,
+    conf_level = 0.95,
     include_intercept = FALSE,
     effects = "fixed",
     component = "conditional",
@@ -226,15 +226,15 @@ extract_param <- function(
   transform <- match.arg(transform)
 
   if (
-    !is.numeric(ci) ||
-    length(ci) != 1L ||
-    is.na(ci) ||
-    !is.finite(ci) ||
-    ci <= 0 ||
-    ci >= 1
+    !is.numeric(conf_level) ||
+    length(conf_level) != 1L ||
+    is.na(conf_level) ||
+    !is.finite(conf_level) ||
+    conf_level <= 0 ||
+    conf_level >= 1
   ) {
     stop(
-      "`ci` must be a single numeric value strictly between 0 and 1.",
+      "`conf_level` must be a single numeric value strictly between 0 and 1.",
       call. = FALSE
     )
   }
@@ -420,7 +420,7 @@ extract_param <- function(
 
   parameter_arguments <- list(
     model,
-    ci = ci,
+    ci = conf_level,
     effects = effects,
     component = component,
     exponentiate = FALSE,
@@ -589,7 +589,7 @@ extract_param <- function(
         n_parameters
       )
     } else {
-      rep(ci, n_parameters)
+      rep(conf_level, n_parameters)
     },
 
     CI_low = extract_numeric_column(
@@ -720,7 +720,7 @@ extract_param <- function(
           effectsize::t_to_d(
             t = statistic_value,
             df_error = df_value,
-            ci = ci
+            ci = conf_level
           )
 
         } else if (
@@ -732,7 +732,7 @@ extract_param <- function(
           effectsize::z_to_d(
             z = statistic_value,
             n = n_observations,
-            ci = ci
+            ci = conf_level
           )
 
         } else {

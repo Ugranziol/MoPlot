@@ -39,18 +39,42 @@
 }
 
 
+#' Name of the dependent variable of a model
+#'
+#' The first variable of the left-hand side of the fixed-effect formula,
+#' such as `y` for `log(y) ~ ...`.
+#'
+#' @param model A fitted model.
+#'
+#' @return A character string.
+#'
+#' @keywords internal
+#' @noRd
+.outcome_name <- function(model) {
+
+  fixed_formula <- .extract_fixed_formula(model)
+
+  if (length(fixed_formula) < 3L) {
+    stop("The model formula has no dependent variable.", call. = FALSE)
+  }
+
+  all.vars(fixed_formula[[2L]])[1L]
+}
+
+
 #' Resolve `estimate_type = "auto"`
 #'
-#' Internal helper shared by `ContrastsOnePred()` and `MoPlot_onepred()`.
-#' Observed means are used only when they answer the same question as the
-#' model: the fixed part contains the focal predictor alone, the model has no
-#' random effects (observed means would ignore the clustering), and, for
+#' Internal helper shared by `contrasts_onepred()`, `contrasts_multpred()`,
+#' and the plotting functions. Observed means are used only when they
+#' answer the same question as the model: the fixed part contains the focal
+#' predictors alone, the model has no random effects (observed means would
+#' ignore the clustering), and, for
 #' generalized models, estimates are requested on the response scale
 #' (observed means are not on the link scale). Otherwise model-based
 #' predictions are used.
 #'
 #' @param model A fitted model.
-#' @param predictor Name of the focal predictor.
+#' @param predictor Names of the focal predictors (several for an interaction).
 #' @param estimate_type `"auto"`, `"observed"`, or `"predicted"`.
 #' @param prediction_scale `"response"` or `"link"`.
 #'
@@ -67,7 +91,9 @@
     return(estimate_type)
   }
 
-  focal_predictor_only <- identical(
+  # 'predictor' may contain several variables, such as those of an
+  # interaction: the fixed part must contain exactly these variables.
+  focal_predictor_only <- setequal(
     .fixed_predictor_variables(model),
     predictor
   )
@@ -88,7 +114,7 @@
 
 #' Build a reference grid for a set of focal factors
 #'
-#' Internal helper shared by `ContrastsOnePred()` and `ContrastMultPred()`.
+#' Internal helper shared by `contrasts_onepred()` and `contrasts_multpred()`.
 #'
 #' @param model A fitted model supported by the package.
 #' @param data Data frame containing the variables of the fixed-effect

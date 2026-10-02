@@ -1,7 +1,7 @@
 #' Summarize Model Variables, Families, and Contrast Matrices
 #'
 #' @description
-#' `ModelContrastTable()` extracts model-level and variable-level information
+#' `model_contrast_table()` extracts model-level and variable-level information
 #' from a fitted model object.
 #'
 #' It reports the model class, family and link function when available, number
@@ -49,7 +49,7 @@
 #' matrix with an intercept column. Treatment contrasts are therefore
 #' recognized with any reference level, sum contrasts with any omitted level,
 #' and all types after rescaling of their columns. The same classification is
-#' used by [ContrastsOnePred()] and [MoPlot_onepred()].
+#' used by [contrasts_onepred()] and [moplot_onepred()].
 #'
 #' @return Depending on `type`, either a list of two data frames or a single data frame.
 #'
@@ -61,11 +61,11 @@
 #' )
 #' contrasts(dat$group) <- stats::contr.helmert(3)
 #' mod <- stats::lm(y ~ group, data = dat)
-#' ModelContrastTable(mod)
+#' model_contrast_table(mod)
 #'
 #' @importFrom stats formula terms contrasts contr.treatment contr.sum contr.poly contr.helmert na.omit
 #' @export
-ModelContrastTable <- function(model,
+model_contrast_table <- function(model,
                                type = c(
                                  "all",
                                  "summary",
@@ -170,7 +170,7 @@ ModelContrastTable <- function(model,
       return(NA_character_)
     }
 
-    # Shared with ContrastsOnePred(), so that both functions always
+    # Shared with contrasts_onepred(), so that both functions always
     # agree on the contrast type.
     .classify_contrast(contrast_matrix)$type
   }

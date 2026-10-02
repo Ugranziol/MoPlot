@@ -1,8 +1,8 @@
 #' Export a MoPlot figure using publication-ready settings
 #'
 #' @description
-#' `MoPlot_export()` exports a plot created by `MoPlot_onepred()` or
-#' `MoPlot_multpred()` using dimensions recommended from the graphical
+#' `moplot_export()` exports a plot created by `moplot_onepred()` or
+#' `moplot_multpred()` using dimensions recommended from the graphical
 #' complexity of the plot: the number of displayed quantities (or of
 #' polynomial components and levels), the depth of the interaction
 #' hierarchy, and the presence of the coefficient panel.
@@ -11,8 +11,8 @@
 #' lossless LZW compression. PDF files are exported through the Cairo device
 #' to improve rendering of Unicode symbols used in MoPlot figures.
 #'
-#' @param plot A plot object created by `MoPlot_onepred()` or
-#'   `MoPlot_multpred()`. Other plots can be exported by supplying both
+#' @param plot A plot object created by `moplot_onepred()` or
+#'   `moplot_multpred()`. Other plots can be exported by supplying both
 #'   `width` and `height`.
 #'
 #' @param filename Character string specifying the output filename. Supported
@@ -32,7 +32,7 @@
 #' @return Invisibly returns the normalized path of the exported file.
 #'
 #' @export
-MoPlot_export <- function(
+moplot_export <- function(
     plot,
     filename,
     width = NULL,

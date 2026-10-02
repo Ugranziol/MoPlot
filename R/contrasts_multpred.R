@@ -1,13 +1,13 @@
 #' Decompose Interaction Contrasts into Interpretable Configurations
 #'
 #' @description
-#' `ContrastMultPred()` decomposes model coefficients associated with
+#' `contrasts_multpred()` decomposes model coefficients associated with
 #' interactions among categorical predictors into interpretable
 #' configurations of factor levels.
 #'
 #' For each selected interaction coefficient, the function identifies the
 #' positive and negative level groups implied by the contrast matrices used
-#' to fit the model. It then returns observed/raw means or model-based
+#' to fit the model. It then returns observed means or model-based
 #' predictions for the resulting configurations.
 #'
 #' One variable involved in each interaction is selected as the
@@ -27,13 +27,6 @@
 #'   they are unavailable. The original variables are needed for model-based
 #'   estimates when the model contains transformed terms such as `log(x)`.
 #'
-#' @param response Character string indicating the name of the response
-#'   variable. By default, the response is extracted from the model formula.
-#'   It is used only for raw estimates, which summarize the response of the
-#'   model evaluated in `data`: a transformed response such as `log(y)` is
-#'   summarized on the scale of the model, and a logical response or a factor
-#'   response of a binomial model is converted to 0/1 as in [stats::glm()].
-#'
 #' @param interaction Optional character string identifying the interaction
 #'   term to decompose, for example `"A:B"` or `"A:B:C"`. When supplied,
 #'   the interaction is resolved using the fitted model matrix and the
@@ -48,6 +41,13 @@
 #'   is `NULL`, all non-intercept coefficients containing `":"` are analyzed.
 #'   When `interaction` is supplied, `coefficients` may be used to select a
 #'   subset of the coefficients belonging to that interaction.
+#'
+#' @param outcome Optional character string indicating the name of the
+#'   dependent variable; by default, the dependent variable of `model`. It is
+#'   used only for observed estimates, which summarize the response of the
+#'   model evaluated in `data`: a transformed response such as `log(y)` is
+#'   summarized on the scale of the model, and a logical response or a factor
+#'   response of a binomial model is converted to 0/1 as in [stats::glm()].
 #'
 #' @param split_rule Character string indicating how the split variable is
 #'   selected for each interaction coefficient. Available options are:
@@ -70,12 +70,12 @@
 #'   be used as the split variable. When supplied, `top_split`
 #'   overrides `split_rule`.
 #'
+#' @param sig_level Numeric value indicating the significance threshold used
+#'   to classify the original interaction coefficients as significant or
+#'   non-significant. The default is `0.05`.
+#'
 #' @param conf_level Numeric value indicating the confidence level used for
 #'   confidence intervals. The default is `0.95`.
-#'
-#' @param alpha_sig Numeric value indicating the alpha threshold used to
-#'   classify the original interaction coefficients as significant or
-#'   non-significant. The default is `0.05`.
 #'
 #' @param configuration Character string controlling which configuration
 #'   labels are included in the output. Available options are:
@@ -98,8 +98,14 @@
 #' @param estimate_type Character string indicating which estimates are
 #'   returned. Available options are:
 #'   \describe{
-#'     \item{`"raw"`}{
-#'       Returns observed/raw aggregated means computed directly from `data`.
+#'     \item{`"auto"`}{
+#'       Uses observed means when every analyzed interaction involves all the
+#'       predictors of the fixed part, the model has no random effects, and,
+#'       for generalized models, `prediction_scale = "response"`. Model-based
+#'       predictions are used otherwise, as in [contrasts_onepred()].
+#'     }
+#'     \item{`"observed"`}{
+#'       Returns observed aggregated means computed directly from `data`.
 #'     }
 #'     \item{`"predicted"`}{
 #'       Returns model-based predictions computed from the fixed-effect
@@ -118,7 +124,7 @@
 #'       Returns predictions on the linear-predictor scale.
 #'     }
 #'   }
-#'   This argument is ignored when `estimate_type = "raw"`.
+#'   This argument is ignored when `estimate_type = "observed"`.
 #'
 #' @param methodological_note Logical. Should a methodological note describing
 #'   the settings relevant to the current analysis be printed? The default is
@@ -128,10 +134,10 @@
 #' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
 #'   range of a response analyzed with a Gaussian (identity link) model, such
 #'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time. When
-#'   supplied, confidence intervals of raw and predicted estimates are computed
+#'   supplied, confidence intervals of observed and predicted estimates are computed
 #'   on a transformed scale (logit or logarithm) and transformed back, so that
 #'   they remain within the bounds. Ignored, with a warning, for generalized
-#'   models. See [ContrastsOnePred()].
+#'   models. See [contrasts_onepred()].
 #'
 #' @details
 #' Each interaction coefficient is separated into its contrast-coded
@@ -273,7 +279,7 @@
 #' estimate represent?"
 #'
 #' @section Raw estimates:
-#' For `estimate_type = "raw"`, estimates are computed directly from the
+#' For `estimate_type = "observed"`, estimates are computed directly from the
 #' observed response values.
 #'
 #' At the individual-cell level, the function returns the observed mean,
@@ -283,7 +289,7 @@
 #' normalized contrast weights. Standard errors are combined through classical
 #' variance propagation.
 #'
-#' Confidence intervals for aggregated raw estimates use a
+#' Confidence intervals for aggregated observed estimates use a
 #' Satterthwaite-like approximation to the degrees of freedom when sufficient
 #' information is available.
 #'
@@ -373,7 +379,7 @@
 #' Model-based predictions for different configurations are generally
 #' correlated because they depend on the same fixed-effect coefficient vector.
 #'
-#' `ContrastMultPred()` therefore does not combine predicted standard errors
+#' `contrasts_multpred()` therefore does not combine predicted standard errors
 #' under an assumption of independence.
 #'
 #' Instead, each configuration is represented by its weights over the rows of
@@ -460,7 +466,7 @@
 #'
 #' For every factor, the levels compared by each contrast column and their
 #' weights are taken from the hypothesis matrix \eqn{H = [1, C]^{-1}} of its
-#' coding matrix \eqn{C}, as described in [ContrastsOnePred()]. Reading them
+#' coding matrix \eqn{C}, as described in [contrasts_onepred()]. Reading them
 #' from the signs of \eqn{C} is correct only for orthogonal codings. Groups of
 #' levels with unequal weights, which arise with non-orthogonal custom
 #' codings, are labelled `W(a1 .20, a3 .80)`, and a message describes the
@@ -481,7 +487,7 @@
 #'
 #' The function verifies this identity for each coefficient. For predicted
 #' estimates it holds exactly unless a variable of the coefficient interacts
-#' with a numeric predictor, in which case a warning is issued. For raw
+#' with a numeric predictor, in which case a warning is issued. For observed
 #' estimates it holds only when the model contains the interacting factors
 #' alone.
 #'
@@ -548,7 +554,7 @@
 #'     Number of observed rows underlying the displayed configuration.
 #'   }
 #'   \item{`estimate`}{
-#'     Observed/raw aggregate or model-based aggregate.
+#'     Observed aggregate or model-based aggregate.
 #'   }
 #'   \item{`se`}{
 #'     Standard error of the displayed estimate.
@@ -580,10 +586,10 @@
 #'     procedures.
 #'   }
 #'   \item{`estimate_type`}{
-#'     Whether the output contains `"raw"` or `"predicted"` estimates.
+#'     Whether the output contains `"observed"` or `"predicted"` estimates.
 #'   }
 #'   \item{`prediction_scale`}{
-#'     Prediction scale used for model-based estimates. This is `NA` for raw
+#'     Prediction scale used for model-based estimates. This is `NA` for observed
 #'     estimates.
 #'   }
 #'   \item{`estimate_info`}{
@@ -664,9 +670,9 @@
 #'
 #' # A is selected as the conditioning variable.
 #' # Labels follow the order B -> A.
-#' out_high <- ContrastMultPred(
+#' out_high <- contrasts_multpred(
 #'   model = mod,
-#'   response = "Score",
+#'   outcome = "Score",
 #'   estimate_type = "predicted",
 #'   split_rule = "highest_complexity",
 #'   configuration = "all"
@@ -674,9 +680,9 @@
 #'
 #' # B is selected as the conditioning variable.
 #' # Labels follow the order A -> B.
-#' out_low <- ContrastMultPred(
+#' out_low <- contrasts_multpred(
 #'   model = mod,
-#'   response = "Score",
+#'   outcome = "Score",
 #'   estimate_type = "predicted",
 #'   split_rule = "lowest_complexity",
 #'   configuration = "all"
@@ -711,9 +717,9 @@
 #'   data = dat3
 #' )
 #'
-#' out3 <- ContrastMultPred(
+#' out3 <- contrasts_multpred(
 #'   model = mod3,
-#'   response = "Score",
+#'   outcome = "Score",
 #'   estimate_type = "predicted",
 #'   split_rule = "highest_complexity",
 #'   configuration = "all"
@@ -739,9 +745,9 @@
 #'   data = dat
 #' )
 #'
-#' out_tmb <- ContrastMultPred(
+#' out_tmb <- contrasts_multpred(
 #'   model = mod_tmb,
-#'   response = "count",
+#'   outcome = "count",
 #'   estimate_type = "predicted",
 #'   prediction_scale = "response",
 #'   split_rule = "highest_complexity",
@@ -752,22 +758,22 @@
 #' @export
 
 
-ContrastMultPred <- function(model,
-                             data=NULL,
-                             response = all.vars(formula(model))[1],
-                             interaction = NULL,
-                             coefficients = NULL,
-                             split_rule = c(
-                               "last_variable",
-                               "first_variable",
-                               "lowest_complexity",
-                               "highest_complexity"
-                             ),
-                             top_split = NULL,
-                             conf_level = 0.95,
-                             alpha_sig = 0.05,
-                             configuration = c("none", "all", "explicit", "semantic"),
-                             estimate_type = c("raw", "predicted"),
+contrasts_multpred <- function(model,
+                               data = NULL,
+                               interaction = NULL,
+                               coefficients = NULL,
+                               outcome = NULL,
+                               split_rule = c(
+                                 "last_variable",
+                                 "first_variable",
+                                 "lowest_complexity",
+                                 "highest_complexity"
+                               ),
+                               top_split = NULL,
+                               sig_level = 0.05,
+                               conf_level = 0.95,
+                               configuration = c("none", "all", "explicit", "semantic"),
+                               estimate_type = c("auto", "observed", "predicted"),
                              prediction_scale = c("response", "link"),
                              methodological_note = TRUE,
                              bounds = NULL) {
@@ -822,34 +828,12 @@ ContrastMultPred <- function(model,
     stop("'data' must be a data frame.",call. = FALSE)
   }
 
-  # Raw estimates summarize the response of the model evaluated in
-  # 'data': a transformed response such as log(y) is summarized on the
-  # scale of the model, and logical responses or factors of binomial
-  # models are converted to 0/1. The values are stored in a reserved
-  # column so that they follow every subset of the data. Model-based
-  # estimates do not use the response values.
-  response_column <- ".moplot_response"
-
-  response_values <- if (estimate_type == "raw") {
-    .response_values(
-      model = model,
-      data = data,
-      outcome = response
-    )
-  } else {
-    NULL
-  }
-
-  if (estimate_type == "raw") {
-    data[[response_column]] <- response_values
+  if (is.null(outcome)) {
+    outcome <- .outcome_name(model)
   }
 
   # Natural range declared by the user for Gaussian responses.
   bounds <- .validate_bounds(bounds, model)
-
-  if (estimate_type == "raw") {
-    .check_values_within_bounds(response_values, bounds)
-  }
 
   bound_critical <- stats::qnorm(1 - (1 - conf_level) / 2)
 
@@ -881,13 +865,13 @@ ContrastMultPred <- function(model,
   # If lmerTest is installed, the function attempts to recover them.
   # ============================================================
 
-  extract_model_info <- function(model,data, alpha_sig = 0.05) {
+  extract_model_info <- function(model,data, sig_level = 0.05) {
 
     fixed_effects <- .extract_fixef(model)
 
     coefficient_names <- setdiff(names(fixed_effects),"(Intercept)")
 
-    p_information <- .extract_p_values(model = model,coefficient_names = coefficient_names, alpha = alpha_sig)
+    p_information <- .extract_p_values(model = model,coefficient_names = coefficient_names, alpha = sig_level)
 
     list(
       coef_names = coefficient_names,
@@ -896,7 +880,7 @@ ContrastMultPred <- function(model,
     )
   }
 
-  model_info <- extract_model_info(model, data, alpha_sig = alpha_sig)
+  model_info <- extract_model_info(model, data, sig_level = sig_level)
   coef_names <- model_info$coef_names
 
   # Select the interaction coefficients to analyze.
@@ -908,7 +892,7 @@ ContrastMultPred <- function(model,
   #       analyze exactly the requested coefficients.
   #
   # When 'interaction' is supplied, reuse the same model-matrix-based
-  # selection logic used by MoPlot_multpred(). This maps an interaction
+  # selection logic used by moplot_multpred(). This maps an interaction
   # term (e.g., "A:B:C") to all coefficient columns belonging to that
   # term and, when 'coefficients' is also supplied, validates that the
   # requested coefficients belong to the selected interaction.
@@ -933,12 +917,61 @@ ContrastMultPred <- function(model,
     stop("No interaction coefficient to analyze.")
   }
 
+  # Automatic estimate type: observed means only when every analyzed
+  # interaction involves all the predictors of the fixed part, the model
+  # has no random effects, and, for generalized models, the response
+  # scale is requested. See .resolve_estimate_type().
+  if (identical(estimate_type, "auto")) {
+
+    interaction_map <- .extract_moplot_interaction_map(model)
+
+    analyzed_interactions <- unique(interaction_map$interaction[interaction_map$coefficient %in% coefficients])
+
+    resolved_types <- vapply(
+      analyzed_interactions,
+      function(term) {
+        .resolve_estimate_type(
+          model = model,
+          predictor = all.vars(stats::as.formula(paste("~", term))),
+          estimate_type = "auto",
+          prediction_scale = prediction_scale
+        )
+      },
+      character(1)
+    )
+
+    estimate_type <- if (length(resolved_types) > 0L && all(resolved_types == "observed")) "observed" else "predicted"
+  }
+
+  # Observed estimates summarize the response of the model evaluated in
+  # 'data': a transformed response such as log(y) is summarized on the
+  # scale of the model, and logical responses or factors of binomial
+  # models are converted to 0/1. The values are stored in a reserved
+  # column so that they follow every subset of the data. Model-based
+  # estimates do not use the response values.
+  response_column <- ".moplot_response"
+
+  response_values <- if (estimate_type == "observed") {
+    .response_values(
+      model = model,
+      data = data,
+      outcome = outcome
+    )
+  } else {
+    NULL
+  }
+
+  if (estimate_type == "observed") {
+    data[[response_column]] <- response_values
+    .check_values_within_bounds(response_values, bounds)
+  }
+
   # Identify factor predictors involved in the model.
   fixed_formula <- .extract_fixed_formula(model)
 
   model_vars <- all.vars(fixed_formula)
 
-  predictor_vars <- setdiff(model_vars,response)
+  predictor_vars <- setdiff(model_vars,outcome)
 
   predictor_vars <- predictor_vars[predictor_vars %in% names(data)]
 
@@ -1516,7 +1549,7 @@ ContrastMultPred <- function(model,
 
     sub <- subset_by_conditions(data, conditions)
 
-    if (estimate_type == "raw") {
+    if (estimate_type == "observed") {
 
       statistics <- compute_raw_cell_stats(sub)
 
@@ -1556,7 +1589,7 @@ ContrastMultPred <- function(model,
   # 15. Weighted aggregation of raw estimates and SEs
   # ============================================================
   #
-  # This helper is used only when estimate_type = "raw".
+  # This helper is used only when estimate_type = "observed".
   #
   # Raw cell means are based on disjoint groups and their standard
   # errors are combined through classical variance propagation.
@@ -1608,7 +1641,7 @@ ContrastMultPred <- function(model,
 
     alpha <- 1 - conf_level
 
-    crit <- if (!is.na(df_agg) && estimate_type == "raw") {
+    crit <- if (!is.na(df_agg) && estimate_type == "observed") {
       stats::qt(1 - alpha / 2, df = df_agg)
     } else {
       stats::qnorm(1 - alpha / 2)
@@ -1878,7 +1911,7 @@ ContrastMultPred <- function(model,
 
       sub <- nested_all[nested_all$inner_side == k, , drop = FALSE]
 
-      if (estimate_type == "raw") {
+      if (estimate_type == "observed") {
 
         agg <- combine_weighted_mean_stats(
           estimates = sub$estimate,
@@ -2085,7 +2118,7 @@ ContrastMultPred <- function(model,
 
       neg_cells <- do.call(rbind,neg_cells)
 
-      if (estimate_type == "raw") {
+      if (estimate_type == "observed") {
 
         pos_stats <- combine_weighted_mean_stats(
           estimates = pos_cells$estimate,
@@ -2299,7 +2332,7 @@ ContrastMultPred <- function(model,
 
       sub <- nested_all[nested_all$inner_side == k, , drop = FALSE]
 
-      if (estimate_type == "raw") {
+      if (estimate_type == "observed") {
 
         agg <- combine_weighted_mean_stats(
           estimates = sub$estimate,
@@ -2761,11 +2794,11 @@ ContrastMultPred <- function(model,
   # 25. ESTIMATE INFORMATION
   # ============================================================
 
-  if (estimate_type == "raw") {
+  if (estimate_type == "observed") {
 
     estimate_info <- paste(
       "Displayed estimate:",
-      "observed/raw aggregated means."
+      "observed aggregated means."
     )
 
   } else {
@@ -2835,7 +2868,7 @@ ContrastMultPred <- function(model,
   attr(out, "note") <- paste(c(disclaimer_note, bounds_note, divergence_notes), collapse = " ")
   attr(out, "bounds") <- bounds
   attr(out, "estimate_type") <- estimate_type
-  attr(out, "prediction_scale") <- if (estimate_type == "raw") NA_character_ else prediction_scale
+  attr(out, "prediction_scale") <- if (estimate_type == "observed") NA_character_ else prediction_scale
   attr(out, "estimate_info") <- estimate_info
   attr(out, "pvalue_source") <- model_info$pvalue_source
   attr(out, "split_rule") <- split_rule

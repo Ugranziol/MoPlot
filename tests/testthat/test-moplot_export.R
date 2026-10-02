@@ -10,15 +10,15 @@ quiet <- function(expression) {
 }
 
 
-test_that("MoPlot_onepred() stores recommended export dimensions", {
+test_that("moplot_onepred() stores recommended export dimensions", {
 
   data <- export_data()
   stats::contrasts(data$group) <- stats::contr.helmert(4)
   model <- stats::lm(y ~ group, data = data)
 
-  combined <- quiet(MoPlot_onepred(model, "group", caption = FALSE))
-  upper_only <- quiet(MoPlot_onepred(model, "group", coef = FALSE, caption = FALSE))
-  taller_lower <- quiet(MoPlot_onepred(model, "group", panel_heights = c(1, 1), caption = FALSE))
+  combined <- quiet(moplot_onepred(model, "group", caption = FALSE))
+  upper_only <- quiet(moplot_onepred(model, "group", show_coef = FALSE, caption = FALSE))
+  taller_lower <- quiet(moplot_onepred(model, "group", panel_heights = c(1, 1), caption = FALSE))
 
   size <- attr(combined, "moplot_export_size")
 
@@ -39,7 +39,7 @@ test_that("recommended widths grow with the displayed quantities", {
     data <- export_data(levels)
     stats::contrasts(data$group) <- coding(length(levels))
     model <- stats::lm(y ~ group, data = data)
-    attr(quiet(MoPlot_onepred(model, "group", caption = FALSE)), "moplot_export_size")[["width"]]
+    attr(quiet(moplot_onepred(model, "group", caption = FALSE)), "moplot_export_size")[["width"]]
   }
 
   # Treatment contrasts display two quantities per contrast.
@@ -54,17 +54,17 @@ test_that("recommended widths grow with the displayed quantities", {
 })
 
 
-test_that("MoPlot_export() uses the recommended dimensions of MoPlot_onepred()", {
+test_that("moplot_export() uses the recommended dimensions of moplot_onepred()", {
 
   data <- export_data()
   stats::contrasts(data$group) <- stats::contr.poly(4)
-  plot <- quiet(MoPlot_onepred(stats::lm(y ~ group, data = data), "group", caption = FALSE))
+  plot <- quiet(moplot_onepred(stats::lm(y ~ group, data = data), "group", caption = FALSE))
 
   file <- tempfile(fileext = ".png")
   on.exit(unlink(file))
 
   expect_message(
-    MoPlot_export(plot, file, dpi = 50),
+    moplot_export(plot, file, dpi = 50),
     "at 8.2 x 6.8 inches"
   )
 
@@ -72,18 +72,18 @@ test_that("MoPlot_export() uses the recommended dimensions of MoPlot_onepred()",
 
   # Explicit dimensions override the recommendation.
   expect_message(
-    MoPlot_export(plot, file, width = 5, height = 4, dpi = 50),
+    moplot_export(plot, file, width = 5, height = 4, dpi = 50),
     "at 5 x 4 inches"
   )
 })
 
 
-test_that("MoPlot_export() requires dimensions for plots without a recommendation", {
+test_that("moplot_export() requires dimensions for plots without a recommendation", {
 
   plot <- ggplot2::ggplot()
 
   expect_error(
-    MoPlot_export(plot, tempfile(fileext = ".png")),
+    moplot_export(plot, tempfile(fileext = ".png")),
     "Recommended export dimensions were not found"
   )
 })

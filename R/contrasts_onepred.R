@@ -1,7 +1,7 @@
 #' Summarize and Interpret Contrasts for One Categorical Predictor
 #'
 #' @description
-#' ContrastsOnePred() returns observed or model-based estimates associated
+#' contrasts_onepred() returns observed or model-based estimates associated
 #' with the contrasts used to code a single categorical predictor in a fitted
 #' regression model.
 #'
@@ -20,23 +20,25 @@
 #' predictor whose contrasts should be summarized. The corresponding
 #' variable in data must be a factor.
 #'
-#' @param outcome Character string indicating the name of the dependent
-#' variable. It is used only for observed estimates, which summarize the
+#' @param data Optional data frame containing the variables used to fit
+#'   `model`. If `NULL`, the data supplied in the model call are recovered.
+#'   The contrast matrix assigned to `data[[predictor]]` must correspond to
+#'   the contrast matrix used when fitting the model.
+#'
+#' @param outcome Optional character string indicating the name of the
+#' dependent variable; by default, the dependent variable of `model`. It is
+#' used only for observed estimates, which summarize the
 #' response of the model evaluated in `data`: a transformed response such as
 #' `log(y)` is summarized on the scale of the model, and a logical response or
 #' a factor response of a binomial model is converted to 0/1 as in
 #' [stats::glm()] (the first level is 0). Observed estimates are not available
 #' for responses with several columns, such as `cbind(successes, failures)`.
 #'
-#' @param data A data frame containing the variables used to fit `model`.
-#'   The contrast matrix assigned to `data[[predictor]]` must correspond to
-#'   the contrast matrix used when fitting the model.
+#' @param sig_level Numeric value indicating the significance threshold used
+#' to classify contrasts as "sig" or "notsig". The default is 0.05.
 #'
-#' @param sig.level Numeric value indicating the significance threshold used
-#' to classify contrasts as "sig" or "notsig". The default is .05.
-#'
-#' @param level Numeric value indicating the confidence level used for
-#' confidence intervals. The default is .95.
+#' @param conf_level Numeric value indicating the confidence level used for
+#' confidence intervals. The default is 0.95.
 #'
 #' @param estimate_type Character string specifying how the level-specific
 #'   estimates should be computed. Available options are:
@@ -454,7 +456,7 @@
 #'   data = dat
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_lm,
 #'   predictor = "group",
 #'   outcome = "y",
@@ -462,7 +464,7 @@
 #'   estimate_type = "observed"
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_lm,
 #'   predictor = "group",
 #'   outcome = "y",
@@ -493,7 +495,7 @@
 #'   data = dat
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_glm,
 #'   predictor = "group",
 #'   outcome = "binary_y",
@@ -519,7 +521,7 @@
 #'   data = dat
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_poly,
 #'   predictor = "ordered_group",
 #'   outcome = "y",
@@ -582,7 +584,7 @@
 #'   data = dat_mixed
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_lmer,
 #'   predictor = "group",
 #'   outcome = "y",
@@ -601,7 +603,7 @@
 #'   data = dat_mixed
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_lme,
 #'   predictor = "group",
 #'   outcome = "y",
@@ -631,7 +633,7 @@
 #'   data = dat_mixed
 #' )
 #'
-#' ContrastsOnePred(
+#' contrasts_onepred(
 #'   model = mod_tmb,
 #'   predictor = "group",
 #'   outcome = "count",
@@ -642,15 +644,15 @@
 #'
 #' }
 #' @export
-ContrastsOnePred <- function(model = NULL,
-                             predictor,
-                             outcome,
-                             data,
-                             sig.level = .05,
-                             level = .95,
-                             estimate_type = c("auto", "observed", "predicted"),
-                             prediction_scale = c("response", "link"),
-                             bounds = NULL) {
+contrasts_onepred <- function(model,
+                              predictor,
+                              data = NULL,
+                              outcome = NULL,
+                              sig_level = 0.05,
+                              conf_level = 0.95,
+                              estimate_type = c("auto", "observed", "predicted"),
+                              prediction_scale = c("response", "link"),
+                              bounds = NULL) {
 
   # ============================================================
   # 1. ARGUMENT MATCHING AND BASIC VALIDATION
@@ -659,7 +661,7 @@ ContrastsOnePred <- function(model = NULL,
   estimate_type <- match.arg(estimate_type)
   prediction_scale <- match.arg(prediction_scale)
 
-  if (is.null(model)) {
+  if (missing(model) || is.null(model)) {
     stop("You must provide a fitted model.",call. = FALSE)
   }
 
@@ -674,8 +676,21 @@ ContrastsOnePred <- function(model = NULL,
     )
   }
 
+  # The data supplied in the model call are recovered when 'data' is not
+  # given, and the outcome is the dependent variable of the model.
+  if (is.null(data)) {
+    data <- .extract_analysis_data(model)
+  }
+
+  if (is.null(outcome)) {
+    outcome <- .outcome_name(model)
+  }
+
   if (!is.data.frame(data)) {
-    stop("'data' must be a data frame.",call. = FALSE)
+    stop(
+      "The data used to fit the model could not be recovered. Supply them through 'data'.",
+      call. = FALSE
+    )
   }
 
   if (!is.character(predictor) ||
@@ -700,22 +715,22 @@ ContrastsOnePred <- function(model = NULL,
     stop("The predictor must be represented by a factor variable.",call. = FALSE)
   }
 
-  if (!is.numeric(sig.level) ||
-      length(sig.level) != 1L ||
-      is.na(sig.level) ||
-      sig.level <= 0 ||
-      sig.level >= 1) {
+  if (!is.numeric(sig_level) ||
+      length(sig_level) != 1L ||
+      is.na(sig_level) ||
+      sig_level <= 0 ||
+      sig_level >= 1) {
 
-    stop("'sig.level' must be a single numeric value between 0 and 1.",call. = FALSE)
+    stop("'sig_level' must be a single numeric value between 0 and 1.",call. = FALSE)
   }
 
-  if (!is.numeric(level) ||
-      length(level) != 1L ||
-      is.na(level) ||
-      level <= 0 ||
-      level >= 1) {
+  if (!is.numeric(conf_level) ||
+      length(conf_level) != 1L ||
+      is.na(conf_level) ||
+      conf_level <= 0 ||
+      conf_level >= 1) {
 
-    stop("'level' must be a single numeric value between 0 and 1.",call. = FALSE)
+    stop("'conf_level' must be a single numeric value between 0 and 1.",call. = FALSE)
   }
 
   if (nlevels(data[[predictor]]) < 2L) {
@@ -736,7 +751,7 @@ ContrastsOnePred <- function(model = NULL,
     prediction_scale = prediction_scale
   )
 
-  z_value <- stats::qnorm(1 - (1 - level) / 2)
+  z_value <- stats::qnorm(1 - (1 - conf_level) / 2)
 
   # Observed estimates use the response of the model evaluated in
   # 'data': a transformed response such as log(y) is summarized on the
@@ -770,7 +785,7 @@ ContrastsOnePred <- function(model = NULL,
                                   data,
                                   estimate_type,
                                   prediction_scale,
-                                  level) {
+                                  conf_level) {
 
     level_names <- levels(data[[predictor]])
 
@@ -813,7 +828,7 @@ ContrastsOnePred <- function(model = NULL,
         se = level_ses,
         n = as.numeric(level_ns),
         range_type = response_range_type,
-        conf_level = level,
+        conf_level = conf_level,
         bounds = bounds
       )
 
@@ -857,7 +872,7 @@ ContrastsOnePred <- function(model = NULL,
       model = model,
       newdata = grid_information$grid,
       prediction_scale = prediction_scale,
-      conf_level = level
+      conf_level = conf_level
     )
 
     # One row per level: weights of the grid rows forming that level.
@@ -883,7 +898,7 @@ ContrastsOnePred <- function(model = NULL,
             predictions = predictions,
             weights = level_weights[level_index, ],
             prediction_scale = prediction_scale,
-            conf_level = level
+            conf_level = conf_level
           )
         }
       )
@@ -936,7 +951,7 @@ ContrastsOnePred <- function(model = NULL,
                                  weights,
                                  estimate_type,
                                  prediction_scale,
-                                 level) {
+                                 conf_level) {
 
     active_levels <- which(weights > 0)
 
@@ -965,7 +980,7 @@ ContrastsOnePred <- function(model = NULL,
         se = group_se,
         n = sum(level_estimates$N[weights > 0]),
         range_type = response_range_type,
-        conf_level = level,
+        conf_level = conf_level,
         single_cell = FALSE,
         bounds = bounds
       )
@@ -988,7 +1003,7 @@ ContrastsOnePred <- function(model = NULL,
       predictions = attr(level_estimates, "predictions"),
       weights = as.numeric(crossprod(attr(level_estimates, "level_weights"), weights)),
       prediction_scale = prediction_scale,
-      conf_level = level
+      conf_level = conf_level
     )
 
     if (!is.null(bounds)) {
@@ -1030,7 +1045,7 @@ ContrastsOnePred <- function(model = NULL,
       disclaimer_text <- c(
         disclaimer_text,
         paste0(
-          "Estimates are observed/raw means computed directly ",
+          "Estimates are observed means computed directly ",
           "from the data."
         ),
         switch(
@@ -1254,7 +1269,7 @@ ContrastsOnePred <- function(model = NULL,
 
     stop(
       paste0(
-        "ContrastsOnePred() requires a model with an intercept. Without ",
+        "contrasts_onepred() requires a model with an intercept. Without ",
         "an intercept, '",
         predictor,
         "' is coded with one indicator per level and its coefficients are ",
@@ -1291,7 +1306,7 @@ ContrastsOnePred <- function(model = NULL,
   p_information <- .extract_p_values(
     model = model,
     coefficient_names = focal_coefficient_names,
-    alpha = sig.level
+    alpha = sig_level
   )
 
   p_values <- p_information$table$p_value
@@ -1300,7 +1315,7 @@ ContrastsOnePred <- function(model = NULL,
     is.na(p_values),
     NA_character_,
     ifelse(
-      p_values < sig.level,
+      p_values < sig_level,
       "sig",
       "notsig"
     )
@@ -1330,7 +1345,7 @@ ContrastsOnePred <- function(model = NULL,
     data = data,
     estimate_type = estimate_type,
     prediction_scale = prediction_scale,
-    level = level
+    conf_level = conf_level
   )
 
   # ============================================================
@@ -1479,7 +1494,7 @@ ContrastsOnePred <- function(model = NULL,
           weights = weights,
           estimate_type = estimate_type,
           prediction_scale = prediction_scale,
-          level = level
+          conf_level = conf_level
         )
       }
 

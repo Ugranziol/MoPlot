@@ -375,11 +375,11 @@
   # Estimate type
   # --------------------------------------------------------------------------
 
-  if (identical(estimate_type, "raw")) {
+  if (identical(estimate_type, "observed")) {
 
     methodological_points <- c(
       methodological_points,
-      "estimate_type='raw' returns observed/raw aggregated means."
+      "estimate_type='observed' returns observed aggregated means."
     )
 
   } else if (identical(estimate_type, "predicted")) {
@@ -605,9 +605,9 @@
 #' Prepare multi-predictor MoPlot data for interactions of arbitrary order
 #'
 #' Experimental internal helper used to construct the hierarchical graphical
-#' representation of interaction contrasts returned by `ContrastMultPred()`.
+#' representation of interaction contrasts returned by `contrasts_multpred()`.
 #'
-#' @param contrast_data A data frame returned by `ContrastMultPred()`.
+#' @param contrast_data A data frame returned by `contrasts_multpred()`.
 #' @param within_split_gap Horizontal distance between the two quantities
 #'   forming an elementary contrast.
 #' @param between_split_gap Base horizontal distance between neighbouring
@@ -633,7 +633,7 @@
 
   if (!is.data.frame(contrast_data)) {
     stop(
-      "`contrast_data` must be a data frame returned by `ContrastMultPred()`.",
+      "`contrast_data` must be a data frame returned by `contrasts_multpred()`.",
       call. = FALSE
     )
   }
@@ -3376,12 +3376,12 @@
 #' Prepare model parameters for a multi-predictor MoPlot
 #'
 #' Internal helper that extracts the model parameters corresponding to the
-#' interaction coefficients displayed by `MoPlot_multpred()`.
+#' interaction coefficients displayed by `moplot_multpred()`.
 #'
 #' @param model A fitted model supported by `extract_param()`.
 #' @param coefficient_data Coefficient-layout data returned by
 #'   `.prepare_moplot_multpred_data()`.
-#' @param level Confidence level used for parameter confidence intervals.
+#' @param conf_level Confidence level used for parameter confidence intervals.
 #' @param coefficient_scale Scale used for the lower-panel estimates.
 #'   Available options are `"model"` and `"interpreted"`.
 #'
@@ -3400,7 +3400,7 @@
 .prepare_moplot_multpred_parameters <- function(
     model,
     coefficient_data,
-    level = 0.95,
+    conf_level = 0.95,
     coefficient_scale = c("model", "interpreted"),
     scale_factors = NULL,
     per_difference = FALSE
@@ -3446,7 +3446,7 @@
 
   parameter_table <- extract_param(
     model = model,
-    ci = level,
+    conf_level = conf_level,
     include_intercept = FALSE
   )
 
@@ -4228,18 +4228,18 @@
 
 #' Generate a textual description for a multi-predictor MoPlot
 #'
-#' Internal helper used by `MoPlot_multpred()` to generate a natural-language
+#' Internal helper used by `moplot_multpred()` to generate a natural-language
 #' description of an interaction-contrast plot of arbitrary order.
 #'
 #' @param model A fitted model supported by the package.
-#' @param contrast_output A data frame returned by `ContrastMultPred()`.
+#' @param contrast_output A data frame returned by `contrasts_multpred()`.
 #' @param prep An object returned by `.prepare_moplot_multpred_data()`.
 #' @param interaction Character string identifying the interaction displayed
 #'   in the plot.
 #' @param style Character string specifying the graphical style. Available
 #'   options are `"minimal"`, `"delta"`, and `"tree"`.
-#' @param siglevel Significance threshold used for the contrast labels.
-#' @param coef Logical. Whether the lower coefficient panel is displayed.
+#' @param sig_level Significance threshold used for the contrast labels.
+#' @param show_coef Logical. Whether the lower coefficient panel is displayed.
 #' @param coefficient_scale Scale used for the lower-panel estimates.
 #' @param estimate_type Character string identifying how the upper-panel
 #'   quantities were computed.
@@ -4249,14 +4249,14 @@
 #'
 #' @keywords internal
 #' @noRd
-MoPlotStele_multpred <- function(
+.moplot_multpred_caption <- function(
     model,
     contrast_output,
     prep,
     interaction,
     style = c("minimal", "tree"),
-    siglevel = 0.05,
-    coef = TRUE,
+    sig_level = 0.05,
+    show_coef = TRUE,
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     estimate_type,
@@ -4292,7 +4292,7 @@ MoPlotStele_multpred <- function(
   # 2. MODEL AND INTERACTION INFORMATION
   # ==========================================================================
 
-  model_information <- ModelContrastTable(model,type = "all")
+  model_information <- model_contrast_table(model,type = "all")
 
   variable_information <- model_information[["Variable-Level Summary"]]
 
@@ -4304,7 +4304,7 @@ MoPlotStele_multpred <- function(
     ) != 1L
   ) {
     stop(
-      "`MoPlotStele_multpred()` requires exactly one dependent variable.",
+      "`.moplot_multpred_caption()` requires exactly one dependent variable.",
       call. = FALSE
     )
   }
@@ -4384,7 +4384,7 @@ MoPlotStele_multpred <- function(
   mean_description <- if (
     identical(
       estimate_type,
-      "raw"
+      "observed"
     )
   ) {
 
@@ -4704,7 +4704,7 @@ MoPlotStele_multpred <- function(
       "Labels Coef. 1, Coef. 2, and so forth identify the displayed interaction ",
       "coefficients; an asterisk indicates p < %.3f."
     ),
-    siglevel
+    sig_level
   )
 
   # ==========================================================================
@@ -4715,7 +4715,7 @@ MoPlotStele_multpred <- function(
 
   if (
     isTRUE(
-      coef
+      show_coef
     )
   ) {
 
@@ -4760,7 +4760,7 @@ MoPlotStele_multpred <- function(
       collapse = ", "
     )
 
-    scale_description <- if (isTRUE(per_difference) && isTRUE(coef)) {
+    scale_description <- if (isTRUE(per_difference) && isTRUE(show_coef)) {
       paste0(
         "Under this coding, each interaction coefficient equals a scale factor ",
         "s multiplied by the displayed interaction contrast (",
@@ -4830,7 +4830,7 @@ MoPlotStele_multpred <- function(
 #' @param prep Prepared plotting data returned by
 #'   `.prepare_moplot_multpred_data()`.
 #' @param style Graphical style used for the upper panel.
-#' @param coef Logical. Whether the lower coefficient panel is present.
+#' @param show_coef Logical. Whether the lower coefficient panel is present.
 #'
 #' @return A named numeric vector containing recommended width and height
 #'   in inches.
@@ -4840,7 +4840,7 @@ MoPlotStele_multpred <- function(
 .moplot_multpred_export_size <- function(
     prep,
     style = c("minimal", "tree"),
-    coef = TRUE
+    show_coef = TRUE
 ) {
 
   style <- match.arg(style)
@@ -4907,7 +4907,7 @@ MoPlotStele_multpred <- function(
   )
 
   # Reserve space for the lower coefficient panel.
-  if (isTRUE(coef)) {
+  if (isTRUE(show_coef)) {
 
     height <- height +
       2.5

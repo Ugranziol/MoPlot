@@ -6,7 +6,7 @@
 \usage{
 extract_param(
   model,
-  ci = 0.95,
+  conf_level = 0.95,
   include_intercept = FALSE,
   effects = "fixed",
   component = "conditional",
@@ -17,7 +17,7 @@ extract_param(
 \item{model}{A fitted statistical model supported by
 \code{parameters::model_parameters()}.}
 
-\item{ci}{A single numeric value between 0 and 1 specifying the confidence
+\item{conf_level}{A single numeric value between 0 and 1 specifying the confidence
 level. The default is \code{0.95}.}
 
 \item{include_intercept}{Logical. Should the intercept be included in the
@@ -156,7 +156,7 @@ The conversions based on t or z do not depend on how the contrast is
 scaled. The conversion from the log odds ratio refers to the coefficient
 as coded: for a contrast whose coefficient equals a scale factor \eqn{s}
 multiplied by the compared difference (for example Helmert contrasts; see
-\code{\link[=ContrastsOnePred]{ContrastsOnePred()}}), the d of the compared difference is \eqn{d / s}.
+\code{\link[=contrasts_onepred]{contrasts_onepred()}}), the d of the compared difference is \eqn{d / s}.
 The plotting functions apply this rescaling.
 
 These conversions are approximations and assume conditions implicit in the

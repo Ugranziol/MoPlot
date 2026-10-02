@@ -1,4 +1,4 @@
-test_that("ContrastMultPred() handles Reverse Helmert contrasts correctly", {
+test_that("contrasts_multpred() handles Reverse Helmert contrasts correctly", {
 
   set.seed(123)
 
@@ -30,7 +30,7 @@ test_that("ContrastMultPred() handles Reverse Helmert contrasts correctly", {
     data = dat
   )
 
-  out <- ContrastMultPred(
+  out <- contrasts_multpred(
     model = mod,
     data = dat
   )
@@ -62,7 +62,7 @@ test_that("ContrastMultPred() handles Reverse Helmert contrasts correctly", {
   )
 })
 
-test_that("ContrastMultPred() recovers analysis data from model", {
+test_that("contrasts_multpred() recovers analysis data from model", {
 
   set.seed(123)
 
@@ -94,14 +94,14 @@ test_that("ContrastMultPred() recovers analysis data from model", {
     data = dat
   )
 
-  out_explicit <- ContrastMultPred(
+  out_explicit <- contrasts_multpred(
     model = mod,
     data = dat,
     configuration = "all",
     methodological_note = FALSE
   )
 
-  out_recovered <- ContrastMultPred(
+  out_recovered <- contrasts_multpred(
     model = mod,
     configuration = "all",
     methodological_note = FALSE
@@ -151,7 +151,7 @@ displayed_interactions <- function(result) {
 }
 
 quiet_mult <- function(...) {
-  suppressMessages(ContrastMultPred(..., methodological_note = FALSE))
+  suppressMessages(contrasts_multpred(..., methodological_note = FALSE))
 }
 
 
@@ -268,7 +268,7 @@ test_that("non-orthogonal custom codings produce weighted labels and a note", {
   stats::contrasts(data$A) <- cbind(c(-3, 1, 2) / 6, c(0, -1, 1) / 2)
 
   expect_message(
-    result <- ContrastMultPred(
+    result <- contrasts_multpred(
       model = stats::lm(y ~ A * B, data = data),
       data = data,
       configuration = "all",
@@ -298,7 +298,7 @@ test_that("an interaction with a numeric predictor triggers a warning", {
 })
 
 
-test_that("MoPlot_multpred() per_difference divides coefficients by their scale", {
+test_that("moplot_multpred() per_difference divides coefficients by their scale", {
 
   data <- simulate_two_way_data()
   stats::contrasts(data$A) <- stats::contr.helmert(3)
@@ -324,7 +324,7 @@ test_that("MoPlot_multpred() per_difference divides coefficients by their scale"
   )
 
   plot <- suppressMessages(
-    MoPlot_multpred(model = model, data = data, per_difference = TRUE, caption = FALSE, interaction_info = FALSE)
+    moplot_multpred(model = model, data = data, per_difference = TRUE, caption = FALSE, interaction_info = FALSE)
   )
 
   expect_s3_class(plot, "patchwork")
@@ -345,4 +345,44 @@ test_that("raw proportions in interaction decompositions stay within [0, 1]", {
   )
 
   expect_true(all(result$ci_low >= 0 & result$ci_high <= 1))
+})
+
+
+test_that("estimate_type = 'auto' follows the rule of contrasts_onepred()", {
+
+  set.seed(3)
+  data <- expand.grid(
+    A = factor(c("a1", "a2", "a3")),
+    B = factor(c("b1", "b2")),
+    subject = factor(1:20)
+  )
+  data$x <- stats::rnorm(nrow(data))
+  data$y <- stats::rnorm(nrow(data), as.integer(data$A) * (data$B == "b2"))
+  stats::contrasts(data$A) <- stats::contr.helmert(3)
+  stats::contrasts(data$B) <- stats::contr.sum(2)
+
+  resolved <- function(model) {
+    attr(
+      suppressMessages(contrasts_multpred(model, data = data, methodological_note = FALSE)),
+      "estimate_type"
+    )
+  }
+
+  # The interaction involves all the predictors: observed means.
+  expect_identical(resolved(stats::lm(y ~ A * B, data = data)), "observed")
+
+  # Another predictor in the fixed part: model-based predictions.
+  expect_identical(resolved(stats::lm(y ~ A * B + x, data = data)), "predicted")
+
+  # Random effects: model-based predictions.
+  expect_identical(
+    resolved(suppressMessages(lme4::lmer(y ~ A * B + (1 | subject), data = data))),
+    "predicted"
+  )
+
+  # The former value "raw" is no longer accepted.
+  expect_error(
+    contrasts_multpred(stats::lm(y ~ A * B, data = data), data = data, estimate_type = "raw"),
+    "should be one of"
+  )
 })

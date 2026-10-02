@@ -1,4 +1,4 @@
-test_that("ModelContrastTable() detects Reverse Helmert contrasts", {
+test_that("model_contrast_table() detects Reverse Helmert contrasts", {
 
   set.seed(123)
 
@@ -11,7 +11,7 @@ test_that("ModelContrastTable() detects Reverse Helmert contrasts", {
 
   mod <- stats::lm(y ~ group, data = dat)
 
-  out <- ModelContrastTable(mod)
+  out <- model_contrast_table(mod)
 
   model_summary <- out[["Model-Level Summary"]]
   variable_summary <- out[["Variable-Level Summary"]]
@@ -31,7 +31,7 @@ test_that("ModelContrastTable() detects Reverse Helmert contrasts", {
   )
 })
 
-test_that("ModelContrastTable() recognizes Treatment coding with a non-first reference level", {
+test_that("model_contrast_table() recognizes Treatment coding with a non-first reference level", {
 
   dat <- data.frame(
     group = factor(
@@ -51,7 +51,7 @@ test_that("ModelContrastTable() recognizes Treatment coding with a non-first ref
     data = dat
   )
 
-  out <- ModelContrastTable(
+  out <- model_contrast_table(
     mod,
     type = "all"
   )

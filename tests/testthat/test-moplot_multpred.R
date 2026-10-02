@@ -1,4 +1,4 @@
-test_that("MoPlot_multpred() returns a patchwork object for a two-way interaction", {
+test_that("moplot_multpred() returns a patchwork object for a two-way interaction", {
 
   set.seed(123)
 
@@ -32,7 +32,7 @@ test_that("MoPlot_multpred() returns a patchwork object for a two-way interactio
     data = dat
   )
 
-  plot <- MoPlot_multpred(
+  plot <- moplot_multpred(
     model = mod,
     data = dat
   )
@@ -44,7 +44,7 @@ test_that("MoPlot_multpred() returns a patchwork object for a two-way interactio
 })
 
 
-test_that("MoPlot_multpred() returns only the upper panel when coef = FALSE", {
+test_that("moplot_multpred() returns only the upper panel when show_coef = FALSE", {
 
   set.seed(123)
 
@@ -78,10 +78,10 @@ test_that("MoPlot_multpred() returns only the upper panel when coef = FALSE", {
     data = dat
   )
 
-  plot <- MoPlot_multpred(
+  plot <- moplot_multpred(
     model = mod,
     data = dat,
-    coef = FALSE
+    show_coef = FALSE
   )
 
   expect_s3_class(
@@ -125,7 +125,7 @@ test_that("multi-predictor coefficient positions match upper-panel block midpoin
     data = dat
   )
 
-  contrast_output <- ContrastMultPred(
+  contrast_output <- contrasts_multpred(
     model = mod,
     data = dat,
     configuration = "all"
@@ -162,7 +162,7 @@ test_that("multi-predictor coefficient positions match upper-panel block midpoin
 })
 
 
-test_that("MoPlot_multpred() respects top_split", {
+test_that("moplot_multpred() respects top_split", {
 
   set.seed(123)
 
@@ -196,7 +196,7 @@ test_that("MoPlot_multpred() respects top_split", {
     data = dat
   )
 
-  contrast_output <- ContrastMultPred(
+  contrast_output <- contrasts_multpred(
     model = mod,
     data = dat,
     top_split = "A",
@@ -208,7 +208,7 @@ test_that("MoPlot_multpred() respects top_split", {
     "A"
   )
 
-  plot <- MoPlot_multpred(
+  plot <- moplot_multpred(
     model = mod,
     data = dat,
     top_split = "A"
@@ -220,7 +220,7 @@ test_that("MoPlot_multpred() respects top_split", {
   )
 })
 
-test_that("MoPlot_multpred() coloured styles assign one colour per contrast", {
+test_that("moplot_multpred() coloured styles assign one colour per contrast", {
 
   set.seed(123)
 
@@ -252,7 +252,7 @@ test_that("MoPlot_multpred() coloured styles assign one colour per contrast", {
     data = dat
   )
 
-  out <- ContrastMultPred(
+  out <- contrasts_multpred(
     model = mod,
     data = dat,
     configuration = "all",
@@ -322,7 +322,7 @@ test_that("MoPlot_multpred() coloured styles assign one colour per contrast", {
   }
 })
 
-test_that("MoPlot_multpred() coloured styles keep upper and lower contrast colours aligned", {
+test_that("moplot_multpred() coloured styles keep upper and lower contrast colours aligned", {
 
   set.seed(123)
 
@@ -354,7 +354,7 @@ test_that("MoPlot_multpred() coloured styles keep upper and lower contrast colou
     data = dat
   )
 
-  out <- ContrastMultPred(
+  out <- contrasts_multpred(
     model = mod,
     data = dat,
     configuration = "all",
@@ -484,7 +484,7 @@ test_that("MoPlot_multpred() coloured styles keep upper and lower contrast colou
   }
 })
 
-test_that("MoPlot_multpred() respects coefficient selection", {
+test_that("moplot_multpred() respects coefficient selection", {
 
   set.seed(123)
 
@@ -512,7 +512,7 @@ test_that("MoPlot_multpred() respects coefficient selection", {
     data = dat
   )
 
-  all_out <- ContrastMultPred(
+  all_out <- contrasts_multpred(
     model = mod,
     data = dat,
     configuration = "all"
@@ -522,7 +522,7 @@ test_that("MoPlot_multpred() respects coefficient selection", {
     all_out$coefficient
   )[1L]
 
-  selected_out <- ContrastMultPred(
+  selected_out <- contrasts_multpred(
     model = mod,
     data = dat,
     coefficients = selected_coefficient,
@@ -539,7 +539,7 @@ test_that("MoPlot_multpred() respects coefficient selection", {
     1L
   )
 
-  plot <- MoPlot_multpred(
+  plot <- moplot_multpred(
     model = mod,
     data = dat,
     coefficients = selected_coefficient
@@ -551,7 +551,7 @@ test_that("MoPlot_multpred() respects coefficient selection", {
   )
 })
 
-test_that("MoPlot_multpred() respects siglevel", {
+test_that("moplot_multpred() respects sig_level", {
 
   set.seed(123)
 
@@ -579,17 +579,17 @@ test_that("MoPlot_multpred() respects siglevel", {
     data = dat
   )
 
-  out_05 <- ContrastMultPred(
+  out_05 <- contrasts_multpred(
     model = mod,
     data = dat,
-    alpha_sig = 0.05,
+    sig_level = 0.05,
     configuration = "all"
   )
 
-  out_strict <- ContrastMultPred(
+  out_strict <- contrasts_multpred(
     model = mod,
     data = dat,
-    alpha_sig = 1e-10,
+    sig_level = 1e-10,
     configuration = "all"
   )
 
@@ -618,7 +618,7 @@ test_that("MoPlot_multpred() respects siglevel", {
   )
 })
 
-test_that("MoPlot_multpred() propagates confidence level", {
+test_that("moplot_multpred() propagates confidence level", {
 
   set.seed(123)
 
@@ -642,14 +642,14 @@ test_that("MoPlot_multpred() propagates confidence level", {
     data = dat
   )
 
-  out_95 <- ContrastMultPred(
+  out_95 <- contrasts_multpred(
     model = mod,
     data = dat,
     conf_level = 0.95,
     configuration = "all"
   )
 
-  out_80 <- ContrastMultPred(
+  out_80 <- contrasts_multpred(
     model = mod,
     data = dat,
     conf_level = 0.80,
@@ -667,7 +667,7 @@ test_that("MoPlot_multpred() propagates confidence level", {
   )
 })
 
-test_that("MoPlot_multpred() supports interpreted coefficient scale", {
+test_that("moplot_multpred() supports interpreted coefficient scale", {
 
   skip_if_not_installed(
     "lme4"
@@ -705,7 +705,7 @@ test_that("MoPlot_multpred() supports interpreted coefficient scale", {
     family = stats::binomial()
   )
 
-  out <- ContrastMultPred(
+  out <- contrasts_multpred(
     model = mod,
     data = dat,
     configuration = "all",
@@ -729,7 +729,7 @@ test_that("MoPlot_multpred() supports interpreted coefficient scale", {
   )
 })
 
-test_that("MoPlot_multpred() accepts custom panel heights", {
+test_that("moplot_multpred() accepts custom panel heights", {
 
   set.seed(123)
 
@@ -751,7 +751,7 @@ test_that("MoPlot_multpred() accepts custom panel heights", {
     data = dat
   )
 
-  plot <- MoPlot_multpred(
+  plot <- moplot_multpred(
     model = mod,
     data = dat,
     panel_heights = c(3, 1)
@@ -763,10 +763,10 @@ test_that("MoPlot_multpred() accepts custom panel heights", {
   )
 })
 
-test_that("MoPlot_multpred() rejects removed delta style", {
+test_that("moplot_multpred() rejects removed delta style", {
 
   expect_error(
-    MoPlot_multpred(
+    moplot_multpred(
       model = mod3,
       interaction = "A:B:C",
       style = "delta"
@@ -775,7 +775,7 @@ test_that("MoPlot_multpred() rejects removed delta style", {
 })
 
 
-test_that("MoPlot_multpred() handles variable and level names with underscores", {
+test_that("moplot_multpred() handles variable and level names with underscores", {
 
   set.seed(51)
 
@@ -795,18 +795,18 @@ test_that("MoPlot_multpred() handles variable and level names with underscores",
   for (style in c("minimal", "tree")) {
 
     plot <- suppressMessages(
-      MoPlot_multpred(two_way, data = dat, style = style, caption = FALSE, interaction_info = FALSE)
+      moplot_multpred(two_way, data = dat, style = style, caption = FALSE, interaction_info = FALSE)
     )
     expect_s3_class(plot, "patchwork")
 
     plot <- suppressMessages(
-      MoPlot_multpred(three_way, data = dat, style = style, caption = FALSE, interaction_info = FALSE)
+      moplot_multpred(three_way, data = dat, style = style, caption = FALSE, interaction_info = FALSE)
     )
     expect_s3_class(plot, "patchwork")
   }
 
   decomposition <- attr(
-    suppressMessages(ContrastMultPred(two_way, data = dat, methodological_note = FALSE)),
+    suppressMessages(contrasts_multpred(two_way, data = dat, methodological_note = FALSE)),
     "decomposition"
   )
 
@@ -814,7 +814,7 @@ test_that("MoPlot_multpred() handles variable and level names with underscores",
 })
 
 
-test_that("MoPlot_multpred() handles transformed covariates and factor outcomes", {
+test_that("moplot_multpred() handles transformed covariates and factor outcomes", {
 
   set.seed(92)
 
@@ -824,7 +824,7 @@ test_that("MoPlot_multpred() handles transformed covariates and factor outcomes"
   dat$answer <- factor(ifelse(stats::runif(nrow(dat)) < 0.4, "yes", "no"))
 
   plot <- suppressMessages(
-    MoPlot_multpred(
+    moplot_multpred(
       stats::lm(y ~ A * B + log(x), data = dat),
       estimate_type = "predicted",
       caption = FALSE,
@@ -834,7 +834,7 @@ test_that("MoPlot_multpred() handles transformed covariates and factor outcomes"
   expect_s3_class(plot, "patchwork")
 
   plot <- suppressMessages(
-    MoPlot_multpred(
+    moplot_multpred(
       stats::glm(answer ~ A * B, family = stats::binomial, data = dat),
       caption = FALSE,
       interaction_info = FALSE
@@ -866,7 +866,7 @@ test_that("the final tree marker keeps clear of the x axis", {
     model <- stats::lm(formula, data = data)
 
     plot <- suppressMessages(suppressWarnings(
-      MoPlot_multpred(model, data = data, style = "tree", caption = FALSE, interaction_info = FALSE)
+      moplot_multpred(model, data = data, style = "tree", caption = FALSE, interaction_info = FALSE)
     ))
 
     upper <- plot[[1L]]
@@ -909,7 +909,7 @@ test_that("four-way trees keep clear of the x axis and label zero exactly", {
   model <- stats::lm(y ~ A * B * C * D, data = data)
 
   plot <- suppressMessages(suppressWarnings(
-    MoPlot_multpred(model, data = data, style = "tree", caption = FALSE, interaction_info = FALSE)
+    moplot_multpred(model, data = data, style = "tree", caption = FALSE, interaction_info = FALSE)
   ))
 
   upper <- plot[[1L]]

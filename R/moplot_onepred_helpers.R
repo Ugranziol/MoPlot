@@ -9,7 +9,7 @@
 #' Structural matching is based on `Levels`, whereas axis labels are obtained
 #' from `Display_Levels`.
 #'
-#' @param contrast_data A data frame returned by `ContrastsOnePred()`.
+#' @param contrast_data A data frame returned by `contrasts_onepred()`.
 #' @param contrast_type Character string identifying the contrast type.
 #'
 #' @return A list containing the updated contrast data and horizontal-axis
@@ -195,13 +195,13 @@
 
 #' Prepare data for a one-predictor contrast plot
 #'
-#' Internal helper used by `MoPlot_onepred()`.
+#' Internal helper used by `moplot_onepred()`.
 #'
 #' @param model A fitted model supported by the package.
 #' @param predictor Character string identifying the focal categorical
 #'   predictor.
-#' @param siglevel Significance threshold.
-#' @param level Confidence level.
+#' @param sig_level Significance threshold.
+#' @param conf_level Confidence level.
 #' @param estimate_type Type of upper-panel estimates.
 #' @param prediction_scale Prediction scale for model-based estimates.
 #' @param coefficient_scale Scale used for the lower-panel estimate.
@@ -210,7 +210,7 @@
 #' @param data Optional data frame with the original variables; recovered
 #'   from the model when `NULL`.
 #' @param bounds Optional natural range of the response, passed to
-#'   `ContrastsOnePred()`.
+#'   `contrasts_onepred()`.
 #'
 #' @return An object of class `"moplot_onepred_data"`.
 #'
@@ -219,8 +219,8 @@
 .prepare_moplot_onepred <- function(
     model,
     predictor,
-    siglevel = 0.05,
-    level = 0.95,
+    sig_level = 0.05,
+    conf_level = 0.95,
     estimate_type = c("auto", "observed", "predicted"),
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
@@ -261,29 +261,29 @@
   }
 
   if (
-    !is.numeric(siglevel) ||
-    length(siglevel) != 1L ||
-    is.na(siglevel) ||
-    !is.finite(siglevel) ||
-    siglevel <= 0 ||
-    siglevel >= 1
+    !is.numeric(sig_level) ||
+    length(sig_level) != 1L ||
+    is.na(sig_level) ||
+    !is.finite(sig_level) ||
+    sig_level <= 0 ||
+    sig_level >= 1
   ) {
     stop(
-      "`siglevel` must be a single numeric value strictly between 0 and 1.",
+      "`sig_level` must be a single numeric value strictly between 0 and 1.",
       call. = FALSE
     )
   }
 
   if (
-    !is.numeric(level) ||
-    length(level) != 1L ||
-    is.na(level) ||
-    !is.finite(level) ||
-    level <= 0 ||
-    level >= 1
+    !is.numeric(conf_level) ||
+    length(conf_level) != 1L ||
+    is.na(conf_level) ||
+    !is.finite(conf_level) ||
+    conf_level <= 0 ||
+    conf_level >= 1
   ) {
     stop(
-      "`level` must be a single numeric value strictly between 0 and 1.",
+      "`conf_level` must be a single numeric value strictly between 0 and 1.",
       call. = FALSE
     )
   }
@@ -330,7 +330,7 @@
     )
   }
 
-  model_information <- ModelContrastTable(model,type = "all")
+  model_information <- model_contrast_table(model,type = "all")
 
   variable_summary <- model_information[["Variable-Level Summary"]]
 
@@ -338,7 +338,7 @@
 
   if (length(outcome_names) != 1L) {
     stop(
-      "`MoPlot_onepred()` requires exactly one dependent variable.",
+      "`moplot_onepred()` requires exactly one dependent variable.",
       call. = FALSE
     )
   }
@@ -434,7 +434,7 @@
     if (any(focal_interaction)) {
       stop(
         paste0(
-          "`MoPlot_onepred()` does not currently support models in which ",
+          "`moplot_onepred()` does not currently support models in which ",
           "the focal predictor is involved in an interaction."
         ),
         call. = FALSE
@@ -446,7 +446,7 @@
   # 4. RESOLVE AUTOMATIC ESTIMATE TYPE
   # ==========================================================================
 
-  # The same rule as ContrastsOnePred(); see .resolve_estimate_type().
+  # The same rule as contrasts_onepred(); see .resolve_estimate_type().
   resolved_estimate_type <- .resolve_estimate_type(
     model = model,
     predictor = predictor,
@@ -458,13 +458,13 @@
   # 5. CONTRAST ESTIMATES
   # ==========================================================================
 
-  contrast_data <- ContrastsOnePred(
+  contrast_data <- contrasts_onepred(
     model = model,
     predictor = predictor,
     outcome = outcome,
     data = analysis_data,
-    sig.level = siglevel,
-    level = level,
+    sig_level = sig_level,
+    conf_level = conf_level,
     estimate_type = resolved_estimate_type,
     prediction_scale = prediction_scale,
     bounds = bounds
@@ -485,7 +485,7 @@
     nrow(contrast_data) == 0L
   ) {
     stop(
-      "`ContrastsOnePred()` did not return any interpretable contrasts.",
+      "`contrasts_onepred()` did not return any interpretable contrasts.",
       call. = FALSE
     )
   }
@@ -505,7 +505,7 @@
   if (length(missing_contrast_columns) > 0L) {
     stop(
       paste0(
-        "`ContrastsOnePred()` did not return the expected columns: ",
+        "`contrasts_onepred()` did not return the expected columns: ",
         paste(missing_contrast_columns, collapse = ", "),
         "."
       ),
@@ -625,7 +625,7 @@
 
   parameter_table <- extract_param(
     model = model,
-    ci = level,
+    conf_level = conf_level,
     include_intercept = FALSE
   )
 
@@ -881,7 +881,7 @@
 
     family_object <- .extract_family(model)
 
-    # Same rule as ContrastsOnePred(): estimates of generalized models are
+    # Same rule as contrasts_onepred(): estimates of generalized models are
     # on the response scale unless link-scale predictions were requested.
     estimates_on_response_scale <- .is_generalized_model(model) &&
       !is.null(family_object) &&
@@ -938,7 +938,7 @@
 
 #' Build the upper panel of a one-predictor contrast plot
 #'
-#' Internal helper used by `MoPlot_onepred()`.
+#' Internal helper used by `moplot_onepred()`.
 #'
 #' @param prep An object returned by `.prepare_moplot_onepred()`.
 #' @param show_data Logical. Should raw observations be displayed using
@@ -1497,14 +1497,14 @@
 
 #' Generate the caption for a one-predictor contrast plot
 #'
-#' Internal helper used by `MoPlot_onepred()`.
+#' Internal helper used by `moplot_onepred()`.
 #'
 #' @param model A fitted model.
 #' @param predictor Character string identifying the focal predictor.
-#' @param contrast_output Output returned by `ContrastsOnePred()`.
-#' @param siglevel Significance threshold.
+#' @param contrast_output Output returned by `contrasts_onepred()`.
+#' @param sig_level Significance threshold.
 #' @param show_data Whether raw observations are displayed.
-#' @param coef Whether the coefficient panel is displayed.
+#' @param show_coef Whether the coefficient panel is displayed.
 #' @param coefficient_scale Scale used for the lower-panel estimates.
 #' @param per_difference Whether lower-panel coefficients are divided by
 #'   their scale factor.
@@ -1513,13 +1513,13 @@
 #'
 #' @keywords internal
 #' @noRd
-MoPlotStele <- function(
+.moplot_onepred_caption <- function(
     model,
     predictor,
     contrast_output,
-    siglevel = 0.05,
+    sig_level = 0.05,
     show_data = FALSE,
-    coef = TRUE,
+    show_coef = TRUE,
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     family,
@@ -1540,7 +1540,7 @@ MoPlotStele <- function(
 
   prediction_scale <- tolower(as.character(prediction_scale)[1L])
 
-  model_information <- ModelContrastTable(model,type = "all")
+  model_information <- model_contrast_table(model,type = "all")
 
   variable_information <- model_information[["Variable-Level Summary"]]
 
@@ -1550,7 +1550,7 @@ MoPlotStele <- function(
 
   if (length(dependent_variables) != 1L) {
     stop(
-      "`MoPlotStele()` requires exactly one dependent variable.",
+      "`.moplot_onepred_caption()` requires exactly one dependent variable.",
       call. = FALSE
     )
   }
@@ -1799,7 +1799,7 @@ MoPlotStele <- function(
       if (is_polynomial) "components" else "contrasts",
       "; an asterisk indicates p < %.3f."
     ),
-    siglevel
+    sig_level
   )
 
   raw_description <- if (isTRUE(show_data)) {
@@ -1813,7 +1813,7 @@ MoPlotStele <- function(
 
   coefficient_description <- NULL
 
-  if (isTRUE(coef)) {
+  if (isTRUE(show_coef)) {
 
     if (identical(coefficient_scale, "model")) {
 
@@ -1889,7 +1889,7 @@ MoPlotStele <- function(
       collapse = ", "
     )
 
-    scale_description <- if (isTRUE(per_difference) && isTRUE(coef)) {
+    scale_description <- if (isTRUE(per_difference) && isTRUE(show_coef)) {
       paste0(
         "Under this coding, each model coefficient equals a scale factor s ",
         "multiplied by the difference displayed in the upper panel (",
@@ -1943,7 +1943,7 @@ MoPlotStele <- function(
 
 #' Build the lower panel of a one-predictor contrast plot
 #'
-#' Internal helper used by `MoPlot_onepred()`.
+#' Internal helper used by `moplot_onepred()`.
 #'
 #' @param prep An object returned by `.prepare_moplot_onepred()`.
 #'
@@ -2441,13 +2441,13 @@ MoPlotStele <- function(
 
 #' Compute recommended export dimensions for a one-predictor MoPlot
 #'
-#' Internal helper used by `MoPlot_onepred()`. Width grows with the number
+#' Internal helper used by `moplot_onepred()`. Width grows with the number
 #' of displayed quantities or, for polynomial contrasts, with the number of
 #' component panels and of levels within each panel. Height reserves room
 #' for the lower panel according to `panel_heights`.
 #'
 #' @param prep An object returned by `.prepare_moplot_onepred()`.
-#' @param coef Logical. Whether the lower coefficient panel is present.
+#' @param show_coef Logical. Whether the lower coefficient panel is present.
 #' @param panel_heights Relative heights of the upper and lower panels.
 #'
 #' @return A named numeric vector containing recommended width and height
@@ -2457,7 +2457,7 @@ MoPlotStele <- function(
 #' @noRd
 .moplot_onepred_export_size <- function(
     prep,
-    coef = TRUE,
+    show_coef = TRUE,
     panel_heights = c(2, 1)
 ) {
 
@@ -2480,7 +2480,7 @@ MoPlotStele <- function(
 
   upper_height <- 4.5
 
-  height <- if (isTRUE(coef)) {
+  height <- if (isTRUE(show_coef)) {
     upper_height * sum(panel_heights) / panel_heights[1L]
   } else {
     upper_height

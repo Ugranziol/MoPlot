@@ -46,7 +46,7 @@ test_that("bounds apply to observed and predicted estimates", {
   model <- stats::lm(score ~ group, data = data)
 
   unbounded <- suppressMessages(
-    ContrastsOnePred(model, "group", "score", data, estimate_type = "observed")
+    contrasts_onepred(model, "group", data, "score", estimate_type = "observed")
   )
 
   expect_gt(max(unbounded$CI_high), 7)
@@ -54,7 +54,7 @@ test_that("bounds apply to observed and predicted estimates", {
   for (estimate_type in c("observed", "predicted")) {
 
     result <- suppressMessages(
-      ContrastsOnePred(model, "group", "score", data, estimate_type = estimate_type, bounds = c(1, 7))
+      contrasts_onepred(model, "group", data, "score", estimate_type = estimate_type, bounds = c(1, 7))
     )
 
     expect_true(all(result$CI_low >= 1 & result$CI_high <= 7), info = estimate_type)
@@ -70,17 +70,17 @@ test_that("bounds are validated and checked against the data", {
   model <- stats::lm(score ~ group, data = data)
 
   expect_error(
-    ContrastsOnePred(model, "group", "score", data, bounds = c(7, 1)),
+    contrasts_onepred(model, "group", data, "score", bounds = c(7, 1)),
     "lower < upper"
   )
 
   expect_error(
-    ContrastsOnePred(model, "group", "score", data, bounds = c(-Inf, Inf)),
+    contrasts_onepred(model, "group", data, "score", bounds = c(-Inf, Inf)),
     "lower < upper"
   )
 
   expect_error(
-    suppressMessages(ContrastsOnePred(model, "group", "score", data, estimate_type = "observed", bounds = c(1, 6))),
+    suppressMessages(contrasts_onepred(model, "group", data, "score", estimate_type = "observed", bounds = c(1, 6))),
     "outside `bounds`"
   )
 
@@ -88,7 +88,7 @@ test_that("bounds are validated and checked against the data", {
 
   expect_warning(
     suppressMessages(
-      ContrastsOnePred(stats::glm(high ~ group, family = stats::binomial, data = data), "group", "high", data, bounds = c(0, 1))
+      contrasts_onepred(stats::glm(high ~ group, family = stats::binomial, data = data), "group", data, "high", bounds = c(0, 1))
     ),
     "ignored for generalized models"
   )
@@ -102,7 +102,7 @@ test_that("estimates outside the bounds trigger a warning", {
 })
 
 
-test_that("ContrastMultPred() and the plotting functions accept bounds", {
+test_that("contrasts_multpred() and the plotting functions accept bounds", {
 
   set.seed(102)
 
@@ -111,24 +111,24 @@ test_that("ContrastMultPred() and the plotting functions accept bounds", {
 
   model <- stats::lm(score ~ A * B, data = data)
 
-  for (estimate_type in c("raw", "predicted")) {
+  for (estimate_type in c("observed", "predicted")) {
 
     result <- suppressMessages(
-      ContrastMultPred(model, data = data, estimate_type = estimate_type, bounds = c(1, 7), methodological_note = FALSE)
+      contrasts_multpred(model, data = data, estimate_type = estimate_type, bounds = c(1, 7), methodological_note = FALSE)
     )
 
     expect_true(all(result$ci_low >= 1 & result$ci_high <= 7), info = estimate_type)
   }
 
   expect_s3_class(
-    suppressMessages(MoPlot_multpred(model, data = data, bounds = c(1, 7), caption = FALSE, interaction_info = FALSE)),
+    suppressMessages(moplot_multpred(model, data = data, bounds = c(1, 7), caption = FALSE, interaction_info = FALSE)),
     "patchwork"
   )
 
   likert <- simulate_likert_data()
 
   expect_s3_class(
-    suppressMessages(MoPlot_onepred(stats::lm(score ~ group, data = likert), "group", bounds = c(1, 7), caption = FALSE)),
+    suppressMessages(moplot_onepred(stats::lm(score ~ group, data = likert), "group", bounds = c(1, 7), caption = FALSE)),
     "patchwork"
   )
 })

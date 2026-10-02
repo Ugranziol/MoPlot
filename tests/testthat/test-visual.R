@@ -38,10 +38,10 @@ interaction_data <- function() {
 
 
 # ============================================================
-# MoPlot_onepred()
+# moplot_onepred()
 # ============================================================
 
-test_that("MoPlot_onepred() figures are stable", {
+test_that("moplot_onepred() figures are stable", {
 
   data <- one_predictor_data()
 
@@ -50,12 +50,12 @@ test_that("MoPlot_onepred() figures are stable", {
 
   expect_plot(
     "onepred helmert minimal",
-    quiet_plot(MoPlot_onepred(helmert, "group", caption = FALSE))
+    quiet_plot(moplot_onepred(helmert, "group", caption = FALSE))
   )
 
   expect_plot(
     "onepred helmert per difference",
-    quiet_plot(MoPlot_onepred(helmert, "group", per_difference = TRUE, caption = FALSE))
+    quiet_plot(moplot_onepred(helmert, "group", per_difference = TRUE, caption = FALSE))
   )
 
   stats::contrasts(data$group) <- stats::contr.sum(4)
@@ -63,7 +63,7 @@ test_that("MoPlot_onepred() figures are stable", {
   expect_plot(
     "onepred sum publication with data",
     quiet_plot(
-      MoPlot_onepred(
+      moplot_onepred(
         stats::lm(y ~ group, data = data),
         "group",
         style = "publication",
@@ -80,12 +80,12 @@ test_that("MoPlot_onepred() figures are stable", {
 
   expect_plot(
     "onepred custom weighted labels",
-    quiet_plot(MoPlot_onepred(stats::lm(y ~ group, data = custom_data), "group", caption = FALSE))
+    quiet_plot(moplot_onepred(stats::lm(y ~ group, data = custom_data), "group", caption = FALSE))
   )
 })
 
 
-test_that("MoPlot_onepred() polynomial figures are stable", {
+test_that("moplot_onepred() polynomial figures are stable", {
 
   data <- one_predictor_data()
 
@@ -94,7 +94,7 @@ test_that("MoPlot_onepred() polynomial figures are stable", {
   expect_plot(
     "onepred polynomial publication with data",
     quiet_plot(
-      MoPlot_onepred(
+      moplot_onepred(
         stats::lm(y ~ group, data = data),
         "group",
         style = "publication",
@@ -108,7 +108,7 @@ test_that("MoPlot_onepred() polynomial figures are stable", {
 
   expect_plot(
     "onepred polynomial scores minimal",
-    quiet_plot(MoPlot_onepred(stats::lm(y ~ group, data = data), "group", caption = FALSE))
+    quiet_plot(moplot_onepred(stats::lm(y ~ group, data = data), "group", caption = FALSE))
   )
 
   set.seed(7)
@@ -119,7 +119,7 @@ test_that("MoPlot_onepred() polynomial figures are stable", {
   expect_plot(
     "onepred polynomial logistic odds ratios",
     quiet_plot(
-      MoPlot_onepred(
+      moplot_onepred(
         stats::glm(success ~ freq, family = stats::binomial, data = binary_data),
         "freq",
         coefficient_scale = "interpreted",
@@ -132,10 +132,10 @@ test_that("MoPlot_onepred() polynomial figures are stable", {
 
 
 # ============================================================
-# MoPlot_multpred()
+# moplot_multpred()
 # ============================================================
 
-test_that("MoPlot_multpred() figures are stable", {
+test_that("moplot_multpred() figures are stable", {
 
   data <- interaction_data()
 
@@ -144,23 +144,23 @@ test_that("MoPlot_multpred() figures are stable", {
 
   expect_plot(
     "multpred two way minimal",
-    quiet_plot(MoPlot_multpred(two_way, data = data, caption = FALSE, interaction_info = FALSE))
+    quiet_plot(moplot_multpred(two_way, data = data, caption = FALSE, interaction_info = FALSE))
   )
 
   expect_plot(
     "multpred two way tree",
-    quiet_plot(MoPlot_multpred(two_way, data = data, style = "tree", caption = FALSE, interaction_info = FALSE))
+    quiet_plot(moplot_multpred(two_way, data = data, style = "tree", caption = FALSE, interaction_info = FALSE))
   )
 
   expect_plot(
     "multpred three way tree",
-    quiet_plot(MoPlot_multpred(three_way, data = data, style = "tree", caption = FALSE, interaction_info = FALSE))
+    quiet_plot(moplot_multpred(three_way, data = data, style = "tree", caption = FALSE, interaction_info = FALSE))
   )
 
   expect_plot(
     "multpred two way per difference",
     quiet_plot(
-      MoPlot_multpred(two_way, data = data, per_difference = TRUE, caption = FALSE, interaction_info = FALSE)
+      moplot_multpred(two_way, data = data, per_difference = TRUE, caption = FALSE, interaction_info = FALSE)
     )
   )
 })

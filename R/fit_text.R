@@ -2,7 +2,7 @@
 # TEXT LABELS THAT SHRINK TO AVOID OVERLAPS
 # ============================================================
 #
-# The hierarchical group labels and the tree formulas of MoPlot_multpred()
+# The hierarchical group labels and the tree formulas of moplot_multpred()
 # have a fixed size in points, whereas the distances between blocks, rows,
 # and tree branches depend on the size of the plot. Their size is therefore
 # fitted when the plot is drawn, and again whenever the device is resized.

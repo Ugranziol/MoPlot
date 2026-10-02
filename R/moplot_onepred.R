@@ -1,7 +1,7 @@
 #' Plot contrasts for one categorical predictor
 #'
 #' @description
-#' `MoPlot_onepred()` creates a graphical representation of the contrasts
+#' `moplot_onepred()` creates a graphical representation of the contrasts
 #' associated with one categorical predictor in a fitted model.
 #'
 #' The upper panel displays the quantities compared by each contrast, together
@@ -23,10 +23,10 @@
 #'   variables are needed for model-based estimates when the model contains
 #'   transformed terms such as `log(x)`.
 #'
-#' @param siglevel A numeric value between 0 and 1 defining the significance
+#' @param sig_level A numeric value between 0 and 1 defining the significance
 #'   threshold used for the contrast labels. The default is `0.05`.
 #'
-#' @param level A numeric value between 0 and 1 specifying the confidence
+#' @param conf_level A numeric value between 0 and 1 specifying the confidence
 #'   level. The default is `0.95`.
 #'
 #' @param estimate_type Character string specifying how the quantities in the
@@ -86,9 +86,9 @@
 #'   range of a response analyzed with a Gaussian (identity link) model, such
 #'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time, so that
 #'   confidence intervals remain within it. Ignored, with a warning, for
-#'   generalized models. See [ContrastsOnePred()].
+#'   generalized models. See [contrasts_onepred()].
 #'
-#' @param coef Logical. Should the lower coefficient panel be displayed?
+#' @param show_coef Logical. Should the lower coefficient panel be displayed?
 #'   The default is `TRUE`.
 #'
 #' @param show_data Logical. Should raw observations be displayed in the upper
@@ -126,7 +126,7 @@
 #'
 #' @param panel_heights A numeric vector of length two specifying the relative
 #'   heights of the upper and lower panels. The default is `c(2, 1)`.
-#'   This argument is used only when `coef = TRUE`.
+#'   This argument is used only when `show_coef = TRUE`.
 #'
 #' @details
 #' The function displays one focal categorical predictor at a time, but the
@@ -148,7 +148,7 @@
 #' drawn around the mean of the estimates on the linear-predictor scale and
 #' transformed to the scale of the estimates. Crosses mark the value of the
 #' curve at each level, which is `Polynomial_fit` in the output of
-#' [ContrastsOnePred()]. Levels are spaced according to the scores of the
+#' [contrasts_onepred()]. Levels are spaced according to the scores of the
 #' coding. The lower panel shows each coefficient beneath the facet of its
 #' component. `per_difference` is ignored, with a warning, because
 #' polynomial coefficients have no scale factor.
@@ -156,13 +156,13 @@
 #' No model-intercept line is displayed.
 #'
 #' @return
-#' When `coef = FALSE`, a `ggplot` object containing the upper panel.
+#' When `show_coef = FALSE`, a `ggplot` object containing the upper panel.
 #'
-#' When `coef = TRUE`, a `patchwork` object containing the aligned upper and
+#' When `show_coef = TRUE`, a `patchwork` object containing the aligned upper and
 #' lower panels.
 #'
 #' In both cases the object carries recommended export dimensions, used by
-#' [MoPlot_export()] when `width` or `height` is not supplied.
+#' [moplot_export()] when `width` or `height` is not supplied.
 #'
 #' @examples
 #' \dontrun{
@@ -187,39 +187,39 @@
 #'   data = dat
 #' )
 #'
-#' MoPlot_onepred(
+#' moplot_onepred(
 #'   model = mod,
 #'   predictor = "group"
 #' )
 #'
-#' MoPlot_onepred(
+#' moplot_onepred(
 #'   model = mod,
 #'   predictor = "group",
 #'   show_data = TRUE,
 #'   style = "publication"
 #' )
 #'
-#' MoPlot_onepred(
+#' moplot_onepred(
 #'   model = mod,
 #'   predictor = "group",
-#'   coef = FALSE
+#'   show_coef = FALSE
 #' )
 #' }
 #'
 #' @importFrom patchwork wrap_plots plot_annotation
 #' @export
-MoPlot_onepred <- function(
+moplot_onepred <- function(
     model,
     predictor,
     data = NULL,
-    siglevel = 0.05,
-    level = 0.95,
+    sig_level = 0.05,
+    conf_level = 0.95,
     estimate_type = c("auto", "observed", "predicted"),
     prediction_scale = c("response", "link"),
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     bounds = NULL,
-    coef = TRUE,
+    show_coef = TRUE,
     show_data = FALSE,
     style = c("minimal", "publication"),
     caption = TRUE,
@@ -256,12 +256,12 @@ MoPlot_onepred <- function(
   }
 
   if (
-    !is.logical(coef) ||
-    length(coef) != 1L ||
-    is.na(coef)
+    !is.logical(show_coef) ||
+    length(show_coef) != 1L ||
+    is.na(show_coef)
   ) {
     stop(
-      "`coef` must be either TRUE or FALSE.",
+      "`show_coef` must be either TRUE or FALSE.",
       call. = FALSE
     )
   }
@@ -366,8 +366,8 @@ MoPlot_onepred <- function(
   prep <- .prepare_moplot_onepred(
     model = model,
     predictor = predictor,
-    siglevel = siglevel,
-    level = level,
+    sig_level = sig_level,
+    conf_level = conf_level,
     estimate_type = estimate_type,
     prediction_scale = prediction_scale,
     coefficient_scale = coefficient_scale,
@@ -410,13 +410,13 @@ MoPlot_onepred <- function(
 
   if (isTRUE(caption)) {
 
-    caption_text <- MoPlotStele(
+    caption_text <- .moplot_onepred_caption(
       model = model,
       predictor = predictor,
       contrast_output = prep$contrast_data,
-      siglevel = siglevel,
+      sig_level = sig_level,
       show_data = show_data,
-      coef = coef,
+      show_coef = show_coef,
       coefficient_scale = coefficient_scale,
       per_difference = prep$per_difference,
       family = prep$family,
@@ -484,14 +484,14 @@ MoPlot_onepred <- function(
   # 6. RETURN UPPER PANEL ONLY
   # ==========================================================================
 
-  # Read by MoPlot_export() when width or height is not supplied.
+  # Read by moplot_export() when width or height is not supplied.
   export_size <- .moplot_onepred_export_size(
     prep = prep,
-    coef = coef,
+    show_coef = show_coef,
     panel_heights = panel_heights
   )
 
-  if (!isTRUE(coef)) {
+  if (!isTRUE(show_coef)) {
 
     attr(upper_plot, "moplot_export_size") <- export_size
 

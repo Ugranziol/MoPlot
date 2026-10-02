@@ -1,4 +1,4 @@
-test_that("MoPlot_onepred() handles Reverse Helmert contrasts", {
+test_that("moplot_onepred() handles Reverse Helmert contrasts", {
 
   set.seed(123)
 
@@ -20,7 +20,7 @@ test_that("MoPlot_onepred() handles Reverse Helmert contrasts", {
     data = dat
   )
 
-  plot <- MoPlot_onepred(
+  plot <- moplot_onepred(
     model = mod,
     predictor = "group",
     caption = FALSE
@@ -33,7 +33,7 @@ test_that("MoPlot_onepred() handles Reverse Helmert contrasts", {
 })
 
 
-test_that("MoPlot_onepred() displays raw data with show_data = TRUE", {
+test_that("moplot_onepred() displays raw data with show_data = TRUE", {
 
   set.seed(123)
 
@@ -55,7 +55,7 @@ test_that("MoPlot_onepred() displays raw data with show_data = TRUE", {
     data = dat
   )
 
-  plot <- MoPlot_onepred(
+  plot <- moplot_onepred(
     model = mod,
     predictor = "group",
     show_data = TRUE,
@@ -69,7 +69,7 @@ test_that("MoPlot_onepred() displays raw data with show_data = TRUE", {
 })
 
 
-test_that("MoPlot_onepred() publication style assigns distinct colours to contrasts", {
+test_that("moplot_onepred() publication style assigns distinct colours to contrasts", {
 
   set.seed(123)
 
@@ -134,7 +134,7 @@ test_that("MoPlot_onepred() publication style assigns distinct colours to contra
   )
 })
 
-test_that("MoPlot_onepred() minimal style keeps contrast colours in grayscale", {
+test_that("moplot_onepred() minimal style keeps contrast colours in grayscale", {
 
   set.seed(123)
 
@@ -194,7 +194,7 @@ test_that("MoPlot_onepred() minimal style keeps contrast colours in grayscale", 
 })
 
 
-test_that("MoPlot_onepred() handles sliding-difference contrasts", {
+test_that("moplot_onepred() handles sliding-difference contrasts", {
 
   set.seed(123)
 
@@ -204,7 +204,7 @@ test_that("MoPlot_onepred() handles sliding-difference contrasts", {
   contrasts(dat$group) <- MASS::contr.sdif(4)
 
   plot <- suppressMessages(
-    MoPlot_onepred(
+    moplot_onepred(
       model = stats::lm(y ~ group, data = dat),
       predictor = "group",
       caption = FALSE
@@ -285,7 +285,7 @@ test_that("per_difference rescales ratios on the log scale", {
 })
 
 
-test_that("MoPlot_onepred() handles transformed covariates and factor outcomes", {
+test_that("moplot_onepred() handles transformed covariates and factor outcomes", {
 
   set.seed(91)
 
@@ -297,12 +297,12 @@ test_that("MoPlot_onepred() handles transformed covariates and factor outcomes",
   dat$answer <- factor(ifelse(stats::runif(90) < c(0.2, 0.5, 0.7)[dat$group], "yes", "no"))
 
   plot <- suppressMessages(
-    MoPlot_onepred(stats::lm(y ~ group + log(x), data = dat), "group", caption = FALSE)
+    moplot_onepred(stats::lm(y ~ group + log(x), data = dat), "group", caption = FALSE)
   )
   expect_s3_class(plot, "patchwork")
 
   plot <- suppressMessages(
-    MoPlot_onepred(stats::lm(y ~ group + log(x), data = dat), "group", data = dat, caption = FALSE)
+    moplot_onepred(stats::lm(y ~ group + log(x), data = dat), "group", data = dat, caption = FALSE)
   )
   expect_s3_class(plot, "patchwork")
 
@@ -327,7 +327,7 @@ polynomial_dose_data <- function() {
 }
 
 
-test_that("MoPlot_onepred() displays one panel per polynomial component", {
+test_that("moplot_onepred() displays one panel per polynomial component", {
 
   dat <- polynomial_dose_data()
   contrasts(dat$dose) <- stats::contr.poly(4)
@@ -362,7 +362,7 @@ test_that("MoPlot_onepred() displays one panel per polynomial component", {
   first <- prep$contrast_data[prep$contrast_data$Contrast == components$Contrast[1L], ]
   expect_equal(prep$polynomial_data$baseline, mean(first$Estimate))
 
-  plot <- suppressMessages(MoPlot_onepred(mod, "dose", caption = FALSE))
+  plot <- suppressMessages(moplot_onepred(mod, "dose", caption = FALSE))
 
   expect_s3_class(plot, "patchwork")
 
@@ -386,7 +386,7 @@ test_that("polynomial plots use the publication palette and grayscale", {
   mod <- stats::lm(y ~ dose, data = dat)
 
   curve_colours <- function(style) {
-    plot <- suppressMessages(MoPlot_onepred(mod, "dose", style = style, caption = FALSE))
+    plot <- suppressMessages(moplot_onepred(mod, "dose", style = style, caption = FALSE))
     built <- ggplot2::ggplot_build(plot[[1L]])
     line_layer <- which(vapply(plot[[1L]]$layers, function(layer) inherits(layer$geom, "GeomLine"), logical(1)))
     unique(built$data[[line_layer]]$colour)
@@ -409,7 +409,7 @@ test_that("polynomial plots space the levels by the scores of the coding", {
 
   # The assignment keeps capture.output() from printing the plot.
   caption <- utils::capture.output(
-    plot <- suppressMessages(MoPlot_onepred(mod, "dose", coef = FALSE))
+    plot <- suppressMessages(moplot_onepred(mod, "dose", show_coef = FALSE))
   )
 
   expect_true(any(grepl("spaced according to the scores", caption)))
@@ -433,7 +433,7 @@ test_that("polynomial plots of logistic models stay on the probability scale", {
   expect_identical(prep$null_value, 1)
 
   plot <- suppressMessages(
-    MoPlot_onepred(mod, "freq", coefficient_scale = "interpreted", caption = FALSE)
+    moplot_onepred(mod, "freq", coefficient_scale = "interpreted", caption = FALSE)
   )
 
   expect_s3_class(plot, "patchwork")
@@ -447,7 +447,7 @@ test_that("per_difference is ignored with a warning for polynomial contrasts", {
   mod <- stats::lm(y ~ dose, data = dat)
 
   expect_warning(
-    plot <- suppressMessages(MoPlot_onepred(mod, "dose", per_difference = TRUE, caption = FALSE)),
+    plot <- suppressMessages(moplot_onepred(mod, "dose", per_difference = TRUE, caption = FALSE)),
     "`per_difference` is ignored for polynomial contrasts"
   )
 
@@ -462,7 +462,7 @@ test_that("the caption describes polynomial components", {
   mod <- stats::lm(y ~ dose, data = dat)
 
   caption <- paste(
-    utils::capture.output(plot <- suppressMessages(MoPlot_onepred(mod, "dose"))),
+    utils::capture.output(plot <- suppressMessages(moplot_onepred(mod, "dose"))),
     collapse = " "
   )
 
