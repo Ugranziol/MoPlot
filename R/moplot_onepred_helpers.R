@@ -665,6 +665,7 @@
 
   ratio_types <- c(
     "Odds ratio",
+    "Risk ratio",
     "Incidence rate ratio",
     "Hazard ratio",
     "Multiplicative ratio",
@@ -677,6 +678,19 @@
   parameter_data$Scale_factor <- contrast_data$Scale_factor[
     match(contrast_ids, contrast_data$Contrast)
   ]
+
+  # Cohen's d converted from the log odds ratio refers to the
+  # coefficient as coded; dividing by the scale factor makes it refer to
+  # the displayed difference. Conversions from t or z are already
+  # independent of the scaling of the contrast.
+  d_from_log_odds <- focal_parameters$d_method %in% "log odds ratio"
+
+  parameter_data$d[d_from_log_odds] <- parameter_data$d[d_from_log_odds] /
+    parameter_data$Scale_factor[d_from_log_odds]
+  parameter_data$d_CI_low[d_from_log_odds] <- parameter_data$d_CI_low[d_from_log_odds] /
+    parameter_data$Scale_factor[d_from_log_odds]
+  parameter_data$d_CI_high[d_from_log_odds] <- parameter_data$d_CI_high[d_from_log_odds] /
+    parameter_data$Scale_factor[d_from_log_odds]
 
   if (isTRUE(per_difference)) {
 
@@ -1709,6 +1723,7 @@ MoPlotStele <- function(
 
         "Coefficient" = "model coefficient",
         "Odds ratio" = "odds ratio",
+        "Risk ratio" = "risk ratio",
         "Incidence rate ratio" = "incidence rate ratio",
         "Hazard ratio" = "hazard ratio",
         "Multiplicative ratio" = "multiplicative ratio",
@@ -2031,6 +2046,7 @@ MoPlotStele <- function(
       "Model estimate" = "\u03b2",
       "Coefficient" = "\u03b2",
       "Odds ratio" = "OR",
+      "Risk ratio" = "RR",
       "Incidence rate ratio" = "IRR",
       "Hazard ratio" = "HR",
       "Multiplicative ratio" = "MR",

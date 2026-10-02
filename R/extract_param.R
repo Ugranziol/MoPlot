@@ -7,12 +7,13 @@
 #' and confidence intervals into a more directly interpretable metric.
 #'
 #' Depending on the model family and link function, the interpreted estimate
-#' may represent an odds ratio, incidence rate ratio, hazard ratio, or another
-#' multiplicative ratio. For models for which no meaningful automatic
+#' may represent an odds ratio, risk ratio, incidence rate ratio, hazard
+#' ratio, or another multiplicative ratio. For models for which no meaningful automatic
 #' transformation is available, the original coefficient is retained.
 #'
-#' The function also attempts to compute an approximate Cohen's d from each
-#' coefficient-level t or z statistic.
+#' The function also computes an approximate Cohen's d for each coefficient:
+#' from the log odds ratio for logistic models, and from the coefficient-level
+#' t or z statistic otherwise.
 #'
 #' @param model A fitted statistical model supported by
 #'   `parameters::model_parameters()`.
@@ -57,6 +58,8 @@
 #'     to `Estimate`.}
 #'   \item{Binomial model with logit link}{The coefficient is exponentiated
 #'     and interpreted as an odds ratio.}
+#'   \item{Binomial model with log link}{The coefficient is exponentiated and
+#'     interpreted as a risk ratio.}
 #'   \item{Poisson or negative-binomial model with log link}{The coefficient
 #'     is exponentiated and interpreted as an incidence rate ratio.}
 #'   \item{Other models with a log link}{The coefficient is exponentiated and
@@ -75,20 +78,46 @@
 #' probability. Predicted probabilities or expected responses require the
 #' intercept and values of the other model predictors.
 #'
-#' Approximate Cohen's d values are computed as follows:
+#' Confidence intervals and p-values use the same inferential method as the
+#' significance labels of the plotting functions, so that an interval excluding
+#' zero always corresponds to a significant coefficient:
 #'
 #' \itemize{
-#'   \item t statistics are converted using `effectsize::t_to_d()`;
-#'   \item z statistics are converted using `effectsize::z_to_d()`.
+#'   \item linear mixed models fitted with lme4 or lmerTest use Satterthwaite
+#'     degrees of freedom when lmerTest is installed, as in their p-values;
+#'   \item generalized linear (mixed) models use Wald intervals, which
+#'     correspond to the Wald z tests reported by `summary()`; profile
+#'     intervals can disagree with these tests near the significance threshold;
+#'   \item other models use the default method of
+#'     `parameters::model_parameters()`.
 #' }
 #'
-#' For t statistics, coefficient-specific degrees of freedom are used when
-#' available. For z statistics, the number of model observations is obtained
-#' using `stats::nobs()`.
+#' Approximate Cohen's d values are computed as follows, as reported in
+#' `d_method`:
+#'
+#' \itemize{
+#'   \item for models with a logit link, the log odds ratio is converted as
+#'     \eqn{d = \beta \sqrt{3} / \pi} (Chinn, 2000), which treats the
+#'     logistic distribution of the latent response as the reference
+#'     standard deviation; the same conversion is applied to the confidence
+#'     limits;
+#'   \item t statistics are converted using `effectsize::t_to_d()` with the
+#'     coefficient-specific degrees of freedom;
+#'   \item z statistics are converted using `effectsize::z_to_d()` with the
+#'     number of observations returned by `stats::nobs()`.
+#' }
+#'
+#' The conversions based on t or z do not depend on how the contrast is
+#' scaled. The conversion from the log odds ratio refers to the coefficient
+#' as coded: for a contrast whose coefficient equals a scale factor \eqn{s}
+#' multiplied by the compared difference (for example Helmert contrasts; see
+#' [ContrastsOnePred()]), the d of the compared difference is \eqn{d / s}.
+#' The plotting functions apply this rescaling.
 #'
 #' These conversions are approximations and assume conditions implicit in the
 #' conversion formulas. In particular, the conversion to Cohen's d assumes two
-#' groups of approximately equal size. Directly estimated effect sizes should
+#' groups of approximately equal size, and the conversion from the log odds
+#' ratio assumes a logistic latent response. Directly estimated effect sizes should
 #' be preferred when the necessary data and an appropriate estimator are
 #' available.
 #'
@@ -114,11 +143,13 @@
 #'   \item{Interpreted_CI_high}{Upper confidence limit of the interpreted
 #'     estimate.}
 #'   \item{Estimate_type}{Interpretation of `Interpreted_Estimate`, such as
-#'     `"Coefficient"`, `"Odds ratio"`, `"Incidence rate ratio"`,
-#'     `"Hazard ratio"`, or `"Multiplicative ratio"`.}
-#'   \item{d}{Approximate Cohen's d derived from the test statistic.}
+#'     `"Coefficient"`, `"Odds ratio"`, `"Risk ratio"`,
+#'     `"Incidence rate ratio"`, `"Hazard ratio"`, or `"Multiplicative ratio"`.}
+#'   \item{d}{Approximate Cohen's d.}
 #'   \item{d_CI_low}{Lower confidence limit of approximate Cohen's d.}
 #'   \item{d_CI_high}{Upper confidence limit of approximate Cohen's d.}
+#'   \item{d_method}{Conversion used for `d`: `"log odds ratio"`, `"t"`, or
+#'     `"z"`; `NA` when no conversion was possible.}
 #' }
 #'
 #' @note
@@ -170,6 +201,11 @@
 #' }
 #'
 #' @importFrom parameters model_parameters
+#' @references
+#' Chinn, S. (2000). A simple method for converting an odds ratio to effect
+#' size for use in meta-analysis. *Statistics in Medicine, 19*(22),
+#' 3127-3131.
+#'
 #' @importFrom effectsize t_to_d z_to_d
 #' @importFrom stats family nobs
 #' @export
@@ -337,6 +373,13 @@ extract_param <- function(
 
   } else if (
     identical(link_name, "log") &&
+    family_name %in% c("binomial", "quasibinomial")
+  ) {
+
+    estimate_type <- "Risk ratio"
+
+  } else if (
+    identical(link_name, "log") &&
     grepl(
       "poisson|negative binomial|negative-binomial|nbinom",
       family_name
@@ -358,16 +401,39 @@ extract_param <- function(
   # Extract untransformed parameters
   # ==========================================================================
 
+  # Intervals and p-values follow the inferential method of the
+  # significance labels used by the plotting functions (see
+  # .extract_coef_table()): Satterthwaite degrees of freedom for linear
+  # mixed models when lmerTest is available, and Wald intervals for
+  # generalized models, matching their Wald z tests. Profile intervals,
+  # the default of parameters for glm, can disagree with these tests near
+  # the significance threshold.
+  ci_method <- if (inherits(model, "lmerMod") &&
+                   requireNamespace("lmerTest", quietly = TRUE)) {
+    "satterthwaite"
+  } else if (!is.na(family_name) &&
+             !(family_name == "gaussian" && identical(link_name, "identity"))) {
+    "wald"
+  } else {
+    NULL
+  }
+
+  parameter_arguments <- list(
+    model,
+    ci = ci,
+    effects = effects,
+    component = component,
+    exponentiate = FALSE,
+    pretty_names = FALSE,
+    verbose = FALSE
+  )
+
+  if (!is.null(ci_method)) {
+    parameter_arguments$ci_method <- ci_method
+  }
+
   raw_parameters <- tryCatch(
-    parameters::model_parameters(
-      model,
-      ci = ci,
-      effects = effects,
-      component = component,
-      exponentiate = FALSE,
-      pretty_names = FALSE,
-      verbose = FALSE
-    ),
+    do.call(parameters::model_parameters, parameter_arguments),
     error = function(e) {
       stop(
         paste0(
@@ -565,99 +631,13 @@ extract_param <- function(
   # Extract interpreted estimates
   # ==========================================================================
 
+  # Exponentiated estimates and limits are exp() of the coefficient and
+  # of its limits; a second call to model_parameters() is not needed.
   if (exponentiate_estimate) {
 
-    interpreted_parameters <- tryCatch(
-      parameters::model_parameters(
-        model,
-        ci = ci,
-        effects = effects,
-        component = component,
-        exponentiate = TRUE,
-        pretty_names = FALSE,
-        verbose = FALSE
-      ),
-      error = function(e) NULL
-    )
-
-    if (!is.null(interpreted_parameters)) {
-
-      interpreted_parameters <- as.data.frame(
-        interpreted_parameters
-      )
-
-      interpreted_parameters <- remove_intercept(
-        interpreted_parameters
-      )
-
-      interpreted_estimate_column <- first_existing_column(
-        interpreted_parameters,
-        c("Coefficient", "Estimate")
-      )
-
-      interpreted_ci_low_column <- first_existing_column(
-        interpreted_parameters,
-        c("CI_low", "CI_Low", "Conf.Low")
-      )
-
-      interpreted_ci_high_column <- first_existing_column(
-        interpreted_parameters,
-        c("CI_high", "CI_High", "Conf.High")
-      )
-
-      if ("Parameter" %in% names(interpreted_parameters)) {
-
-        parameter_match <- match(
-          output$Parameter,
-          interpreted_parameters$Parameter
-        )
-
-        output$Interpreted_Estimate <-
-          if (!is.null(interpreted_estimate_column)) {
-            suppressWarnings(
-              as.numeric(
-                interpreted_parameters[[interpreted_estimate_column]][parameter_match]
-              )
-            )
-          } else {
-            rep(NA_real_, nrow(output))
-          }
-
-        output$Interpreted_CI_low <-
-          if (!is.null(interpreted_ci_low_column)) {
-            suppressWarnings(
-              as.numeric(
-                interpreted_parameters[[interpreted_ci_low_column]][parameter_match]
-              )
-            )
-          } else {
-            rep(NA_real_, nrow(output))
-          }
-
-        output$Interpreted_CI_high <-
-          if (!is.null(interpreted_ci_high_column)) {
-            suppressWarnings(
-              as.numeric(
-                interpreted_parameters[[interpreted_ci_high_column]][parameter_match]
-              )
-            )
-          } else {
-            rep(NA_real_, nrow(output))
-          }
-
-      } else {
-
-        output$Interpreted_Estimate <- NA_real_
-        output$Interpreted_CI_low <- NA_real_
-        output$Interpreted_CI_high <- NA_real_
-      }
-
-    } else {
-
-      output$Interpreted_Estimate <- NA_real_
-      output$Interpreted_CI_low <- NA_real_
-      output$Interpreted_CI_high <- NA_real_
-    }
+    output$Interpreted_Estimate <- exp(output$Estimate)
+    output$Interpreted_CI_low <- exp(output$CI_low)
+    output$Interpreted_CI_high <- exp(output$CI_high)
 
   } else {
 
@@ -696,8 +676,25 @@ extract_param <- function(
   output$d <- NA_real_
   output$d_CI_low <- NA_real_
   output$d_CI_high <- NA_real_
+  output$d_method <- NA_character_
+
+  # Logistic models: conversion of the log odds ratio (Chinn, 2000),
+  # d = beta * sqrt(3) / pi, applied to the estimate and to its limits.
+  if (identical(link_name, "logit")) {
+
+    logit_to_d <- sqrt(3) / pi
+
+    output$d <- output$Estimate * logit_to_d
+    output$d_CI_low <- output$CI_low * logit_to_d
+    output$d_CI_high <- output$CI_high * logit_to_d
+    output$d_method[is.finite(output$d)] <- "log odds ratio"
+  }
 
   for (i in seq_len(nrow(output))) {
+
+    if (!is.na(output$d_method[i])) {
+      next
+    }
 
     statistic_value <- output$Statistic[i]
     current_statistic_type <- output$Statistic_type[i]
@@ -771,6 +768,7 @@ extract_param <- function(
       output$d[i] <- suppressWarnings(
         as.numeric(d_result[[d_column]][1L])
       )
+      output$d_method[i] <- current_statistic_type
     }
 
     if (!is.null(d_ci_low_column)) {
@@ -809,7 +807,8 @@ extract_param <- function(
       "Estimate_type",
       "d",
       "d_CI_low",
-      "d_CI_high"
+      "d_CI_high",
+      "d_method"
     ),
     drop = FALSE
   ]

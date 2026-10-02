@@ -67,11 +67,13 @@ estimate.}
 \item{Interpreted_CI_high}{Upper confidence limit of the interpreted
 estimate.}
 \item{Estimate_type}{Interpretation of \code{Interpreted_Estimate}, such as
-\code{"Coefficient"}, \code{"Odds ratio"}, \code{"Incidence rate ratio"},
-\code{"Hazard ratio"}, or \code{"Multiplicative ratio"}.}
-\item{d}{Approximate Cohen's d derived from the test statistic.}
+\code{"Coefficient"}, \code{"Odds ratio"}, \code{"Risk ratio"},
+\code{"Incidence rate ratio"}, \code{"Hazard ratio"}, or \code{"Multiplicative ratio"}.}
+\item{d}{Approximate Cohen's d.}
 \item{d_CI_low}{Lower confidence limit of approximate Cohen's d.}
 \item{d_CI_high}{Upper confidence limit of approximate Cohen's d.}
+\item{d_method}{Conversion used for \code{d}: \code{"log odds ratio"}, \code{"t"}, or
+\code{"z"}; \code{NA} when no conversion was possible.}
 }
 }
 \description{
@@ -81,12 +83,13 @@ non-redundant parameter table and, when appropriate, transforms coefficients
 and confidence intervals into a more directly interpretable metric.
 
 Depending on the model family and link function, the interpreted estimate
-may represent an odds ratio, incidence rate ratio, hazard ratio, or another
-multiplicative ratio. For models for which no meaningful automatic
+may represent an odds ratio, risk ratio, incidence rate ratio, hazard
+ratio, or another multiplicative ratio. For models for which no meaningful automatic
 transformation is available, the original coefficient is retained.
 
-The function also attempts to compute an approximate Cohen's d from each
-coefficient-level t or z statistic.
+The function also computes an approximate Cohen's d for each coefficient:
+from the log odds ratio for logistic models, and from the coefficient-level
+t or z statistic otherwise.
 }
 \details{
 The \code{Estimate} column always contains the coefficient on the scale on which
@@ -100,6 +103,8 @@ When \code{transform = "auto"}, the following transformations are applied:
 to \code{Estimate}.}
 \item{Binomial model with logit link}{The coefficient is exponentiated
 and interpreted as an odds ratio.}
+\item{Binomial model with log link}{The coefficient is exponentiated and
+interpreted as a risk ratio.}
 \item{Poisson or negative-binomial model with log link}{The coefficient
 is exponentiated and interpreted as an incidence rate ratio.}
 \item{Other models with a log link}{The coefficient is exponentiated and
@@ -118,20 +123,46 @@ scale. For example, an odds ratio is a ratio of odds rather than a predicted
 probability. Predicted probabilities or expected responses require the
 intercept and values of the other model predictors.
 
-Approximate Cohen's d values are computed as follows:
+Confidence intervals and p-values use the same inferential method as the
+significance labels of the plotting functions, so that an interval excluding
+zero always corresponds to a significant coefficient:
 
 \itemize{
-\item t statistics are converted using \code{effectsize::t_to_d()};
-\item z statistics are converted using \code{effectsize::z_to_d()}.
+\item linear mixed models fitted with lme4 or lmerTest use Satterthwaite
+degrees of freedom when lmerTest is installed, as in their p-values;
+\item generalized linear (mixed) models use Wald intervals, which
+correspond to the Wald z tests reported by \code{summary()}; profile
+intervals can disagree with these tests near the significance threshold;
+\item other models use the default method of
+\code{parameters::model_parameters()}.
 }
 
-For t statistics, coefficient-specific degrees of freedom are used when
-available. For z statistics, the number of model observations is obtained
-using \code{stats::nobs()}.
+Approximate Cohen's d values are computed as follows, as reported in
+\code{d_method}:
+
+\itemize{
+\item for models with a logit link, the log odds ratio is converted as
+\eqn{d = \beta \sqrt{3} / \pi} (Chinn, 2000), which treats the
+logistic distribution of the latent response as the reference
+standard deviation; the same conversion is applied to the confidence
+limits;
+\item t statistics are converted using \code{effectsize::t_to_d()} with the
+coefficient-specific degrees of freedom;
+\item z statistics are converted using \code{effectsize::z_to_d()} with the
+number of observations returned by \code{stats::nobs()}.
+}
+
+The conversions based on t or z do not depend on how the contrast is
+scaled. The conversion from the log odds ratio refers to the coefficient
+as coded: for a contrast whose coefficient equals a scale factor \eqn{s}
+multiplied by the compared difference (for example Helmert contrasts; see
+\code{\link[=ContrastsOnePred]{ContrastsOnePred()}}), the d of the compared difference is \eqn{d / s}.
+The plotting functions apply this rescaling.
 
 These conversions are approximations and assume conditions implicit in the
 conversion formulas. In particular, the conversion to Cohen's d assumes two
-groups of approximately equal size. Directly estimated effect sizes should
+groups of approximately equal size, and the conversion from the log odds
+ratio assumes a logistic latent response. Directly estimated effect sizes should
 be preferred when the necessary data and an appropriate estimator are
 available.
 }
@@ -183,4 +214,9 @@ extract_param(mod_glm)
 extract_param(mod_glm, transform = "none")
 }
 
+}
+\references{
+Chinn, S. (2000). A simple method for converting an odds ratio to effect
+size for use in meta-analysis. \emph{Statistics in Medicine, 19}(22),
+3127-3131.
 }

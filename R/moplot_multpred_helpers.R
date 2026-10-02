@@ -3410,17 +3410,33 @@
 
   ratio_types <- c(
     "Odds ratio",
+    "Risk ratio",
     "Incidence rate ratio",
     "Hazard ratio",
     "Multiplicative ratio",
     "Exponentiated coefficient"
   )
 
+  # Cohen's d converted from the log odds ratio refers to the
+  # coefficient as coded; dividing by the scale factor makes it refer to
+  # the displayed interaction contrast. Conversions from t or z are
+  # already independent of the scaling of the contrasts.
+  d_from_log_odds <- interaction_parameters$d_method %in% "log odds ratio"
+
+  if (any(d_from_log_odds) &&
+      !is.null(scale_factors)) {
+
+    d_scales <- unname(scale_factors[coefficient_data$coefficient])[d_from_log_odds]
+
+    interaction_parameters$d[d_from_log_odds] <- interaction_parameters$d[d_from_log_odds] / d_scales
+    interaction_parameters$d_CI_low[d_from_log_odds] <- interaction_parameters$d_CI_low[d_from_log_odds] / d_scales
+    interaction_parameters$d_CI_high[d_from_log_odds] <- interaction_parameters$d_CI_high[d_from_log_odds] / d_scales
+  }
+
   # Each interaction coefficient equals its scale factor multiplied by
   # the displayed difference of differences on the linear-predictor
   # scale. Dividing by the scale factor expresses the coefficient per
-  # unit of that difference; test statistics, p-values, and Cohen's d
-  # are unchanged.
+  # unit of that difference; test statistics and p-values are unchanged.
   if (isTRUE(per_difference)) {
 
     if (is.null(scale_factors) ||
@@ -3732,6 +3748,7 @@
       "Model estimate" = "\u03b2",
       "Coefficient" = "\u03b2",
       "Odds ratio" = "OR",
+      "Risk ratio" = "RR",
       "Incidence rate ratio" = "IRR",
       "Hazard ratio" = "HR",
       "Multiplicative ratio" = "MR",
