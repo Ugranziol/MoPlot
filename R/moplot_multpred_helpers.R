@@ -2450,167 +2450,274 @@
     # ensures that all subsequent levels are shifted downward automatically.
     # ------------------------------------------------------------------------
 
-    tree_top_gap <- max(
-      0.075 *
-        y_span,
-      0.22 *
-        break_step
-    )
+    # The spacing below is computed for a given height of one formula line,
+    # in data units; see 10.4b for how that height is chosen.
+    layout_tree <- function(formula_line) {
 
-    tree_level_step <- max(
-      0.060 *
-        y_span,
-      0.22 *
-        break_step
-    )
+      tree_top_gap <- max(
+        0.075 *
+          y_span,
+        0.22 *
+          break_step
+      )
 
-    tree_branch_drop <-
-      0.22 *
-      tree_level_step
+      tree_level_step <- max(
+        0.060 *
+          y_span,
+        0.22 *
+          break_step
+      )
 
-    tree_central_drop <- max(
-      0.010 *
-        y_span,
-      0.10 *
+      tree_branch_drop <-
+        0.22 *
         tree_level_step
-    )
 
-    tree_formula_gap <- max(
-      0.018 * y_span,
-      0.12 * tree_level_step
-    )
+      tree_central_drop <- max(
+        0.010 *
+          y_span,
+        0.10 *
+          tree_level_step
+      )
 
-    tree_outgoing_gap <- max(
-      0.035 * y_span,
-      0.25 * tree_level_step
-    )
+      tree_formula_gap <- max(
+        0.018 * y_span,
+        0.12 * tree_level_step
+      )
 
-    tree_top_formula_offset <-
-      0.025 * y_span
+      tree_outgoing_gap <- max(
+        0.035 * y_span,
+        0.25 * tree_level_step
+      )
 
-    tree_final_x_gap <-
-      0.065 * y_span
+      tree_top_formula_offset <-
+        0.025 * y_span
 
-    tree_top_y <-
-      ci_min -
-      tree_top_gap
+      tree_final_x_gap <-
+        0.065 * y_span
 
-    # ------------------------------------------------------------------------
-    # 10.2. INITIALISE TREE COORDINATES
-    # ------------------------------------------------------------------------
+      # Every formula needs the height of one formula line: above the
+      # outgoing branch (first level) and between the incoming and outgoing
+      # branches (higher levels). A final formula is centred beside its X,
+      # whose arms reach beyond half a line, so the X keeps a whole line
+      # below the bridge of its incoming branch.
+      tree_top_gap <- max(tree_top_gap, tree_top_formula_offset + formula_line)
 
-    tree_node_data$Entry_y <- NA_real_
+      tree_outgoing_gap <- max(tree_outgoing_gap, formula_line)
 
-    tree_node_data$Tree_y <- NA_real_
+      tree_final_x_gap <- max(tree_final_x_gap, formula_line - tree_central_drop)
 
-    tree_node_data$Formula_y <- NA_real_
+      tree_top_y <-
+        ci_min -
+        tree_top_gap
 
-    tree_node_data$Final_x_y <- NA_real_
+      # ------------------------------------------------------------------------
+      # 10.2. INITIALISE TREE COORDINATES
+      # ------------------------------------------------------------------------
 
-    tree_levels <- sort(unique(tree_node_data$node_level))
+      tree_node_data$Entry_y <- NA_real_
 
-    # ------------------------------------------------------------------------
-    # 10.3. FIRST TREE LEVEL
-    # ------------------------------------------------------------------------
-    #
-    # The first hierarchical formulas (e.g., Δ9-Δ12 in a four-way
-    # interaction) retain the layout already used successfully: the formula
-    # sits just above the point from which its branch descends.
-    # ------------------------------------------------------------------------
+      tree_node_data$Tree_y <- NA_real_
 
-    first_tree_level <- min(tree_levels)
+      tree_node_data$Formula_y <- NA_real_
 
-    first_level_rows <- tree_node_data$node_level == first_tree_level
+      tree_node_data$Final_x_y <- NA_real_
 
-    first_level_final_rows <- first_level_rows & tree_node_data$is_final
+      # Vertical band free for each formula, between the tree elements above
+      # and below it. The formulas shrink to fit it when the panel is short
+      # (see fit_text.R). The lower band of final formulas is the axis,
+      # set once the lower limit is known (section 10.6).
+      tree_node_data$Band_low <- NA_real_
 
-    first_level_nonfinal_rows <- first_level_rows & !tree_node_data$is_final
+      tree_node_data$Band_high <- NA_real_
 
-    # For interactions of order >= 3, the first tree level contains
-    # intermediate contrasts. Their formulas remain above the outgoing branches.
-    tree_node_data$Tree_y[first_level_nonfinal_rows] <- tree_top_y
+      tree_levels <- sort(unique(tree_node_data$node_level))
 
-    tree_node_data$Formula_y[first_level_nonfinal_rows] <- tree_top_y + tree_top_formula_offset
+      # ------------------------------------------------------------------------
+      # 10.3. FIRST TREE LEVEL
+      # ------------------------------------------------------------------------
+      #
+      # The first hierarchical formulas (e.g., Δ9-Δ12 in a four-way
+      # interaction) retain the layout already used successfully: the formula
+      # sits just above the point from which its branch descends.
+      # ------------------------------------------------------------------------
 
-    tree_node_data$Entry_y[first_level_nonfinal_rows] <- tree_node_data$Formula_y[first_level_nonfinal_rows]
+      first_tree_level <- min(tree_levels)
 
-    # For a two-way interaction, the first tree level is already the final
-    # contrast. There is no intermediate branching structure, so the final
-    # X is placed below the estimates, with its formula on the same line.
-    tree_node_data$Entry_y[first_level_final_rows] <- tree_top_y
+      first_level_rows <- tree_node_data$node_level == first_tree_level
 
-    tree_node_data$Formula_y[first_level_final_rows] <- tree_top_y - tree_final_x_gap
+      first_level_final_rows <- first_level_rows & tree_node_data$is_final
 
-    tree_node_data$Tree_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
+      first_level_nonfinal_rows <- first_level_rows & !tree_node_data$is_final
 
-    tree_node_data$Final_x_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
+      # For interactions of order >= 3, the first tree level contains
+      # intermediate contrasts. Their formulas remain above the outgoing branches.
+      tree_node_data$Tree_y[first_level_nonfinal_rows] <- tree_top_y
 
-    # ------------------------------------------------------------------------
-    # 10.4. POSITION SUCCESSIVE TREE LEVELS
-    # ------------------------------------------------------------------------
-    #
-    # Every higher-order level is positioned recursively from the outgoing
-    # branch position of the level immediately above it.
-    # ------------------------------------------------------------------------
+      tree_node_data$Formula_y[first_level_nonfinal_rows] <- tree_top_y + tree_top_formula_offset
 
-    if (
-      length(
-        tree_levels
-      ) > 1L
-    ) {
+      tree_node_data$Entry_y[first_level_nonfinal_rows] <- tree_node_data$Formula_y[first_level_nonfinal_rows]
 
-      for (
-        current_level in tree_levels[-1L]
+      # For a two-way interaction, the first tree level is already the final
+      # contrast. There is no intermediate branching structure, so the final
+      # X is placed below the estimates, with its formula on the same line.
+      tree_node_data$Entry_y[first_level_final_rows] <- tree_top_y
+
+      tree_node_data$Formula_y[first_level_final_rows] <- tree_top_y - tree_final_x_gap
+
+      tree_node_data$Tree_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
+
+      tree_node_data$Final_x_y[first_level_final_rows] <- tree_node_data$Formula_y[first_level_final_rows]
+
+      # First-level formulas have only the estimates above them: an
+      # intermediate formula sits on its outgoing branch, a final formula
+      # beside its X.
+      tree_node_data$Band_low[first_level_nonfinal_rows] <- tree_node_data$Formula_y[first_level_nonfinal_rows]
+
+      tree_node_data$Band_high[first_level_rows] <- ci_min
+
+      # ------------------------------------------------------------------------
+      # 10.4. POSITION SUCCESSIVE TREE LEVELS
+      # ------------------------------------------------------------------------
+      #
+      # Every higher-order level is positioned recursively from the outgoing
+      # branch position of the level immediately above it.
+      # ------------------------------------------------------------------------
+
+      if (
+        length(
+          tree_levels
+        ) > 1L
       ) {
 
-        current_rows <- tree_node_data$node_level == current_level
+        for (
+          current_level in tree_levels[-1L]
+        ) {
 
-        previous_level <-
-          max(
-            tree_levels[
-              tree_levels <
-                current_level
-            ]
-          )
+          current_rows <- tree_node_data$node_level == current_level
 
-        previous_rows <- tree_node_data$node_level == previous_level
+          previous_level <-
+            max(
+              tree_levels[
+                tree_levels <
+                  current_level
+              ]
+            )
 
-        previous_branch_y <- min(tree_node_data$Tree_y[previous_rows],na.rm = TRUE)
+          previous_rows <- tree_node_data$node_level == previous_level
 
-        # Horizontal bridge connecting the two child nodes.
-        current_joint_y <- previous_branch_y - tree_branch_drop
+          previous_branch_y <- min(tree_node_data$Tree_y[previous_rows],na.rm = TRUE)
 
-        # End of the short central vertical segment.
-        current_entry_y <- current_joint_y - tree_central_drop
+          # Horizontal bridge connecting the two child nodes.
+          current_joint_y <- previous_branch_y - tree_branch_drop
 
-        # Formula is always below the incoming central branch.
-        current_formula_y <- current_entry_y - tree_formula_gap
+          # End of the short central vertical segment.
+          current_entry_y <- current_joint_y - tree_central_drop
 
-        tree_node_data$Entry_y[current_rows] <- current_entry_y
+          # Formula is always below the incoming central branch.
+          current_formula_y <- current_entry_y - tree_formula_gap
 
-        tree_node_data$Formula_y[current_rows] <- current_formula_y
+          tree_node_data$Entry_y[current_rows] <- current_entry_y
 
-        # For non-final nodes, subsequent branches begin below the formula.
-        # This automatically pushes all later hierarchical levels downward.
-        current_final_rows <- current_rows & tree_node_data$is_final
+          tree_node_data$Formula_y[current_rows] <- current_formula_y
 
-        current_nonfinal_rows <- current_rows & !tree_node_data$is_final
+          # For non-final nodes, subsequent branches begin below the formula.
+          # This automatically pushes all later hierarchical levels downward.
+          current_final_rows <- current_rows & tree_node_data$is_final
 
-        tree_node_data$Tree_y[current_nonfinal_rows] <- current_formula_y - tree_outgoing_gap
+          current_nonfinal_rows <- current_rows & !tree_node_data$is_final
 
-        # The final node does not need an outgoing branch. Its X and its
-        # formula share one line below the incoming branch, so that their
-        # separation is horizontal and does not depend on the height of
-        # the plot. Tree_y is retained as a valid internal coordinate.
-        final_line_y <- current_entry_y - tree_final_x_gap
+          tree_node_data$Tree_y[current_nonfinal_rows] <- current_formula_y - tree_outgoing_gap
 
-        tree_node_data$Formula_y[current_final_rows] <- final_line_y
+          # The final node does not need an outgoing branch. Its X and its
+          # formula share one line below the incoming branch, so that their
+          # separation is horizontal and does not depend on the height of
+          # the plot. Tree_y is retained as a valid internal coordinate.
+          final_line_y <- current_entry_y - tree_final_x_gap
 
-        tree_node_data$Tree_y[current_final_rows] <- final_line_y
+          tree_node_data$Formula_y[current_final_rows] <- final_line_y
 
-        tree_node_data$Final_x_y[current_final_rows] <- final_line_y
+          tree_node_data$Tree_y[current_final_rows] <- final_line_y
+
+          tree_node_data$Final_x_y[current_final_rows] <- final_line_y
+
+          # An intermediate formula hangs between its incoming branch and its
+          # outgoing branch; a final formula, beside its X, must stay below
+          # the horizontal bridge of its incoming branch.
+          tree_node_data$Band_low[current_nonfinal_rows] <- tree_node_data$Tree_y[current_nonfinal_rows]
+
+          tree_node_data$Band_high[current_nonfinal_rows] <- current_formula_y
+
+          tree_node_data$Band_high[current_final_rows] <- current_joint_y
+        }
       }
+
+
+      list(
+        nodes = tree_node_data,
+        branch_drop = tree_branch_drop
+      )
     }
+
+    # ------------------------------------------------------------------------
+    # 10.4b. HEIGHT OF ONE FORMULA LINE
+    # ------------------------------------------------------------------------
+    #
+    # Formulas have a fixed size in points, so the room they need is a
+    # fraction of the panel height, i.e. of the plotted range, which itself
+    # grows with the tree. Iterating line = fraction * range converges
+    # quickly because the tree takes up a small share of the range. At the
+    # recommended export size a formula then fits at full size; on smaller
+    # plots it shrinks to its band (see fit_text.R).
+    # ------------------------------------------------------------------------
+
+    formula_line_fraction <- 0.05
+
+    tree_bottom_fraction <- 0.07
+
+    # The final X and its formula keep clear of the x axis: the lowest tree
+    # element lies at least tree_bottom_fraction of the plotted range above
+    # it, and a final formula keeps half a line below its centre.
+    tree_plot_lower <- function(nodes, formula_line) {
+
+      lowest_tree_y <- min(
+        c(
+          nodes$Tree_y,
+          nodes$Entry_y,
+          nodes$Formula_y,
+          nodes$Final_x_y,
+          nodes$Final_x_y[nodes$is_final] - formula_line / 2
+        ),
+        na.rm = TRUE
+      )
+
+      min(
+        y_plot_lower,
+        (lowest_tree_y - tree_bottom_fraction * y_plot_upper) / (1 - tree_bottom_fraction)
+      )
+    }
+
+    formula_line <- 0
+
+    for (iteration in seq_len(50L)) {
+
+      tree_layout <- layout_tree(formula_line)
+
+      plotted_range <- y_plot_upper - tree_plot_lower(tree_layout$nodes, formula_line)
+
+      next_formula_line <- formula_line_fraction * plotted_range
+
+      if (abs(next_formula_line - formula_line) <= 1e-6 * plotted_range) {
+        break
+      }
+
+      formula_line <- next_formula_line
+    }
+
+    tree_node_data <- tree_layout$nodes
+
+    tree_branch_drop <- tree_layout$branch_drop
+
+    first_tree_level <- min(tree_node_data$node_level)
 
     # ------------------------------------------------------------------------
     # 10.5. BUILD TREE CONNECTORS
@@ -2807,27 +2914,13 @@
     # 10.6. LOWER PLOT LIMIT
     # ------------------------------------------------------------------------
 
-    lowest_tree_y <- min(
-      c(
-        tree_node_data$Tree_y,
-        tree_node_data$Entry_y,
-        tree_node_data$Formula_y,
-        tree_node_data$Final_x_y
-      ),
-      na.rm = TRUE
-    )
+    # The lower limit keeps the final X and its formula clear of the x axis
+    # (see tree_plot_lower() in 10.4b). Their size is fixed in points, so
+    # the space below them is a fraction of the plotted range, i.e. of the
+    # panel height, rather than of the estimates.
+    y_plot_lower <- tree_plot_lower(tree_node_data, formula_line)
 
-    # The final X and its formula have a fixed size in points, so the
-    # space below them is a fraction of the plotted range, i.e. of the
-    # panel height, rather than of the estimates: solving
-    # lowest_tree_y - lower = fraction * (upper - lower) for lower keeps
-    # them clear of the x axis at any plot size.
-    tree_bottom_fraction <- 0.07
-
-    tree_bottom <- (lowest_tree_y - tree_bottom_fraction * y_plot_upper) /
-      (1 - tree_bottom_fraction)
-
-    y_plot_lower <- min(y_plot_lower,tree_bottom)
+    tree_node_data$Band_low[tree_node_data$is_final] <- y_plot_lower
   }
 
 
@@ -3031,105 +3124,72 @@
     }
 
     # ------------------------------------------------------------------------
-    # 19.2. INTERMEDIATE TREE FORMULAS
-    # ------------------------------------------------------------------------
-
-    tree_intermediate_data <- tree_node_data[!tree_node_data$is_final, ,drop = FALSE]
-
-    if (
-      nrow(
-        tree_intermediate_data
-      ) > 0L
-    ) {
-
-      first_tree_level <- min(tree_intermediate_data$node_level)
-
-      tree_first_level_data <- tree_intermediate_data[
-        tree_intermediate_data$node_level ==
-          first_tree_level,
-        ,
-        drop = FALSE
-      ]
-
-      tree_higher_level_data <- tree_intermediate_data[
-        tree_intermediate_data$node_level >
-          first_tree_level,
-        ,
-        drop = FALSE
-      ]
-
-      # First hierarchical level:
-      # formula sits above the outgoing branch.
-      if (
-        nrow(
-          tree_first_level_data
-        ) > 0L
-      ) {
-
-        plot <- plot +
-          ggplot2::geom_text(
-            data =
-              tree_first_level_data,
-            ggplot2::aes(
-              x = x,
-              y = Formula_y,
-              label = label,
-              colour =
-                Contrast_colour
-            ),
-            inherit.aes =
-              FALSE,
-            parse=TRUE,
-            size =
-              contrast_label_size,
-            hjust =
-              0.5,
-            vjust =
-              0
-          )
-      }
-
-      # Higher intermediate levels:
-      # incoming branch -> formula -> outgoing branch.
-      if (
-        nrow(
-          tree_higher_level_data
-        ) > 0L
-      ) {
-
-        plot <- plot +
-          ggplot2::geom_text(
-            data =
-              tree_higher_level_data,
-            ggplot2::aes(
-              x = x,
-              y = Formula_y,
-              label = label,
-              colour =
-                Contrast_colour
-            ),
-            inherit.aes =
-              FALSE,
-            parse=TRUE,
-            size =
-              contrast_label_size,
-            hjust =
-              0.5,
-            vjust =
-              1
-          )
-      }
-    }
-
-    # ------------------------------------------------------------------------
-    # 19.3. FINAL TREE FORMULA AND X
+    # 19.2. TREE FORMULAS
     #
-    # The X marks the final contrast at the centre of its block, aligned with
-    # the coefficient in the lower panel. Its formula is written on the same
-    # line, to its right. A negative hjust shifts the text by a fraction of
-    # its own width, so the gap is a physical distance: stacking the formula
-    # and the X vertically required a gap in data units, which overlapped on
-    # short panels or with a small range of the data.
+    # All formulas are drawn by one layer, so that they share one text size
+    # when they have to shrink to fit their band on a short or narrow panel.
+    #
+    # - First hierarchical level: the formula sits above its outgoing branch.
+    # - Higher intermediate levels: incoming branch -> formula -> outgoing
+    #   branch.
+    # - Final contrast: the X marks it at the centre of its block, aligned
+    #   with the coefficient in the lower panel, and the formula is written
+    #   on the same line, to its right. A negative hjust shifts the text by a
+    #   fraction of its own width, so the gap is a physical distance:
+    #   stacking the formula and the X vertically required a gap in data
+    #   units, which overlapped on short panels or with a small range of the
+    #   data.
+    # ------------------------------------------------------------------------
+
+    first_tree_level <- min(tree_node_data$node_level)
+
+    tree_node_data$Formula_hjust <- ifelse(tree_node_data$is_final, -0.25, 0.5)
+
+    tree_node_data$Formula_vjust <- ifelse(
+      tree_node_data$is_final,
+      0.5,
+      ifelse(tree_node_data$node_level == first_tree_level, 0, 1)
+    )
+
+    plot <- plot +
+      ggplot2::layer(
+        geom =
+          GeomMoplotFitText,
+        stat =
+          "identity",
+        position =
+          "identity",
+        data =
+          tree_node_data,
+        mapping =
+          ggplot2::aes(
+            x = x,
+            y = Formula_y,
+            ymin = Band_low,
+            ymax = Band_high,
+            label = label,
+            colour =
+              Contrast_colour,
+            hjust =
+              Formula_hjust,
+            vjust =
+              Formula_vjust
+          ),
+        inherit.aes =
+          FALSE,
+        show.legend =
+          FALSE,
+        params =
+          list(
+            parse =
+              TRUE,
+            size =
+              contrast_label_size
+          )
+      )
+
+    # ------------------------------------------------------------------------
+    # 19.3. FINAL TREE X
     # ------------------------------------------------------------------------
 
     tree_final_data <- tree_node_data[
@@ -3143,28 +3203,6 @@
         tree_final_data
       ) > 0L
     ) {
-
-      plot <- plot +
-        ggplot2::geom_text(
-          data =
-            tree_final_data,
-          ggplot2::aes(
-            x = x,
-            y = Formula_y,
-            label = label,
-            colour =
-              Contrast_colour
-          ),
-          inherit.aes =
-            FALSE,
-          parse=TRUE,
-          size =
-            contrast_label_size,
-          hjust =
-            -0.25,
-          vjust =
-            0.5
-        )
 
       plot <- plot +
         ggplot2::geom_point(

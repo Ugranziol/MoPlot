@@ -2,24 +2,29 @@
 # TEXT LABELS THAT SHRINK TO AVOID OVERLAPS
 # ============================================================
 #
-# The hierarchical group labels of MoPlot_multpred() are centred on their
-# blocks and have a fixed size in points, whereas the distance between the
-# blocks depends on the size of the plot. Their size is therefore fitted
-# when the plot is drawn, and again whenever the device is resized.
+# The hierarchical group labels and the tree formulas of MoPlot_multpred()
+# have a fixed size in points, whereas the distances between blocks, rows,
+# and tree branches depend on the size of the plot. Their size is therefore
+# fitted when the plot is drawn, and again whenever the device is resized.
 
 
 #' Common scale that keeps neighbouring labels apart
 #'
 #' Labels in the same row (same `y`) are checked pairwise in order of `x`,
-#' and each row is checked against the row above it, since the labels sit
-#' on their baseline (`vjust = 0`). The scale is the largest value not
-#' above one at which every pair of neighbours is separated by at least
-#' `padding`, bounded below by `min_scale`. A single scale is returned for
-#' all rows, so that the hierarchy keeps one text size.
+#' taking their horizontal justification into account. Vertically, a label
+#' with a band (`ymin`, `ymax`) must stay inside it; labels without a band
+#' sit on their baseline and each row must fit below the next one. The
+#' scale is the largest value not above one at which every constraint holds
+#' with at least `padding` to spare, bounded below by `min_scale`. A single
+#' scale is returned, so that all labels keep one text size.
 #'
-#' @param x Horizontal centres, in inches.
-#' @param y Baselines, in inches; labels with the same value form a row.
+#' @param x Anchor positions, in inches.
+#' @param y Anchor positions, in inches; labels with the same value form a
+#'   row.
 #' @param widths,heights Label widths and heights at full size, in inches.
+#' @param hjust,vjust Justification of each label.
+#' @param ymin,ymax Optional vertical band of each label, in inches; `NA`
+#'   for labels without one.
 #' @param padding Minimum gap between neighbouring labels, in inches.
 #' @param min_scale Smallest scale returned.
 #'
@@ -31,25 +36,46 @@
                              y,
                              widths,
                              heights = rep(0, length(x)),
+                             hjust = rep(0.5, length(x)),
+                             vjust = rep(0, length(x)),
+                             ymin = rep(NA_real_, length(x)),
+                             ymax = rep(NA_real_, length(x)),
                              padding = 0.06,
                              min_scale = 0.6) {
 
   scale <- 1
 
-  # Vertical: the tallest label of a row must fit below the next row.
-  rows <- sort(unique(y))
+  has_band <- !is.na(ymin) & !is.na(ymax)
+
+  # Vertical, labels with a band: the part below the anchor must stay above
+  # ymin and the part above it below ymax.
+  below <- has_band & vjust > 0
+  above <- has_band & vjust < 1
+
+  band_scales <- c(
+    (y[below] - ymin[below] - padding / 2) / (vjust[below] * heights[below]),
+    (ymax[above] - y[above] - padding / 2) / ((1 - vjust[above]) * heights[above])
+  )
+
+  scale <- min(scale, band_scales[is.finite(band_scales)])
+
+  # Vertical, labels without a band: the tallest label of a row must fit
+  # below the next row.
+  rows <- sort(unique(y[!has_band]))
 
   if (length(rows) > 1L) {
 
-    row_heights <- vapply(rows, function(row) max(heights[y == row]), numeric(1))
+    row_heights <- vapply(rows, function(row) max(heights[!has_band & y == row]), numeric(1))
 
     row_scales <- (diff(rows) - padding / 2) / utils::head(row_heights, -1L)
 
     scale <- min(scale, row_scales[is.finite(row_scales)])
   }
 
-  # Horizontal: neighbours within a row must not touch.
-  for (row in rows) {
+  # Horizontal: neighbours within a row must not touch. A label extends
+  # hjust * width to the left of its anchor and (1 - hjust) * width to the
+  # right.
+  for (row in unique(y)) {
 
     in_row <- which(y == row)
 
@@ -59,24 +85,25 @@
 
     in_row <- in_row[order(x[in_row])]
 
-    centre_gaps <- diff(x[in_row])
+    left <- utils::head(in_row, -1L)
+    right <- utils::tail(in_row, -1L)
 
-    half_width_sums <- (utils::head(widths[in_row], -1L) + utils::tail(widths[in_row], -1L)) / 2
+    pair_scales <- (x[right] - x[left] - padding) /
+      ((1 - hjust[left]) * widths[left] + hjust[right] * widths[right])
 
-    pair_scales <- (centre_gaps - padding) / half_width_sums
-
-    scale <- min(scale, pair_scales[is.finite(pair_scales)])
+    scale <- min(scale, pair_scales[is.finite(pair_scales) & pair_scales > 0])
   }
 
   max(min_scale, min(1, scale))
 }
 
 
-#' Geom for group labels fitted at drawing time
+#' Geom for labels fitted at drawing time
 #'
-#' Behaves as `ggplot2::GeomText`, including its default aesthetics, but
-#' draws a grob whose text size is fitted by `.fit_label_scale()` when it
-#' is rendered.
+#' Behaves as `ggplot2::GeomText`, including its default aesthetics and
+#' `parse`, but draws a grob whose text size is fitted by
+#' `.fit_label_scale()` when it is rendered. The optional aesthetics `ymin`
+#' and `ymax` give the vertical band available to each label.
 #'
 #' @keywords internal
 #' @noRd
@@ -84,9 +111,12 @@ GeomMoplotFitText <- ggplot2::ggproto(
   "GeomMoplotFitText",
   ggplot2::GeomText,
 
+  optional_aes = c("ymin", "ymax"),
+
   draw_panel = function(data,
                         panel_params,
                         coord,
+                        parse = FALSE,
                         padding = 0.06,
                         min_scale = 0.6) {
 
@@ -94,6 +124,7 @@ GeomMoplotFitText <- ggplot2::ggproto(
 
     grid::gTree(
       label_data = data,
+      parse = parse,
       padding = padding,
       min_scale = min_scale,
       cl = "moplot_fit_text"
@@ -102,7 +133,7 @@ GeomMoplotFitText <- ggplot2::ggproto(
 )
 
 
-#' Fit the group labels to the space available on the device
+#' Fit labels to the space available on the device
 #'
 #' @param x A `"moplot_fit_text"` grob.
 #'
@@ -114,15 +145,31 @@ makeContent.moplot_fit_text <- function(x) {
 
   data <- x$label_data
 
+  number_labels <- nrow(data)
+
+  column_or <- function(name, default) {
+    if (is.null(data[[name]])) rep(default, number_labels) else data[[name]]
+  }
+
+  labels <- if (isTRUE(x$parse)) {
+    as.expression(lapply(as.character(data$label), function(text) parse(text = text, keep.source = FALSE)[[1L]]))
+  } else {
+    as.character(data$label)
+  }
+
   font_sizes <- data$size * ggplot2::.pt
 
-  font_faces <- if (is.null(data$fontface)) rep(1, nrow(data)) else data$fontface
+  font_faces <- column_or("fontface", 1)
+
+  hjust <- column_or("hjust", 0.5)
+
+  vjust <- column_or("vjust", 0.5)
 
   full_size_labels <- lapply(
-    seq_len(nrow(data)),
+    seq_len(number_labels),
     function(row) {
       grid::textGrob(
-        data$label[row],
+        labels[row],
         gp = grid::gpar(fontsize = font_sizes[row], fontface = font_faces[row])
       )
     }
@@ -140,26 +187,39 @@ makeContent.moplot_fit_text <- function(x) {
     numeric(1)
   )
 
+  to_inches <- function(values) {
+    inches <- rep(NA_real_, number_labels)
+    known <- !is.na(values)
+    if (any(known)) {
+      inches[known] <- grid::convertY(grid::unit(values[known], "npc"), "inches", valueOnly = TRUE)
+    }
+    inches
+  }
+
   scale <- .fit_label_scale(
     x = grid::convertX(grid::unit(data$x, "npc"), "inches", valueOnly = TRUE),
     y = grid::convertY(grid::unit(data$y, "npc"), "inches", valueOnly = TRUE),
     widths = label_widths,
     heights = label_heights,
+    hjust = hjust,
+    vjust = vjust,
+    ymin = to_inches(column_or("ymin", NA_real_)),
+    ymax = to_inches(column_or("ymax", NA_real_)),
     padding = x$padding,
     min_scale = x$min_scale
   )
 
   text <- grid::textGrob(
-    label = data$label,
+    label = labels,
     x = grid::unit(data$x, "npc"),
     y = grid::unit(data$y, "npc"),
-    vjust = data$vjust,
-    hjust = if (is.null(data$hjust)) 0.5 else data$hjust,
+    hjust = hjust,
+    vjust = vjust,
     gp = grid::gpar(
       col = ggplot2::alpha(data$colour, data$alpha),
       fontsize = font_sizes * scale,
       fontface = font_faces,
-      fontfamily = if (is.null(data$family)) "" else data$family
+      fontfamily = column_or("family", "")
     )
   )
 
