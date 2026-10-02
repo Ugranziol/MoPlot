@@ -885,3 +885,51 @@ test_that("the final tree marker keeps clear of the x axis", {
     expect_gte(clearance, 0.07 - 1e-8)
   }
 })
+
+
+test_that("four-way trees keep clear of the x axis and label zero exactly", {
+
+  set.seed(4)
+  data <- expand.grid(
+    A = factor(c("a1", "a2")),
+    B = factor(c("b1", "b2")),
+    C = factor(c("c1", "c2")),
+    D = factor(c("d1", "d2")),
+    replicate = 1:12
+  )
+  data$y <- stats::rnorm(
+    nrow(data),
+    0.8 * (data$A == "a2") * (data$B == "b2") * (data$C == "c2") * (data$D == "d2") +
+      0.5 * (data$A == "a2")
+  )
+  for (variable in c("A", "B", "C", "D")) {
+    stats::contrasts(data[[variable]]) <- stats::contr.sum(2)
+  }
+
+  model <- stats::lm(y ~ A * B * C * D, data = data)
+
+  plot <- suppressMessages(suppressWarnings(
+    MoPlot_multpred(model, data = data, style = "tree", caption = FALSE, interaction_info = FALSE)
+  ))
+
+  upper <- plot[[1L]]
+
+  y_limits <- upper$coordinates$limits$y
+
+  final_layer <- Filter(
+    function(layer) inherits(layer$geom, "GeomPoint") && "Final_x_y" %in% names(layer$data),
+    upper$layers
+  )[[1L]]
+
+  expect_gte(
+    (min(final_layer$data$Final_x_y) - y_limits[1L]) / diff(y_limits),
+    0.07 - 1e-8
+  )
+
+  # seq() left -5.55e-17 in place of zero, and the axis switched to
+  # scientific notation.
+  y_breaks <- upper$scales$get_scales("y")$breaks
+
+  expect_true(0 %in% y_breaks)
+  expect_false(any(grepl("e", format(y_breaks, trim = TRUE))))
+})

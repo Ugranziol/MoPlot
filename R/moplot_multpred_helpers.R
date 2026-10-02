@@ -2365,6 +2365,10 @@
     by = break_step
   )
 
+  # seq() can leave a residue such as -5.55e-17 in place of zero, which
+  # makes the default labels switch the whole axis to scientific notation.
+  y_breaks[abs(y_breaks) < 1e-8 * break_step] <- 0
+
   y_plot_lower <- y_lower - 0.10 * break_step
 
   # ==========================================================================
