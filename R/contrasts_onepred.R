@@ -1593,7 +1593,27 @@ contrasts_onepred <- function(model,
   attr(results, "hypothesis_matrix") <- hypotheses$hypothesis_matrix
   attr(results, "bounds") <- bounds
 
-  message(disclaimer)
+  # The divergence notes have already been printed as separate messages;
+  # the printed disclaimer omits them, whereas the stored one keeps them.
+  printed_disclaimer <- if (length(divergence_notes) > 0L) {
+    build_disclaimer(
+      estimate_type = estimate_type,
+      prediction_scale = prediction_scale,
+      p_source = p_information$source,
+      is_mixed = mixed_model,
+      is_generalized = generalized_model,
+      contrast_type = contrast_type,
+      scale_factors = scale_factors,
+      identity_holds = identity_holds,
+      divergence_notes = character(),
+      range_type = response_range_type,
+      bounds = bounds
+    )
+  } else {
+    disclaimer
+  }
+
+  message(printed_disclaimer)
 
   results
 }

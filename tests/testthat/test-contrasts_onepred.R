@@ -732,3 +732,26 @@ test_that("contrasts_onepred() recovers data and outcome from the model", {
 
   expect_equal(implicit, explicit)
 })
+
+
+test_that("divergence notes are printed once and kept in the disclaimer", {
+
+  data <- simulate_one_predictor_data(k = 3)
+  stats::contrasts(data$group) <- cbind(c(-1, 0.5, 0.5), c(-1, 0, 1))
+  model <- stats::lm(y ~ group, data = data)
+
+  messages <- character()
+  result <- withCallingHandlers(
+    contrasts_onepred(model, "group"),
+    message = function(m) {
+      messages <<- c(messages, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+
+  printed <- paste(messages, collapse = " ")
+  occurrences <- lengths(regmatches(printed, gregexpr("coding column suggests", printed, fixed = TRUE)))
+
+  expect_identical(occurrences, 2L)
+  expect_match(attr(result, "disclaimer"), "coding column suggests")
+})
