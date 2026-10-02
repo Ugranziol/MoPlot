@@ -372,3 +372,24 @@ test_that("observed means reconstruct coefficients of a one-factor lm", {
     tapply(data$y, data$group, mean)
   )))
 })
+
+
+test_that("polynomial contrasts with unequally spaced scores are recognized", {
+
+  scored <- stats::contr.poly(4, scores = c(0, 10, 20, 40))
+
+  expect_identical(.classify_contrast(scored)$type, "Polynomial")
+
+  # Location and scale of the scores do not matter.
+  expect_identical(
+    .classify_contrast(stats::contr.poly(4, scores = c(1, 2, 3, 5) * 7 + 2))$type,
+    "Polynomial"
+  )
+
+  # A matrix whose first column is not followed by its orthogonal
+  # polynomials is not polynomial.
+  altered <- scored
+  altered[, 3L] <- rev(altered[, 3L])
+
+  expect_identical(.classify_contrast(altered)$type, "Custom")
+})

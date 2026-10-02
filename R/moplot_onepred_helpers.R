@@ -379,14 +379,21 @@
     )
   }
 
-  if (identical(contrast_type, "Polynomial")) {
-    stop(
+  is_polynomial <- identical(contrast_type, "Polynomial")
+
+  # Polynomial components do not compare two quantities, so there is no
+  # scale factor relating a coefficient to a displayed difference.
+  if (is_polynomial && isTRUE(per_difference)) {
+    warning(
       paste0(
-        "Polynomial contrasts are not yet supported by ",
-        "`MoPlot_onepred()`."
+        "`per_difference` is ignored for polynomial contrasts, whose ",
+        "coefficients do not refer to a difference between two ",
+        "displayed quantities."
       ),
       call. = FALSE
     )
+
+    per_difference <- FALSE
   }
 
   # ==========================================================================
@@ -510,7 +517,7 @@
 
   rows_per_contrast <- table(contrast_data$Contrast)
 
-  if (any(rows_per_contrast != 2L)) {
+  if (!is_polynomial && any(rows_per_contrast != 2L)) {
     stop(
       paste0(
         "Each non-polynomial contrast must contain exactly two displayed ",
@@ -526,24 +533,44 @@
   # 6. HORIZONTAL POSITIONS
   # ==========================================================================
 
-  position_information <- .assign_moplot_positions(
-    contrast_data = contrast_data,
-    contrast_type = contrast_type
-  )
+  if (is_polynomial) {
 
-  contrast_data <- position_information$contrast_data
+    # Every component involves all levels, which keep a single position
+    # spaced according to the scores of the coding.
+    level_rows <- contrast_data[contrast_data$Contrast == contrast_ids[1L], , drop = FALSE]
 
-  axis_breaks <- position_information$axis_breaks
+    level_positions <- .polynomial_level_positions(level_rows$Weight)
 
-  axis_labels <- position_information$axis_labels
+    contrast_data$x <- level_positions[match(contrast_data$Levels, level_rows$Levels)]
 
-  position_layout <- position_information$position_layout
+    axis_breaks <- level_positions
+
+    axis_labels <- level_rows$Display_Levels
+
+    position_layout <- "polynomial"
+
+  } else {
+
+    position_information <- .assign_moplot_positions(
+      contrast_data = contrast_data,
+      contrast_type = contrast_type
+    )
+
+    contrast_data <- position_information$contrast_data
+
+    axis_breaks <- position_information$axis_breaks
+
+    axis_labels <- position_information$axis_labels
+
+    position_layout <- position_information$position_layout
+  }
 
   # ==========================================================================
   # 7. SEGMENT TABLE
   # ==========================================================================
 
-  segment_list <- lapply(
+  # Polynomial components are drawn as curves (section 9) instead.
+  segment_list <- if (is_polynomial) list() else lapply(
     seq_along(contrast_ids),
     function(contrast_index) {
 
@@ -586,9 +613,11 @@
     }
   )
 
-  segment_data <- do.call(rbind,segment_list)
+  segment_data <- if (is_polynomial) NULL else do.call(rbind,segment_list)
 
-  rownames(segment_data) <- NULL
+  if (!is_polynomial) {
+    rownames(segment_data) <- NULL
+  }
 
   # ==========================================================================
   # 8. MODEL PARAMETERS
@@ -645,7 +674,8 @@
     Contrast = contrast_ids,
     Contrast_number = seq_along(contrast_ids),
     Parameter = focal_parameters$Parameter,
-    x = segment_data$x_mid,
+    # Polynomial coefficients sit in their own panel, one per component.
+    x = if (is_polynomial) seq_along(contrast_ids) else segment_data$x_mid,
     Estimate = focal_parameters$Estimate,
     CI_low = focal_parameters$CI_low,
     CI_high = focal_parameters$CI_high,
@@ -675,9 +705,14 @@
   # Each coefficient equals its scale factor multiplied by the displayed
   # difference on the linear-predictor scale (for example 1/3 for the
   # second Helmert contrast).
-  parameter_data$Scale_factor <- contrast_data$Scale_factor[
-    match(contrast_ids, contrast_data$Contrast)
-  ]
+  # Polynomial coefficients refer to the components as coded.
+  parameter_data$Scale_factor <- if (is_polynomial) {
+    rep(1, length(contrast_ids))
+  } else {
+    contrast_data$Scale_factor[
+      match(contrast_ids, contrast_data$Contrast)
+    ]
+  }
 
   # Cohen's d converted from the log odds ratio refers to the
   # coefficient as coded; dividing by the scale factor makes it refer to
@@ -837,7 +872,37 @@
   }
 
   # ==========================================================================
-  # 10. RETURN
+  # 10. POLYNOMIAL COMPONENTS
+  # ==========================================================================
+
+  polynomial_data <- NULL
+
+  if (is_polynomial) {
+
+    family_object <- .extract_family(model)
+
+    # Same rule as ContrastsOnePred(): estimates of generalized models are
+    # on the response scale unless link-scale predictions were requested.
+    estimates_on_response_scale <- .is_generalized_model(model) &&
+      !is.null(family_object) &&
+      (
+        identical(contrast_estimate_type, "observed") ||
+          identical(contrast_prediction_scale, "response")
+      )
+
+    polynomial_data <- .polynomial_component_data(
+      contrast_data = contrast_data,
+      coefficients = focal_parameters$Estimate,
+      significant = contrast_data$Significance[
+        match(contrast_ids, contrast_data$Contrast)
+      ] %in% "sig",
+      linkfun = if (estimates_on_response_scale) family_object$linkfun else identity,
+      linkinv = if (estimates_on_response_scale) family_object$linkinv else identity
+    )
+  }
+
+  # ==========================================================================
+  # 11. RETURN
   # ==========================================================================
 
   output <- list(
@@ -860,6 +925,7 @@
     segment_data = segment_data,
     parameter_data = parameter_data,
     raw_data = raw_data,
+    polynomial_data = polynomial_data,
     null_value = null_value,
     disclaimer = contrast_disclaimer
   )
@@ -1584,8 +1650,31 @@ MoPlotStele <- function(
     mean_description <- "displayed estimates"
   }
 
+  is_polynomial <- identical(contrast_type, "Polynomial")
+
+  # The weights of the linear component are proportional to the centered
+  # scores of the levels.
+  equally_spaced_scores <- if (is_polynomial) {
+    linear_weights <- contrast_output$Weight[
+      contrast_output$Contrast == contrast_output$Contrast[1L]
+    ]
+    isTRUE(all.equal(diff(linear_weights), rep(diff(linear_weights)[1L], length(linear_weights) - 1L)))
+  } else {
+    NA
+  }
+
   contrast_description <- switch(
     contrast_type,
+
+    "Polynomial" = paste0(
+      "Under polynomial coding, each coefficient estimates one trend ",
+      "component (linear, quadratic, and so forth) across the ordered levels, ",
+      if (isTRUE(equally_spaced_scores)) {
+        "which are assumed to be equally spaced."
+      } else {
+        "spaced according to the scores of the coding, as on the horizontal axis."
+      }
+    ),
 
     "Treatment" = paste0(
       "Under treatment coding, each non-reference level is compared ",
@@ -1660,13 +1749,26 @@ MoPlotStele <- function(
     "Dashed segments connect the two quantities compared within each contrast."
   )
 
-  upper_description <- paste0(
-    "Points in the upper panel represent the ",
-    mean_description,
-    " for the quantities involved in each comparison, and error bars ",
-    "represent their confidence intervals. ",
-    segment_description
-  )
+  upper_description <- if (is_polynomial) {
+    paste0(
+      "Each upper panel shows one component. Points represent the ",
+      mean_description,
+      " for each level, and error bars represent their confidence ",
+      "intervals. The solid curve shows the pattern implied by that ",
+      "component alone, drawn around the mean of the estimates on the ",
+      "linear-predictor scale (dotted horizontal line); crosses mark its ",
+      "value at each level. Adding all components to that mean reproduces ",
+      "the estimates on the linear-predictor scale."
+    )
+  } else {
+    paste0(
+      "Points in the upper panel represent the ",
+      mean_description,
+      " for the quantities involved in each comparison, and error bars ",
+      "represent their confidence intervals. ",
+      segment_description
+    )
+  }
 
   abbreviation_description <- NULL
 
@@ -1693,8 +1795,9 @@ MoPlotStele <- function(
   }
   label_description <- sprintf(
     paste0(
-      "Labels C1 and C2 and so forth identify the corresponding contrasts; ",
-      "an asterisk indicates p < %.3f."
+      "Labels C1 and C2 and so forth identify the corresponding ",
+      if (is_polynomial) "components" else "contrasts",
+      "; an asterisk indicates p < %.3f."
     ),
     siglevel
   )
@@ -1734,13 +1837,22 @@ MoPlotStele <- function(
       )
     }
 
-    coefficient_description <- paste0(
-      "The lower panel displays the ",
-      lower_quantity,
-      " for each contrast, together with its confidence interval and an ",
-      "approximate Cohen's d. Each coefficient (indicated as Coef. 1, Coef. 2, and so forth) is horizontally aligned with ",
-      "the center of the corresponding comparison in the upper panel."
-    )
+    coefficient_description <- if (is_polynomial) {
+      paste0(
+        "The lower panel displays the ",
+        lower_quantity,
+        " for each component, together with its confidence interval and an ",
+        "approximate Cohen's d, beneath the panel of that component."
+      )
+    } else {
+      paste0(
+        "The lower panel displays the ",
+        lower_quantity,
+        " for each contrast, together with its confidence interval and an ",
+        "approximate Cohen's d. Each coefficient (indicated as Coef. 1, Coef. 2, and so forth) is horizontally aligned with ",
+        "the center of the corresponding comparison in the upper panel."
+      )
+    }
   }
 
   # Groups with unequal weights are labelled W(level weight, ...).
@@ -2038,67 +2150,10 @@ MoPlotStele <- function(
   # 3. ESTIMATE ABBREVIATIONS
   # ==========================================================================
 
-  estimate_abbreviation <- function(estimate_type) {
-
-    switch(
-      estimate_type,
-
-      "Model estimate" = "\u03b2",
-      "Coefficient" = "\u03b2",
-      "Odds ratio" = "OR",
-      "Risk ratio" = "RR",
-      "Incidence rate ratio" = "IRR",
-      "Hazard ratio" = "HR",
-      "Multiplicative ratio" = "MR",
-      "Exponentiated coefficient" = "exp(\u03b2)",
-
-      "Estimate"
-    )
-  }
-
-  parameter_data$Estimate_label <- vapply(
-    parameter_data$Display_type,
-    estimate_abbreviation,
-    character(1)
-  )
-
-  # Rescaled model coefficients are labelled explicitly. Ratios keep
-  # their usual label: exp(beta / s) is the ratio for the displayed
-  # comparison itself.
-  if (isTRUE(prep$per_difference)) {
-
-    is_coefficient <- parameter_data$Estimate_label == "\u03b2"
-
-    parameter_data$Estimate_label[is_coefficient] <- "\u03b2/s"
-  }
-
-  formatted_estimate <- ifelse(
-    is.na(parameter_data$Display_estimate),
-    "NA",
-    formatC(
-      parameter_data$Display_estimate,
-      format = "f",
-      digits = digits
-    )
-  )
-
-  formatted_d <- ifelse(
-    is.na(parameter_data$d),
-    "NA",
-    formatC(
-      parameter_data$d,
-      format = "f",
-      digits = digits
-    )
-  )
-
-  parameter_data$Text_label <- paste0(
-    parameter_data$Estimate_label,
-    " = ",
-    formatted_estimate,
-    "\n",
-    "d = ",
-    formatted_d
+  parameter_data <- .moplot_parameter_labels(
+    parameter_data = parameter_data,
+    per_difference = prep$per_difference,
+    digits = digits
   )
 
   parameter_data$Contrast_label <- paste0(

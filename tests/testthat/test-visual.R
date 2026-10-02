@@ -85,6 +85,52 @@ test_that("MoPlot_onepred() figures are stable", {
 })
 
 
+test_that("MoPlot_onepred() polynomial figures are stable", {
+
+  data <- one_predictor_data()
+
+  stats::contrasts(data$group) <- stats::contr.poly(4)
+
+  expect_plot(
+    "onepred polynomial publication with data",
+    quiet_plot(
+      MoPlot_onepred(
+        stats::lm(y ~ group, data = data),
+        "group",
+        style = "publication",
+        show_data = TRUE,
+        caption = FALSE
+      )
+    )
+  )
+
+  stats::contrasts(data$group) <- stats::contr.poly(4, scores = c(0, 10, 20, 40))
+
+  expect_plot(
+    "onepred polynomial scores minimal",
+    quiet_plot(MoPlot_onepred(stats::lm(y ~ group, data = data), "group", caption = FALSE))
+  )
+
+  set.seed(7)
+  binary_data <- data.frame(freq = factor(rep(c("a", "b", "c", "d", "e"), each = 60)))
+  binary_data$success <- stats::rbinom(300, 1, stats::plogis(c(-1.6, -0.5, 0.4, 0.6, 0.3))[binary_data$freq])
+  stats::contrasts(binary_data$freq) <- stats::contr.poly(5)
+
+  expect_plot(
+    "onepred polynomial logistic odds ratios",
+    quiet_plot(
+      MoPlot_onepred(
+        stats::glm(success ~ freq, family = stats::binomial, data = binary_data),
+        "freq",
+        coefficient_scale = "interpreted",
+        style = "publication",
+        caption = FALSE
+      )
+    )
+  )
+})
+
+
 # ============================================================
 # MoPlot_multpred()
 # ============================================================

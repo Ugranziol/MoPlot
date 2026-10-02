@@ -314,3 +314,159 @@ test_that("MoPlot_onepred() handles transformed covariates and factor outcomes",
 
   expect_setequal(unique(prep$raw_data$y), c(0, 1))
 })
+
+
+polynomial_dose_data <- function() {
+  set.seed(42)
+  dat <- data.frame(
+    dose = factor(rep(c("0mg", "10mg", "20mg", "40mg"), each = 30),
+                  levels = c("0mg", "10mg", "20mg", "40mg"))
+  )
+  dat$y <- stats::rnorm(120, c(2.0, 3.4, 4.1, 4.3)[dat$dose], 1)
+  dat
+}
+
+
+test_that("MoPlot_onepred() displays one panel per polynomial component", {
+
+  dat <- polynomial_dose_data()
+  contrasts(dat$dose) <- stats::contr.poly(4)
+  mod <- stats::lm(y ~ dose, data = dat)
+
+  prep <- suppressMessages(.prepare_moplot_onepred(mod, "dose"))
+
+  expect_identical(prep$position_layout, "polynomial")
+  expect_null(prep$segment_data)
+  expect_identical(as.numeric(prep$axis_breaks), c(1, 2, 3, 4))
+
+  components <- prep$polynomial_data$components
+
+  expect_identical(components$Component, c("Linear", "Quadratic", "Cubic"))
+  expect_identical(components$Label, c("C1*  Linear", "C2*  Quadratic", "C3  Cubic"))
+
+  # Each curve passes through Polynomial_fit at the levels.
+  curves <- prep$polynomial_data$curves
+  level_fits <- prep$polynomial_data$level_fits
+
+  for (contrast in components$Contrast) {
+    curve <- curves[curves$Contrast == contrast, ]
+    fits <- level_fits[level_fits$Contrast == contrast, ]
+    expect_equal(
+      stats::approx(curve$x, curve$y, xout = fits$x)$y,
+      fits$Fit,
+      tolerance = 1e-3
+    )
+  }
+
+  # Baseline plus all components reproduces the estimates.
+  first <- prep$contrast_data[prep$contrast_data$Contrast == components$Contrast[1L], ]
+  expect_equal(prep$polynomial_data$baseline, mean(first$Estimate))
+
+  plot <- suppressMessages(MoPlot_onepred(mod, "dose", caption = FALSE))
+
+  expect_s3_class(plot, "patchwork")
+
+  upper <- plot[[1L]]
+  lower <- plot[[2L]]
+
+  expect_s3_class(upper$facet, "FacetWrap")
+  expect_s3_class(lower$facet, "FacetWrap")
+
+  expect_identical(
+    ggplot2::ggplot_build(upper)$layout$layout$PANEL,
+    factor(1:3)
+  )
+})
+
+
+test_that("polynomial plots use the publication palette and grayscale", {
+
+  dat <- polynomial_dose_data()
+  contrasts(dat$dose) <- stats::contr.poly(4)
+  mod <- stats::lm(y ~ dose, data = dat)
+
+  curve_colours <- function(style) {
+    plot <- suppressMessages(MoPlot_onepred(mod, "dose", style = style, caption = FALSE))
+    built <- ggplot2::ggplot_build(plot[[1L]])
+    line_layer <- which(vapply(plot[[1L]]$layers, function(layer) inherits(layer$geom, "GeomLine"), logical(1)))
+    unique(built$data[[line_layer]]$colour)
+  }
+
+  expect_identical(curve_colours("publication"), .moplot_contrast_palette(3))
+  expect_identical(curve_colours("minimal"), "#525252")
+})
+
+
+test_that("polynomial plots space the levels by the scores of the coding", {
+
+  dat <- polynomial_dose_data()
+  contrasts(dat$dose) <- stats::contr.poly(4, scores = c(0, 10, 20, 40))
+  mod <- stats::lm(y ~ dose, data = dat)
+
+  prep <- suppressMessages(.prepare_moplot_onepred(mod, "dose"))
+
+  expect_equal(as.numeric(prep$axis_breaks), c(0, 10, 20, 40) / 40 * 3 + 1)
+
+  caption <- utils::capture.output(
+    suppressMessages(MoPlot_onepred(mod, "dose", coef = FALSE))
+  )
+
+  expect_true(any(grepl("spaced according to the scores", caption)))
+})
+
+
+test_that("polynomial plots of logistic models stay on the probability scale", {
+
+  set.seed(7)
+  dat <- data.frame(freq = factor(rep(c("a", "b", "c", "d", "e"), each = 60)))
+  dat$success <- stats::rbinom(300, 1, stats::plogis(c(-1.6, -0.5, 0.4, 0.6, 0.3))[dat$freq])
+  contrasts(dat$freq) <- stats::contr.poly(5)
+  mod <- stats::glm(success ~ freq, family = stats::binomial, data = dat)
+
+  prep <- suppressMessages(
+    .prepare_moplot_onepred(mod, "freq", coefficient_scale = "interpreted")
+  )
+
+  expect_true(all(prep$polynomial_data$curves$y > 0 & prep$polynomial_data$curves$y < 1))
+  expect_identical(prep$polynomial_data$components$Component[4L], "Quartic")
+  expect_identical(prep$null_value, 1)
+
+  plot <- suppressMessages(
+    MoPlot_onepred(mod, "freq", coefficient_scale = "interpreted", caption = FALSE)
+  )
+
+  expect_s3_class(plot, "patchwork")
+})
+
+
+test_that("per_difference is ignored with a warning for polynomial contrasts", {
+
+  dat <- polynomial_dose_data()
+  contrasts(dat$dose) <- stats::contr.poly(4)
+  mod <- stats::lm(y ~ dose, data = dat)
+
+  expect_warning(
+    plot <- suppressMessages(MoPlot_onepred(mod, "dose", per_difference = TRUE, caption = FALSE)),
+    "`per_difference` is ignored for polynomial contrasts"
+  )
+
+  expect_s3_class(plot, "patchwork")
+})
+
+
+test_that("the caption describes polynomial components", {
+
+  dat <- polynomial_dose_data()
+  contrasts(dat$dose) <- stats::contr.poly(4)
+  mod <- stats::lm(y ~ dose, data = dat)
+
+  caption <- paste(
+    utils::capture.output(suppressMessages(MoPlot_onepred(mod, "dose"))),
+    collapse = " "
+  )
+
+  expect_match(caption, "Under polynomial coding")
+  expect_match(caption, "assumed to be equally spaced")
+  expect_match(caption, "beneath the panel of that component")
+  expect_false(grepl("Dashed segments", caption))
+})
