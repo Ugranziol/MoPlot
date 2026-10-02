@@ -3813,7 +3813,7 @@
     parameter_data$significance == "Sig"
 
   parameter_data$Contrast_label <- paste0(
-    "Coef.",
+    "Coef. ",
     parameter_data$Contrast_number,
     ifelse(
       significant,
