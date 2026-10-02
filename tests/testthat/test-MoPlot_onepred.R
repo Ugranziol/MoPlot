@@ -407,8 +407,9 @@ test_that("polynomial plots space the levels by the scores of the coding", {
 
   expect_equal(as.numeric(prep$axis_breaks), c(0, 10, 20, 40) / 40 * 3 + 1)
 
+  # The assignment keeps capture.output() from printing the plot.
   caption <- utils::capture.output(
-    suppressMessages(MoPlot_onepred(mod, "dose", coef = FALSE))
+    plot <- suppressMessages(MoPlot_onepred(mod, "dose", coef = FALSE))
   )
 
   expect_true(any(grepl("spaced according to the scores", caption)))
@@ -461,7 +462,7 @@ test_that("the caption describes polynomial components", {
   mod <- stats::lm(y ~ dose, data = dat)
 
   caption <- paste(
-    utils::capture.output(suppressMessages(MoPlot_onepred(mod, "dose"))),
+    utils::capture.output(plot <- suppressMessages(MoPlot_onepred(mod, "dose"))),
     collapse = " "
   )
 

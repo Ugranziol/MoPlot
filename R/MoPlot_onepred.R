@@ -161,6 +161,9 @@
 #' When `coef = TRUE`, a `patchwork` object containing the aligned upper and
 #' lower panels.
 #'
+#' In both cases the object carries recommended export dimensions, used by
+#' [MoPlot_export()] when `width` or `height` is not supplied.
+#'
 #' @examples
 #' \dontrun{
 #' set.seed(123)
@@ -481,7 +484,17 @@ MoPlot_onepred <- function(
   # 6. RETURN UPPER PANEL ONLY
   # ==========================================================================
 
+  # Read by MoPlot_export() when width or height is not supplied.
+  export_size <- .moplot_onepred_export_size(
+    prep = prep,
+    coef = coef,
+    panel_heights = panel_heights
+  )
+
   if (!isTRUE(coef)) {
+
+    attr(upper_plot, "moplot_export_size") <- export_size
+
     return(
       upper_plot
     )
@@ -514,6 +527,7 @@ MoPlot_onepred <- function(
     heights = panel_heights
   )
 
+  attr(combined_plot, "moplot_export_size") <- export_size
 
   combined_plot
 }

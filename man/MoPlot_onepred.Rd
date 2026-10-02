@@ -146,6 +146,9 @@ When \code{coef = FALSE}, a \code{ggplot} object containing the upper panel.
 
 When \code{coef = TRUE}, a \code{patchwork} object containing the aligned upper and
 lower panels.
+
+In both cases the object carries recommended export dimensions, used by
+\code{\link[=MoPlot_export]{MoPlot_export()}} when \code{width} or \code{height} is not supplied.
 }
 \description{
 \code{MoPlot_onepred()} creates a graphical representation of the contrasts

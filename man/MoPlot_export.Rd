@@ -14,7 +14,9 @@ MoPlot_export(
 )
 }
 \arguments{
-\item{plot}{A plot object created by \code{MoPlot_multpred()}.}
+\item{plot}{A plot object created by \code{MoPlot_onepred()} or
+\code{MoPlot_multpred()}. Other plots can be exported by supplying both
+\code{width} and \code{height}.}
 
 \item{filename}{Character string specifying the output filename. Supported
 extensions are \code{.png}, \code{.tif}, \code{.tiff}, and \code{.pdf}.}
@@ -34,8 +36,11 @@ height stored in \code{plot} is used.}
 Invisibly returns the normalized path of the exported file.
 }
 \description{
-\code{MoPlot_export()} exports a plot created by \code{MoPlot_multpred()} using
-dimensions recommended from the graphical complexity of the plot.
+\code{MoPlot_export()} exports a plot created by \code{MoPlot_onepred()} or
+\code{MoPlot_multpred()} using dimensions recommended from the graphical
+complexity of the plot: the number of displayed quantities (or of
+polynomial components and levels), the depth of the interaction
+hierarchy, and the presence of the coefficient panel.
 
 PNG and TIFF files are exported at high resolution. TIFF files use
 lossless LZW compression. PDF files are exported through the Cairo device

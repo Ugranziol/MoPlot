@@ -2437,3 +2437,57 @@ MoPlotStele <- function(
 
   plot
 }
+
+
+#' Compute recommended export dimensions for a one-predictor MoPlot
+#'
+#' Internal helper used by `MoPlot_onepred()`. Width grows with the number
+#' of displayed quantities or, for polynomial contrasts, with the number of
+#' component panels and of levels within each panel. Height reserves room
+#' for the lower panel according to `panel_heights`.
+#'
+#' @param prep An object returned by `.prepare_moplot_onepred()`.
+#' @param coef Logical. Whether the lower coefficient panel is present.
+#' @param panel_heights Relative heights of the upper and lower panels.
+#'
+#' @return A named numeric vector containing recommended width and height
+#'   in inches.
+#'
+#' @keywords internal
+#' @noRd
+.moplot_onepred_export_size <- function(
+    prep,
+    coef = TRUE,
+    panel_heights = c(2, 1)
+) {
+
+  number_positions <- length(prep$axis_breaks)
+
+  if (identical(prep$contrast_type, "Polynomial")) {
+
+    # One panel per component, each wide enough for its levels and for
+    # the coefficient label beside the marker in the lower panel.
+    number_components <- nrow(prep$polynomial_data$components)
+
+    width <- 1 + number_components * (1 + 0.35 * number_positions)
+
+  } else {
+
+    width <- 3.5 + 0.55 * number_positions
+  }
+
+  width <- max(6, width)
+
+  upper_height <- 4.5
+
+  height <- if (isTRUE(coef)) {
+    upper_height * sum(panel_heights) / panel_heights[1L]
+  } else {
+    upper_height
+  }
+
+  c(
+    width = round(width, 1),
+    height = round(height, 1)
+  )
+}
