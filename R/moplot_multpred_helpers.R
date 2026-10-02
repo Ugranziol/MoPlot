@@ -2949,25 +2949,39 @@
     ) > 0L
   ) {
 
+    # Neighbouring labels shrink when the plot is too narrow for them;
+    # their size is fitted whenever the plot is drawn (see fit_text.R).
     plot <- plot +
-      ggplot2::geom_text(
+      ggplot2::layer(
+        geom =
+          GeomMoplotFitText,
+        stat =
+          "identity",
+        position =
+          "identity",
         data =
           group_label_data,
-        ggplot2::aes(
-          x = x,
-          y =
-            label_y,
-          label =
-            display_label
-        ),
+        mapping =
+          ggplot2::aes(
+            x = x,
+            y =
+              label_y,
+            label =
+              display_label
+          ),
         inherit.aes =
           FALSE,
-        fontface =
-          "bold",
-        colour =
-          palette[["text"]],
-        vjust =
-          0
+        show.legend =
+          FALSE,
+        params =
+          list(
+            fontface =
+              "bold",
+            colour =
+              palette[["text"]],
+            vjust =
+              0
+          )
       )
   }
 
