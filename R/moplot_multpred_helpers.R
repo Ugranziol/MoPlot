@@ -2803,7 +2803,7 @@
     # 10.6. LOWER PLOT LIMIT
     # ------------------------------------------------------------------------
 
-    tree_bottom <- min(
+    lowest_tree_y <- min(
       c(
         tree_node_data$Tree_y,
         tree_node_data$Entry_y,
@@ -2811,9 +2811,17 @@
         tree_node_data$Final_x_y
       ),
       na.rm = TRUE
-    ) -
-      0.025 *
-      y_span
+    )
+
+    # The final X and its formula have a fixed size in points, so the
+    # space below them is a fraction of the plotted range, i.e. of the
+    # panel height, rather than of the estimates: solving
+    # lowest_tree_y - lower = fraction * (upper - lower) for lower keeps
+    # them clear of the x axis at any plot size.
+    tree_bottom_fraction <- 0.07
+
+    tree_bottom <- (lowest_tree_y - tree_bottom_fraction * y_plot_upper) /
+      (1 - tree_bottom_fraction)
 
     y_plot_lower <- min(y_plot_lower,tree_bottom)
   }

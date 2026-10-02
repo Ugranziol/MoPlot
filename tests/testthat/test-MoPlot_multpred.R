@@ -842,3 +842,46 @@ test_that("MoPlot_multpred() handles transformed covariates and factor outcomes"
   )
   expect_s3_class(plot, "patchwork")
 })
+
+
+test_that("the final tree marker keeps clear of the x axis", {
+
+  set.seed(21)
+  data <- expand.grid(
+    A = factor(c("a1", "a2", "a3")),
+    B = factor(c("b1", "b2")),
+    C = factor(c("c1", "c2")),
+    replicate = 1:15
+  )
+  data$y <- stats::rnorm(
+    nrow(data),
+    (data$A == "a2") + 1.5 * (data$A == "a3") * (data$B == "b2") + (data$C == "c2") * (data$B == "b2")
+  )
+  stats::contrasts(data$A) <- stats::contr.helmert(3)
+  stats::contrasts(data$B) <- stats::contr.sum(2)
+  stats::contrasts(data$C) <- stats::contr.sum(2)
+
+  for (formula in list(y ~ A * B, y ~ A * B * C)) {
+
+    model <- stats::lm(formula, data = data)
+
+    plot <- suppressMessages(suppressWarnings(
+      MoPlot_multpred(model, data = data, style = "tree", caption = FALSE, interaction_info = FALSE)
+    ))
+
+    upper <- plot[[1L]]
+
+    y_limits <- upper$coordinates$limits$y
+
+    final_layer <- Filter(
+      function(layer) inherits(layer$geom, "GeomPoint") && "Final_x_y" %in% names(layer$data),
+      upper$layers
+    )[[1L]]
+
+    # The marker centre lies at least 7% of the panel height above the axis,
+    # whatever the size of the plot.
+    clearance <- (min(final_layer$data$Final_x_y) - y_limits[1L]) / diff(y_limits)
+
+    expect_gte(clearance, 0.07 - 1e-8)
+  }
+})
