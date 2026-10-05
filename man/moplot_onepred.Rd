@@ -15,6 +15,7 @@ moplot_onepred(
   coefficient_scale = c("model", "interpreted"),
   per_difference = FALSE,
   bounds = NULL,
+  hypotheses = NULL,
   show_coef = TRUE,
   show_data = FALSE,
   style = c("minimal", "publication"),
@@ -100,6 +101,13 @@ range of a response analyzed with a Gaussian (identity link) model, such
 as \code{c(1, 7)} for a Likert score or \code{c(0, Inf)} for a reaction time, so that
 confidence intervals remain within it. Ignored, with a warning, for
 generalized models. See \code{\link[=contrasts_onepred]{contrasts_onepred()}}.}
+
+\item{hypotheses}{Optional numeric matrix declaring the comparisons that
+the coefficients of \code{predictor} are intended to estimate, with one row per
+coefficient and one column per factor level. Each declared hypothesis is
+checked against the comparison that the coefficient estimates; the result
+is reported in a message and in the caption. The figure always shows the
+comparisons that the coefficients estimate. See \code{\link[=contrasts_onepred]{contrasts_onepred()}}.}
 
 \item{show_coef}{Logical. Should the lower coefficient panel be displayed?
 The default is \code{TRUE}.}

@@ -20,6 +20,7 @@ moplot_multpred(
   coefficient_scale = c("model", "interpreted"),
   per_difference = FALSE,
   bounds = NULL,
+  hypotheses = NULL,
   show_coef = TRUE,
   style = c("minimal", "tree"),
   caption = TRUE,
@@ -161,6 +162,13 @@ range of a response analyzed with a Gaussian (identity link) model, such
 as \code{c(1, 7)} for a Likert score or \code{c(0, Inf)} for a reaction time, so that
 confidence intervals remain within it. Ignored, with a warning, for
 generalized models. See \code{\link[=contrasts_multpred]{contrasts_multpred()}}.}
+
+\item{hypotheses}{Optional named list declaring, for one or more
+categorical predictors, the comparisons that their contrast coefficients
+are intended to estimate, one matrix per predictor. Each interaction
+coefficient is checked through its components; the result is reported in
+a message and in the caption. The figure always shows the comparisons
+that the coefficients estimate. See \code{\link[=contrasts_multpred]{contrasts_multpred()}}.}
 
 \item{show_coef}{Logical. Should the lower coefficient panel be displayed?
 The default is \code{TRUE}.}

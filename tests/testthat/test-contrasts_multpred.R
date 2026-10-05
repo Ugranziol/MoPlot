@@ -274,7 +274,7 @@ test_that("non-orthogonal custom codings produce weighted labels and a note", {
       configuration = "all",
       methodological_note = FALSE
     ),
-    "suggests a3 vs a2"
+    "suggest a3 vs a2"
   )
 
   expect_true("W(a1 .20, a3 .80)" %in% result$A)

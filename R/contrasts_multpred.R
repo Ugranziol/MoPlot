@@ -131,6 +131,22 @@
 #'   `TRUE`. The note is stored as an attribute of the returned object
 #'   regardless of this setting.
 #'
+#' @param hypotheses Optional named list declaring, for one or more
+#'   categorical predictors, the comparisons that their contrast coefficients
+#'   are intended to estimate, for example
+#'   `list(treatment = H_treatment, context = H_context)`. Each element is a
+#'   numeric matrix with one row per contrast column of that predictor and one
+#'   column per level, as the rows of a hypothesis matrix (see
+#'   [contrasts_onepred()]). Each declared predictor is checked against the
+#'   comparisons implied by its coding, and a message reports the result for
+#'   each contrast column. Because the hypothesis of an interaction coefficient
+#'   is the Kronecker product of the hypotheses of its components, each
+#'   interaction coefficient estimates the product of the declared hypotheses
+#'   when all its declared components do, multiplied by the product of their
+#'   factors. Predictors not listed are not checked. The model is not
+#'   modified. The result is stored in the `hypothesis_check` attribute, with
+#'   one row per analyzed coefficient.
+#'
 #' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
 #'   range of a response analyzed with a Gaussian (identity link) model, such
 #'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time. When
@@ -776,7 +792,8 @@ contrasts_multpred <- function(model,
                                estimate_type = c("auto", "observed", "predicted"),
                              prediction_scale = c("response", "link"),
                              methodological_note = TRUE,
-                             bounds = NULL) {
+                             bounds = NULL,
+                             hypotheses = NULL) {
 
   # ============================================================
   # 1. Argument matching and basic checks
@@ -1030,6 +1047,65 @@ contrasts_multpred <- function(model,
     },
     character(1)
   )
+
+  # ============================================================
+  # 3.1 Declared hypotheses
+  # ============================================================
+  #
+  # The comparisons intended for one or more predictors are checked
+  # against those implied by their coding. Interaction coefficients
+  # inherit the result of their components (see the per-coefficient
+  # check in decompose_one_coefficient()). The model is not modified.
+  # ============================================================
+
+  factor_checks <- list()
+
+  if (!is.null(hypotheses)) {
+
+    if (!is.list(hypotheses) ||
+        is.data.frame(hypotheses) ||
+        is.null(names(hypotheses)) ||
+        any(!nzchar(names(hypotheses)))) {
+
+      stop(
+        paste0(
+          "`hypotheses` must be a named list with one matrix per ",
+          "categorical predictor, for example list(A = H_A, B = H_B)."
+        ),
+        call. = FALSE
+      )
+    }
+
+    unknown_variables <- setdiff(names(hypotheses), factor_vars)
+
+    if (length(unknown_variables) > 0L) {
+
+      stop(
+        paste0(
+          "`hypotheses` refers to variables that are not categorical ",
+          "predictors of the model: ", paste(unknown_variables, collapse = ", "), "."
+        ),
+        call. = FALSE
+      )
+    }
+
+    for (var in names(hypotheses)) {
+
+      factor_checks[[var]] <- .check_declared_hypotheses(
+        declared = hypotheses[[var]],
+        hypothesis_matrix = get_variable_hypotheses(var)$hypothesis_matrix,
+        level_names = levels(data[[var]])
+      )
+
+      factor_checks[[var]]$messages <- sub(
+        "^Contrast_([0-9]+)",
+        paste0("Variable ", var, ", contrast \\1"),
+        factor_checks[[var]]$messages
+      )
+    }
+  }
+
+  coefficient_checks <- list()
 
   # ============================================================
   # 4. Polynomial contrasts are not yet supported
@@ -1836,13 +1912,13 @@ contrasts_multpred <- function(model,
 
   get_contrast_info <- function(var, local_col) {
 
-    hypotheses <- get_variable_hypotheses(var)
+    variable_hypotheses <- get_variable_hypotheses(var)
 
-    if (local_col > length(hypotheses$contrasts)) {
+    if (local_col > length(variable_hypotheses$contrasts)) {
       stop(sprintf("Contrast index %d is out of range for variable '%s'.", local_col, var))
     }
 
-    contrast <- hypotheses$contrasts[[local_col]]
+    contrast <- variable_hypotheses$contrasts[[local_col]]
 
     positive_weights <- contrast$positive_weights[contrast$positive_weights > 0]
     negative_weights <- contrast$negative_weights[contrast$negative_weights > 0]
@@ -1850,7 +1926,8 @@ contrasts_multpred <- function(model,
     register_group_label(var, positive_weights)
     register_group_label(var, negative_weights)
 
-    if (!is.na(contrast$note)) {
+    if (!is.na(contrast$note) &&
+        !var %in% names(factor_checks)) {
 
       divergence_notes <<- unique(
         c(
@@ -2607,6 +2684,56 @@ contrasts_multpred <- function(model,
 
     coefficient_scales[[coef_name]] <<- scale_factor
 
+    if (length(factor_checks) > 0L) {
+
+      declared <- component_df$variable %in% names(factor_checks)
+
+      component_rows <- lapply(
+        which(declared),
+        function(index) {
+          factor_checks[[component_df$variable[index]]]$table[component_df$local_col[index], ]
+        }
+      )
+
+      statuses <- vapply(component_rows, `[[`, character(1), "Status")
+      ratios <- vapply(component_rows, `[[`, numeric(1), "Ratio")
+
+      status <- if (length(statuses) == 0L) {
+        "not declared"
+      } else if (any(statuses == "differs")) {
+        "differs"
+      } else if (!all(declared)) {
+        "partially declared"
+      } else if (prod(ratios) < 0) {
+        "reversed"
+      } else if (abs(prod(ratios) - 1) < 1e-6) {
+        "matches"
+      } else {
+        "rescaled"
+      }
+
+      component_labels <- ifelse(
+        declared,
+        vapply(
+          seq_len(nrow(component_df)),
+          function(index) {
+            if (!declared[index]) return(NA_character_)
+            factor_checks[[component_df$variable[index]]]$table$Hypothesis[component_df$local_col[index]]
+          },
+          character(1)
+        ),
+        paste0(component_df$variable, " (not declared)")
+      )
+
+      coefficient_checks[[coef_name]] <<- data.frame(
+        Coefficient = coef_name,
+        Hypothesis = paste(component_labels, collapse = " x "),
+        Status = status,
+        Ratio = if (status %in% c("differs", "not declared")) NA_real_ else prod(ratios),
+        stringsAsFactors = FALSE
+      )
+    }
+
     coefficient_identity[[coef_name]] <<- check_coefficient_identity(
       coef_name = coef_name,
       component_df = component_df,
@@ -2663,7 +2790,29 @@ contrasts_multpred <- function(model,
     )
   }
 
-  for (note in divergence_notes) {
+  # Notes on codings whose signs do not describe the estimated
+  # comparisons point to the check through `hypotheses`.
+  if (length(divergence_notes) > 0L) {
+    divergence_notes <- paste(
+      divergence_notes,
+      "To check the intended comparisons, supply them through `hypotheses`."
+    )
+  }
+
+  hypothesis_messages <- unlist(
+    lapply(factor_checks, `[[`, "messages"),
+    use.names = FALSE
+  )
+
+  hypothesis_check <- if (length(coefficient_checks) > 0L) {
+    out_check <- do.call(rbind, coefficient_checks)
+    rownames(out_check) <- NULL
+    out_check
+  } else {
+    NULL
+  }
+
+  for (note in c(hypothesis_messages, divergence_notes)) {
     message(note)
   }
 
@@ -2865,7 +3014,8 @@ contrasts_multpred <- function(model,
     )
   }
 
-  attr(out, "note") <- paste(c(disclaimer_note, bounds_note, divergence_notes), collapse = " ")
+  attr(out, "note") <- paste(c(disclaimer_note, bounds_note, hypothesis_messages, divergence_notes), collapse = " ")
+  attr(out, "hypothesis_check") <- hypothesis_check
   attr(out, "bounds") <- bounds
   attr(out, "estimate_type") <- estimate_type
   attr(out, "prediction_scale") <- if (estimate_type == "observed") NA_character_ else prediction_scale

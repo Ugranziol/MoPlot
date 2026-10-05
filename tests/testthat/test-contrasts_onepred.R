@@ -137,12 +137,12 @@ test_that("non-orthogonal custom contrasts show weights and a divergence note", 
       data = data,
       estimate_type = "observed"
     ),
-    "suggests C vs B"
+    "suggest C vs B"
   )
 
   expect_identical(result$Levels[3:4], c("W(A .20, C .80)", "B"))
   expect_equal(unique(result$Scale_factor), c(4 / 3, 10 / 9))
-  expect_match(attr(result, "disclaimer"), "not orthogonal")
+  expect_match(attr(result, "disclaimer"), "derived from a hypothesis matrix")
 })
 
 
@@ -750,8 +750,8 @@ test_that("divergence notes are printed once and kept in the disclaimer", {
   )
 
   printed <- paste(messages, collapse = " ")
-  occurrences <- lengths(regmatches(printed, gregexpr("coding column suggests", printed, fixed = TRUE)))
+  occurrences <- lengths(regmatches(printed, gregexpr("coding column suggest", printed, fixed = TRUE)))
 
   expect_identical(occurrences, 2L)
-  expect_match(attr(result, "disclaimer"), "coding column suggests")
+  expect_match(attr(result, "disclaimer"), "coding column suggest")
 })

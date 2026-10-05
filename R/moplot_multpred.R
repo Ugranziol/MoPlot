@@ -143,6 +143,13 @@
 #'   `coefficient_scale = "interpreted"`, ratios are computed as
 #'   `exp(beta / s)`. Test statistics, p-values, and Cohen's d are unaffected.
 #'
+#' @param hypotheses Optional named list declaring, for one or more
+#'   categorical predictors, the comparisons that their contrast coefficients
+#'   are intended to estimate, one matrix per predictor. Each interaction
+#'   coefficient is checked through its components; the result is reported in
+#'   a message and in the caption. The figure always shows the comparisons
+#'   that the coefficients estimate. See [contrasts_multpred()].
+#'
 #' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
 #'   range of a response analyzed with a Gaussian (identity link) model, such
 #'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time, so that
@@ -356,6 +363,7 @@ moplot_multpred <- function(
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     bounds = NULL,
+    hypotheses = NULL,
     show_coef = TRUE,
     style = c("minimal", "tree"),
     caption = TRUE,
@@ -430,7 +438,8 @@ moplot_multpred <- function(
     estimate_type = estimate_type,
     prediction_scale = prediction_scale,
     methodological_note = FALSE,
-    bounds = bounds
+    bounds = bounds,
+    hypotheses = hypotheses
   )
 
   # estimate_type = "auto" is resolved by contrasts_multpred().

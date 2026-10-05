@@ -13,7 +13,8 @@ contrasts_onepred(
   conf_level = 0.95,
   estimate_type = c("auto", "observed", "predicted"),
   prediction_scale = c("response", "link"),
-  bounds = NULL
+  bounds = NULL,
+  hypotheses = NULL
 )
 }
 \arguments{
@@ -96,6 +97,20 @@ intervals already respect the range implied by their family. Bounds
 correct the representation of uncertainty, not the model: when many
 observations lie at a bound, a model suited to the scale of the response
 (for example an ordinal model) is more appropriate.}
+
+\item{hypotheses}{Optional numeric matrix declaring the comparisons that
+the coefficients of \code{predictor} are intended to estimate, with one row per
+coefficient, in the order of the contrast columns, and one column per
+factor level, as the rows of a hypothesis matrix (for example
+\code{rbind("Treat-Control" = c(-1, 0.5, 0.5), "T2-Control" = c(-1, 0, 1))}).
+Each row must sum to zero. Column names, when present, must be the factor
+levels; row names label the hypotheses. Each declared row is compared with
+the comparison that the coefficient actually estimates, and a message
+reports whether the coefficient estimates the declared hypothesis, exactly,
+up to a positive factor, or with reversed sign, or which comparison it
+estimates instead. The model is not modified: the function reports what
+the fitted coding estimates. The result is stored in the
+\code{hypothesis_check} attribute.}
 }
 \value{
 A data frame with one or more rows per contrast.

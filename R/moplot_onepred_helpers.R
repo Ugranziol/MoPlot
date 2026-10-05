@@ -61,7 +61,25 @@
   output <- contrast_data
   output$x <- NA_real_
 
-  paired_layout <- contrast_type %in% c("Treatment", "Sum")
+  # Reusing the position of a quantity shared by two contrasts draws a
+  # chain when the quantity lies on opposite sides of them (B - A and
+  # C - B under sliding differences). When it lies on the same side, as
+  # a common reference level, the segments would start from the same
+  # point and overlap; each contrast then receives its own pair of
+  # positions, as for treatment and sum coding. Within each contrast,
+  # the first row is the positive side and the second the negative one.
+  side <- stats::ave(
+    seq_len(nrow(contrast_data)),
+    contrast_data$Contrast,
+    FUN = seq_along
+  )
+
+  shared_on_same_side <- anyDuplicated(
+    paste(contrast_data$Levels, side, sep = "\r")
+  ) > 0L
+
+  paired_layout <- contrast_type %in% c("Treatment", "Sum") ||
+    shared_on_same_side
 
   # ==========================================================================
   # PAIRED LAYOUT: TREATMENT AND SUM
@@ -211,6 +229,8 @@
 #'   from the model when `NULL`.
 #' @param bounds Optional natural range of the response, passed to
 #'   `contrasts_onepred()`.
+#' @param hypotheses Optional declared hypotheses, passed to
+#'   `contrasts_onepred()`.
 #'
 #' @return An object of class `"moplot_onepred_data"`.
 #'
@@ -226,7 +246,8 @@
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     data = NULL,
-    bounds = NULL
+    bounds = NULL,
+    hypotheses = NULL
 ) {
 
   # ==========================================================================
@@ -467,7 +488,8 @@
     conf_level = conf_level,
     estimate_type = resolved_estimate_type,
     prediction_scale = prediction_scale,
-    bounds = bounds
+    bounds = bounds,
+    hypotheses = hypotheses
   )
 
   contrast_family <- attr(contrast_data,"family")
@@ -528,6 +550,10 @@
   }
 
   contrast_disclaimer <- attr(contrast_data,"disclaimer")
+
+  contrast_hypothesis_check <- attr(contrast_data, "hypothesis_check")
+
+  contrast_coding_notes <- attr(contrast_data, "coding_notes")
 
   # ==========================================================================
   # 6. HORIZONTAL POSITIONS
@@ -927,7 +953,9 @@
     raw_data = raw_data,
     polynomial_data = polynomial_data,
     null_value = null_value,
-    disclaimer = contrast_disclaimer
+    disclaimer = contrast_disclaimer,
+    hypothesis_check = contrast_hypothesis_check,
+    coding_notes = contrast_coding_notes
   )
 
   class(output) <- c("moplot_onepred_data","list")
@@ -1508,6 +1536,10 @@
 #' @param coefficient_scale Scale used for the lower-panel estimates.
 #' @param per_difference Whether lower-panel coefficients are divided by
 #'   their scale factor.
+#' @param hypothesis_check Optional table of declared hypotheses checked by
+#'   `contrasts_onepred()`.
+#' @param coding_notes Notes on coding columns whose signs do not describe
+#'   the estimated comparisons.
 #'
 #' @return A character vector of length one.
 #'
@@ -1527,7 +1559,9 @@
     estimate_type,
     prediction_scale,
     estimate_label,
-    label_key = NULL
+    label_key = NULL,
+    hypothesis_check = NULL,
+    coding_notes = character()
 ) {
 
   coefficient_scale <- match.arg(coefficient_scale)
@@ -1909,6 +1943,49 @@
     }
   }
 
+  # Relation between the intended and the estimated comparisons. The
+  # figure always shows the comparisons that the coefficients estimate.
+  contrast_labels <- function(contrasts) {
+    numbers <- sub("^Contrast_", "C", contrasts)
+    if (length(numbers) == 1L) numbers else paste(paste(numbers[-length(numbers)], collapse = ", "), "and", numbers[length(numbers)])
+  }
+
+  hypothesis_description <- NULL
+
+  if (!is.null(hypothesis_check) && nrow(hypothesis_check) > 0L) {
+
+    failing <- hypothesis_check$Contrast[hypothesis_check$Status %in% c("differs", "reversed")]
+    rescaled <- hypothesis_check$Contrast[hypothesis_check$Status == "rescaled"]
+
+    hypothesis_description <- if (length(failing) == 0L) {
+      paste0(
+        "Each coefficient estimates the corresponding declared hypothesis",
+        if (length(rescaled) > 0L) paste0(", ", contrast_labels(rescaled), " up to a positive factor"),
+        "."
+      )
+    } else {
+      paste0(
+        contrast_labels(failing),
+        if (length(failing) == 1L) " does" else " do",
+        " not estimate the declared ",
+        if (length(failing) == 1L) "hypothesis" else "hypotheses",
+        "; the figure shows the comparisons that the coefficients estimate."
+      )
+    }
+
+  } else if (length(coding_notes) > 0L) {
+
+    noted <- sub(":.*$", "", coding_notes)
+
+    hypothesis_description <- paste0(
+      "The signs of the coding ",
+      if (length(noted) == 1L) "column of " else "columns of ",
+      contrast_labels(noted),
+      " do not describe the comparisons that the coefficients estimate; ",
+      "the figure shows the estimated comparisons."
+    )
+  }
+
   introduction <- paste0(
     "This plot summarizes the contrasts for the categorical predictor ",
     predictor,
@@ -1920,6 +1997,7 @@
   caption_parts <- c(
     introduction,
     contrast_description,
+    hypothesis_description,
     upper_description,
     weighted_description,
     abbreviation_description,

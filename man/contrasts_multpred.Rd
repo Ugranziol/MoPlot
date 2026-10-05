@@ -19,7 +19,8 @@ contrasts_multpred(
   estimate_type = c("auto", "observed", "predicted"),
   prediction_scale = c("response", "link"),
   methodological_note = TRUE,
-  bounds = NULL
+  bounds = NULL,
+  hypotheses = NULL
 )
 }
 \arguments{
@@ -144,6 +145,22 @@ supplied, confidence intervals of observed and predicted estimates are computed
 on a transformed scale (logit or logarithm) and transformed back, so that
 they remain within the bounds. Ignored, with a warning, for generalized
 models. See \code{\link[=contrasts_onepred]{contrasts_onepred()}}.}
+
+\item{hypotheses}{Optional named list declaring, for one or more
+categorical predictors, the comparisons that their contrast coefficients
+are intended to estimate, for example
+\code{list(treatment = H_treatment, context = H_context)}. Each element is a
+numeric matrix with one row per contrast column of that predictor and one
+column per level, as the rows of a hypothesis matrix (see
+\code{\link[=contrasts_onepred]{contrasts_onepred()}}). Each declared predictor is checked against the
+comparisons implied by its coding, and a message reports the result for
+each contrast column. Because the hypothesis of an interaction coefficient
+is the Kronecker product of the hypotheses of its components, each
+interaction coefficient estimates the product of the declared hypotheses
+when all its declared components do, multiplied by the product of their
+factors. Predictors not listed are not checked. The model is not
+modified. The result is stored in the \code{hypothesis_check} attribute, with
+one row per analyzed coefficient.}
 }
 \value{
 A data frame of class \code{"plot_ready_contrasts_df"} with one row per

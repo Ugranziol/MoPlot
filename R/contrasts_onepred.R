@@ -76,6 +76,20 @@
 #' }
 #' This argument is relevant only when estimate_type = "predicted".
 #'
+#' @param hypotheses Optional numeric matrix declaring the comparisons that
+#'   the coefficients of `predictor` are intended to estimate, with one row per
+#'   coefficient, in the order of the contrast columns, and one column per
+#'   factor level, as the rows of a hypothesis matrix (for example
+#'   `rbind("Treat-Control" = c(-1, 0.5, 0.5), "T2-Control" = c(-1, 0, 1))`).
+#'   Each row must sum to zero. Column names, when present, must be the factor
+#'   levels; row names label the hypotheses. Each declared row is compared with
+#'   the comparison that the coefficient actually estimates, and a message
+#'   reports whether the coefficient estimates the declared hypothesis, exactly,
+#'   up to a positive factor, or with reversed sign, or which comparison it
+#'   estimates instead. The model is not modified: the function reports what
+#'   the fitted coding estimates. The result is stored in the
+#'   `hypothesis_check` attribute.
+#'
 #' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
 #'   range of the response, for responses analyzed with a Gaussian (identity
 #'   link) model, such as a Likert score (`c(1, 7)`), a percentage
@@ -652,7 +666,8 @@ contrasts_onepred <- function(model,
                               conf_level = 0.95,
                               estimate_type = c("auto", "observed", "predicted"),
                               prediction_scale = c("response", "link"),
-                              bounds = NULL) {
+                              bounds = NULL,
+                              hypotheses = NULL) {
 
   # ============================================================
   # 1. ARGUMENT MATCHING AND BASIC VALIDATION
@@ -1248,12 +1263,42 @@ contrasts_onepred <- function(model,
 
   level_names <- levels(data[[predictor]])
 
-  hypotheses <- .contrast_hypotheses(
+  coding_hypotheses <- .contrast_hypotheses(
     contrast_matrix = coding_matrix,
     level_names = level_names
   )
 
-  contrast_type <- hypotheses$type
+  contrast_type <- coding_hypotheses$type
+
+  # Declared hypotheses: the comparisons the analyst intended. They are
+  # checked against the comparisons implied by the fitted coding; the
+  # model itself is never modified.
+  # A named list, as accepted by contrasts_multpred(), is also allowed.
+  if (is.list(hypotheses) && !is.data.frame(hypotheses)) {
+
+    if (is.null(names(hypotheses)) || !predictor %in% names(hypotheses)) {
+
+      stop(
+        paste0(
+          "When `hypotheses` is a list, it must contain an element named '",
+          predictor, "'."
+        ),
+        call. = FALSE
+      )
+    }
+
+    hypotheses <- hypotheses[[predictor]]
+  }
+
+  hypothesis_check <- if (is.null(hypotheses)) {
+    NULL
+  } else {
+    .check_declared_hypotheses(
+      declared = hypotheses,
+      hypothesis_matrix = coding_hypotheses$hypothesis_matrix,
+      level_names = level_names
+    )
+  }
 
   n_contrasts <- ncol(coding_matrix)
 
@@ -1382,7 +1427,7 @@ contrasts_onepred <- function(model,
   ) &&
     all(
       .check_hypothesis_identity(
-        hypotheses = hypotheses,
+        hypotheses = coding_hypotheses,
         coefficients = contrast_coefficients,
         level_values = link_level_values
       )
@@ -1507,7 +1552,7 @@ contrasts_onepred <- function(model,
         seq_len(n_contrasts),
         function(contrast_index) {
 
-          contrast <- hypotheses$contrasts[[contrast_index]]
+          contrast <- coding_hypotheses$contrasts[[contrast_index]]
 
           positive <- cached_group_estimate(
             contrast$positive_label,
@@ -1536,24 +1581,46 @@ contrasts_onepred <- function(model,
     )
 
     scale_factors <- vapply(
-      hypotheses$contrasts,
+      coding_hypotheses$contrasts,
       `[[`,
       numeric(1),
       "scale"
     )
 
-    divergence_notes <- stats::na.omit(
-      vapply(
-        hypotheses$contrasts,
-        `[[`,
-        character(1),
-        "note"
+    divergence_notes <- as.character(
+      stats::na.omit(
+        vapply(
+          coding_hypotheses$contrasts,
+          `[[`,
+          character(1),
+          "note"
+        )
       )
     )
+  }
 
-    for (note in divergence_notes) {
-      message(note)
-    }
+  # Notes on the coding. With declared hypotheses, the exact check
+  # replaces the reading of the signs of the coding columns; without
+  # them, the notes point to the check.
+  if (!is.null(hypothesis_check)) {
+
+    divergence_notes <- character()
+
+  } else if (length(divergence_notes) > 0L) {
+
+    divergence_notes <- paste(
+      divergence_notes,
+      "To check the intended comparisons, supply them through `hypotheses`."
+    )
+  }
+
+  coding_notes <- c(
+    divergence_notes,
+    if (!is.null(hypothesis_check)) hypothesis_check$messages
+  )
+
+  for (note in coding_notes) {
+    message(note)
   }
 
   rownames(results) <- NULL
@@ -1571,7 +1638,7 @@ contrasts_onepred <- function(model,
     contrast_type = contrast_type,
     scale_factors = scale_factors,
     identity_holds = identity_holds,
-    divergence_notes = as.character(divergence_notes),
+    divergence_notes = coding_notes,
     range_type = response_range_type,
     bounds = bounds
   )
@@ -1590,12 +1657,15 @@ contrasts_onepred <- function(model,
   attr(results, "estimate_type") <- estimate_type
   attr(results, "prediction_scale") <- prediction_scale
   attr(results, "contrast_type") <- contrast_type
-  attr(results, "hypothesis_matrix") <- hypotheses$hypothesis_matrix
+  attr(results, "hypothesis_matrix") <- coding_hypotheses$hypothesis_matrix
+  attr(results, "hypothesis_check") <- if (is.null(hypothesis_check)) NULL else hypothesis_check$table
+  attr(results, "coding_notes") <- divergence_notes
   attr(results, "bounds") <- bounds
 
-  # The divergence notes have already been printed as separate messages;
-  # the printed disclaimer omits them, whereas the stored one keeps them.
-  printed_disclaimer <- if (length(divergence_notes) > 0L) {
+  # The notes on the coding have already been printed as separate
+  # messages; the printed disclaimer omits them, whereas the stored one
+  # keeps them.
+  printed_disclaimer <- if (length(coding_notes) > 0L) {
     build_disclaimer(
       estimate_type = estimate_type,
       prediction_scale = prediction_scale,

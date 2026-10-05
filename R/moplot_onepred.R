@@ -82,6 +82,13 @@
 #'   contrast (treatment, sum, sliding differences) are unaffected, and the
 #'   argument is ignored with a warning for polynomial contrasts.
 #'
+#' @param hypotheses Optional numeric matrix declaring the comparisons that
+#'   the coefficients of `predictor` are intended to estimate, with one row per
+#'   coefficient and one column per factor level. Each declared hypothesis is
+#'   checked against the comparison that the coefficient estimates; the result
+#'   is reported in a message and in the caption. The figure always shows the
+#'   comparisons that the coefficients estimate. See [contrasts_onepred()].
+#'
 #' @param bounds Optional numeric vector `c(lower, upper)` giving the natural
 #'   range of a response analyzed with a Gaussian (identity link) model, such
 #'   as `c(1, 7)` for a Likert score or `c(0, Inf)` for a reaction time, so that
@@ -219,6 +226,7 @@ moplot_onepred <- function(
     coefficient_scale = c("model", "interpreted"),
     per_difference = FALSE,
     bounds = NULL,
+    hypotheses = NULL,
     show_coef = TRUE,
     show_data = FALSE,
     style = c("minimal", "publication"),
@@ -373,7 +381,8 @@ moplot_onepred <- function(
     coefficient_scale = coefficient_scale,
     per_difference = per_difference,
     data = data,
-    bounds = bounds
+    bounds = bounds,
+    hypotheses = hypotheses
   )
 
   factor_levels <- levels(.extract_model_frame(model)[[predictor]])
@@ -426,7 +435,9 @@ moplot_onepred <- function(
       estimate_label = unique(
         prep$parameter_data$Estimate_type
       )[1L],
-      label_key=label_key
+      label_key=label_key,
+      hypothesis_check = prep$hypothesis_check,
+      coding_notes = prep$coding_notes
     )
 
   } else if (

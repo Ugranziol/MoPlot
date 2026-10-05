@@ -262,7 +262,7 @@ test_that("non-orthogonal custom contrasts expose unequal weights and divergence
   expect_identical(second$negative_label, "B")
   expect_equal(second$scale, 10 / 9)
   expect_true(second$divergent)
-  expect_match(second$note, "suggests C vs B")
+  expect_match(second$note, "suggest C vs B")
 })
 
 

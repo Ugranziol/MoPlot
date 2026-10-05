@@ -491,13 +491,18 @@
 
         if (divergent) {
 
+          # The package cannot know the intended comparisons: the
+          # note reports that the signs of the coding column do not
+          # describe the estimated comparison, which is expected for a
+          # coding derived from a hypothesis matrix.
           note <- paste0(
-            "Contrast_", contrast_index, ": the coding column suggests ",
+            "Contrast_", contrast_index, ": the signs of the coding column suggest ",
             .describe_level_set(suggested_positive), " vs ",
             .describe_level_set(suggested_negative),
-            ", but because the coding is not orthogonal the coefficient estimates ",
-            formatC(scale, format = "fg", digits = 3), " x [",
-            positive_label, " - ", negative_label, "]."
+            ", whereas the coefficient estimates ",
+            .describe_hypothesis_row(hypothesis_row, level_names),
+            ". This is expected when the coding was derived from a hypothesis ",
+            "matrix (for example with MASS::ginv() or hypr)."
           )
         }
       }
@@ -547,6 +552,208 @@
       formatC(value, format = "fg", digits = 3)
     },
     character(1)
+  )
+}
+
+
+#' Describe a weight row as a comparison between two groups of levels
+#'
+#' Internal helper. Writes a row of weights summing to zero as
+#' `s x [positive group - negative group]`, or as
+#' `positive group - negative group` when the scale factor is one.
+#'
+#' @param row Numeric weights, one per level.
+#' @param level_names Factor levels.
+#'
+#' @return A character string.
+#'
+#' @keywords internal
+#' @noRd
+.describe_hypothesis_row <- function(row,
+                                     level_names) {
+
+  row <- stats::setNames(as.numeric(row), level_names)
+
+  row[abs(row) < 1e-10 * max(abs(row))] <- 0
+
+  scale <- sum(row[row > 0])
+
+  if (scale <= 0) {
+    return("no comparison")
+  }
+
+  comparison <- paste0(
+    .format_weighted_group(pmax(row, 0) / scale),
+    " - ",
+    .format_weighted_group(pmax(-row, 0) / scale)
+  )
+
+  if (abs(scale - 1) < 1e-8) {
+    return(comparison)
+  }
+
+  paste0(.format_scale_factor(scale), " x [", comparison, "]")
+}
+
+
+#' Check declared hypotheses against the estimated comparisons
+#'
+#' Internal helper. The package cannot know which comparisons the analyst
+#' intended; `hypotheses` declares them as a matrix with one row per contrast
+#' coefficient and one column per factor level, as the rows of a hypothesis
+#' matrix. Each declared row is compared with the corresponding row of the
+#' hypothesis matrix implied by the coding. The coefficient estimates the
+#' declared hypothesis when the two rows are proportional: exactly (ratio 1),
+#' up to a positive factor, or with reversed sign.
+#'
+#' @param declared Numeric matrix (or vector for a two-level factor) of
+#'   declared hypotheses. Column names, when present, must be the factor
+#'   levels; row names label the hypotheses.
+#' @param hypothesis_matrix Hypothesis matrix implied by the coding, without
+#'   the intercept row.
+#' @param level_names Factor levels.
+#' @param tolerance Relative tolerance for proportionality.
+#'
+#' @return A list with `table`, a data frame with one row per contrast
+#'   (`Contrast`, `Hypothesis`, `Declared`, `Estimated`, `Status`, `Ratio`),
+#'   and `messages`, one message per contrast.
+#'
+#' @keywords internal
+#' @noRd
+.check_declared_hypotheses <- function(declared,
+                                       hypothesis_matrix,
+                                       level_names,
+                                       tolerance = 1e-6) {
+
+  number_contrasts <- nrow(hypothesis_matrix)
+  number_levels <- length(level_names)
+
+  if (is.null(dim(declared))) {
+    declared <- matrix(declared, nrow = 1L, dimnames = list(NULL, names(declared)))
+  }
+
+  declared <- as.matrix(declared)
+
+  if (!is.numeric(declared) ||
+      anyNA(declared) ||
+      ncol(declared) != number_levels ||
+      nrow(declared) != number_contrasts) {
+
+    stop(
+      paste0(
+        "`hypotheses` must be a numeric matrix with one row per coefficient ",
+        "of the predictor (", number_contrasts, ") and one column per level (",
+        number_levels, ": ", paste(level_names, collapse = ", "), ")."
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (!is.null(colnames(declared))) {
+
+    if (!setequal(colnames(declared), level_names)) {
+
+      stop(
+        paste0(
+          "The column names of `hypotheses` must be the levels of the ",
+          "predictor: ", paste(level_names, collapse = ", "), "."
+        ),
+        call. = FALSE
+      )
+    }
+
+    declared <- declared[, level_names, drop = FALSE]
+  }
+
+  if (any(abs(rowSums(declared)) > tolerance * pmax(1, rowSums(abs(declared))))) {
+
+    stop(
+      paste0(
+        "Each row of `hypotheses` must define a comparison, with weights ",
+        "summing to zero (for example c(-1, 0.5, 0.5))."
+      ),
+      call. = FALSE
+    )
+  }
+
+  hypothesis_labels <- rownames(declared)
+
+  if (is.null(hypothesis_labels)) {
+    hypothesis_labels <- rep("", number_contrasts)
+  }
+
+  unnamed <- is.na(hypothesis_labels) | !nzchar(hypothesis_labels)
+
+  hypothesis_labels[unnamed] <- paste0("H", which(unnamed))
+
+  rows <- lapply(
+    seq_len(number_contrasts),
+    function(index) {
+
+      declared_row <- declared[index, ]
+      estimated_row <- hypothesis_matrix[index, ]
+
+      ratio <- sum(estimated_row * declared_row) / sum(declared_row^2)
+
+      proportional <- is.finite(ratio) &&
+        max(abs(estimated_row - ratio * declared_row)) <=
+        tolerance * max(abs(estimated_row))
+
+      status <- if (!proportional) {
+        "differs"
+      } else if (ratio < 0) {
+        "reversed"
+      } else if (abs(ratio - 1) < tolerance) {
+        "matches"
+      } else {
+        "rescaled"
+      }
+
+      declared_text <- .describe_hypothesis_row(declared_row, level_names)
+      estimated_text <- .describe_hypothesis_row(estimated_row, level_names)
+
+      message_text <- switch(
+        status,
+        "matches" = paste0(
+          "Contrast_", index, " estimates the declared hypothesis '",
+          hypothesis_labels[index], "': ", declared_text, "."
+        ),
+        "rescaled" = paste0(
+          "Contrast_", index, " estimates the declared hypothesis '",
+          hypothesis_labels[index], "' (", declared_text, ") multiplied by ",
+          .format_scale_factor(ratio), "."
+        ),
+        "reversed" = paste0(
+          "Contrast_", index, " estimates the declared hypothesis '",
+          hypothesis_labels[index], "' (", declared_text, ") with reversed sign",
+          if (abs(ratio + 1) > tolerance) paste0(", multiplied by ", .format_scale_factor(-ratio)),
+          ": it estimates ", estimated_text, "."
+        ),
+        "differs" = paste0(
+          "Contrast_", index, " does not estimate the declared hypothesis '",
+          hypothesis_labels[index], "' (", declared_text, "): it estimates ",
+          estimated_text, "."
+        )
+      )
+
+      data.frame(
+        Contrast = paste0("Contrast_", index),
+        Hypothesis = hypothesis_labels[index],
+        Declared = declared_text,
+        Estimated = estimated_text,
+        Status = status,
+        Ratio = if (proportional) ratio else NA_real_,
+        Message = message_text,
+        stringsAsFactors = FALSE
+      )
+    }
+  )
+
+  table <- do.call(rbind, rows)
+
+  list(
+    table = table[, setdiff(names(table), "Message")],
+    messages = table$Message
   )
 }
 

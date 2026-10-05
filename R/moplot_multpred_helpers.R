@@ -4796,10 +4796,41 @@
   # 11. CAPTION
   # ==========================================================================
 
+  # Relation between the declared and the estimated comparisons. The
+  # figure always shows the comparisons that the coefficients estimate.
+  hypothesis_description <- NULL
+
+  hypothesis_check <- attr(contrast_output, "hypothesis_check")
+
+  if (!is.null(hypothesis_check) && nrow(hypothesis_check) > 0L) {
+
+    failing <- hypothesis_check$Coefficient[hypothesis_check$Status %in% c("differs", "reversed")]
+    partial <- hypothesis_check$Coefficient[hypothesis_check$Status == "partially declared"]
+
+    hypothesis_description <- if (length(failing) > 0L) {
+      paste0(
+        "The coefficients ", paste(failing, collapse = ", "),
+        " do not estimate the declared hypotheses of their components; ",
+        "the figure shows the comparisons that the coefficients estimate."
+      )
+    } else if (length(partial) > 0L) {
+      paste0(
+        "The declared hypotheses are estimated by the components that were ",
+        "declared; the other components were not checked."
+      )
+    } else {
+      paste0(
+        "Each displayed coefficient estimates the product of the declared ",
+        "hypotheses of its components."
+      )
+    }
+  }
+
   caption_parts <- c(
     introduction,
     hierarchy_description,
     contrast_coding_description,
+    hypothesis_description,
     upper_description,
     interaction_description,
     weighted_description,
