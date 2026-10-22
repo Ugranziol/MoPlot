@@ -530,7 +530,8 @@ moplot_multpred <- function(
     prep = prep,
     style = style,
     base_size = base_size,
-    label_key=label_key
+    label_key=label_key,
+    y_title = .outcome_name(model)
   )
 
 

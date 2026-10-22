@@ -1997,12 +1997,9 @@
 #'
 #' @param base_size Base font size.
 #'
-#' @param x_label_dictionary Character string controlling the handling of
-#'   long x-axis labels. Available options are `"auto"`, `"never"`, and
-#'   `"always"`. With `"auto"`, labels longer than 12 characters trigger
-#'   automatic numeric recoding and a label dictionary displayed to the
-#'   right of the plot. With `"never"`, original labels are always retained.
-#'   With `"always"`, numeric recoding and the dictionary are always used.
+#' @param label_key Abbreviation key returned by `.collect_moplot_label_key()`.
+#'
+#' @param y_title Title of the y axis, usually the name of the response.
 #'
 #' @return A `ggplot` object.
 #'
@@ -2012,7 +2009,8 @@
     prep,
     style = c("minimal", "tree"),
     base_size = 13,
-    label_key=NULL
+    label_key=NULL,
+    y_title = NULL
 ) {
 
   # ==========================================================================
@@ -2380,7 +2378,16 @@
   # 8. HIERARCHICAL GROUP LABEL POSITIONS
   # ==========================================================================
 
-  group_label_step <- 0.075 * y_span
+  # Stacked labels (three-way and higher interactions) need a full line of
+  # text between rows; a single row keeps the closer position.
+  group_label_step <- if (
+    nrow(group_label_data) > 0L &&
+    max(group_label_data$display_level, na.rm = TRUE) > 1L
+  ) {
+    0.10 * y_span
+  } else {
+    0.075 * y_span
+  }
 
   if (
     nrow(
@@ -3277,7 +3284,7 @@
       x =
         prep$target_var,
       y =
-        NULL
+        y_title
     )
 
   # ==========================================================================
