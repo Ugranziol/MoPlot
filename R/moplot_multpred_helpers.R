@@ -2175,15 +2175,17 @@
     base_size / 3.5
   }
 
+  # Formula labels scale with base_size, so that they grow with the rest
+  # of the figure; the default base_size of 13 gives 3.5 and 3.8.
   contrast_label_size <- if (
     identical(
       style,
       "minimal"
     )
   ) {
-    3.5
+    base_size * 3.5 / 13
   } else {
-    3.8
+    base_size * 3.8 / 13
   }
 
   if (identical(style, "minimal")) {
@@ -2248,9 +2250,12 @@
     1
   )
 
+  # Lower levels of the hierarchy are drawn in lighter shades of the
+  # contrast colour. The lightening is limited so that their formulas
+  # remain legible in print.
   delta_data$Lighten_amount <-
-    0.50 -
-    0.30 *
+    0.25 -
+    0.15 *
     delta_data$Level_fraction
 
   delta_data$Contrast_colour <- vapply(
