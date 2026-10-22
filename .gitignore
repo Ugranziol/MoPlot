@@ -8,3 +8,7 @@
 *.tar.gz
 Thumbs.db
 Rplots.pdf
+/doc/
+/Meta/
+vignettes/*.html
+vignettes/*.R
