@@ -2,6 +2,10 @@
 #'
 #' @param model A fitted model.
 #'
+#' Only interactions among factors are decomposed; interactions involving a
+#' numeric variable are left out of the map and listed, with their numeric
+#' variables, in the attribute `"unsupported"`.
+#'
 #' @return A data frame containing interaction terms, their order, and the
 #'   corresponding model coefficients.
 #'
@@ -27,6 +31,47 @@
 
   if (length(interaction_indices) == 0L) {
     stop("No interaction terms were found in `model`.", call. = FALSE)
+  }
+
+  # Interactions involving a numeric variable are not decomposed.
+  model_frame <- tryCatch(.extract_model_frame(model), error = function(e) NULL)
+  term_factors <- attr(model_terms, "factors")
+
+  unsupported <- list()
+
+  if (is.data.frame(model_frame) && is.matrix(term_factors)) {
+
+    for (term_index in interaction_indices) {
+
+      term_variables <- rownames(term_factors)[term_factors[, term_index] > 0]
+      term_variables <- gsub("`", "", term_variables, fixed = TRUE)
+
+      numeric_variables <- term_variables[
+        !vapply(
+          term_variables,
+          function(variable) is.factor(model_frame[[variable]]),
+          logical(1)
+        )
+      ]
+
+      if (length(numeric_variables) > 0L) {
+        unsupported[[term_labels[term_index]]] <- numeric_variables
+      }
+    }
+
+    interaction_indices <- interaction_indices[!term_labels[interaction_indices] %in% names(unsupported)]
+
+    if (length(interaction_indices) == 0L) {
+      stop(
+        paste0(
+          "No interactions among factors were found in `model`. Interactions ",
+          "involving numeric variables (",
+          paste(unique(unlist(unsupported)), collapse = ", "),
+          ") are not supported."
+        ),
+        call. = FALSE
+      )
+    }
   }
 
   interaction_map <- lapply(
@@ -57,6 +102,8 @@
 
   interaction_map <- do.call(rbind, interaction_map)
   rownames(interaction_map) <- NULL
+
+  attr(interaction_map, "unsupported") <- unsupported
 
   interaction_map
 }
@@ -154,6 +201,21 @@
 
     if (!is.character(interaction) || length(interaction) != 1L || is.na(interaction) || !nzchar(interaction)) {
       stop("`interaction` must be `NULL` or a single non-empty character string.", call. = FALSE)
+    }
+
+    unsupported <- attr(interaction_map, "unsupported")
+
+    if (interaction %in% names(unsupported)) {
+      stop(
+        paste0(
+          "Interaction `",
+          interaction,
+          "` involves numeric variables (",
+          paste(unsupported[[interaction]], collapse = ", "),
+          "); only interactions among factors are supported."
+        ),
+        call. = FALSE
+      )
     }
 
     if (!interaction %in% available_interactions) {

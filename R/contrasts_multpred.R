@@ -911,9 +911,12 @@ contrasts_multpred <- function(model,
   #
   # Backward compatibility is preserved:
   #   - interaction = NULL, coefficients = NULL:
-  #       analyze all interaction coefficients;
+  #       analyze all interaction coefficients among factors;
   #   - interaction = NULL, coefficients supplied:
   #       analyze exactly the requested coefficients.
+  #
+  # Interactions involving numeric variables are not decomposed; see
+  # .extract_moplot_interaction_map().
   #
   # When 'interaction' is supplied, reuse the same model-matrix-based
   # selection logic used by moplot_multpred(). This maps an interaction
@@ -932,9 +935,33 @@ contrasts_multpred <- function(model,
     interaction <- selection$interaction
     coefficients <- selection$coefficients
 
-  } else if (is.null(coefficients)) {
+  } else {
 
-    coefficients <- coef_names[grepl(":", coef_names, fixed = TRUE)]
+    factor_coefficients <- .extract_moplot_interaction_map(model)$coefficient
+
+    if (is.null(coefficients)) {
+
+      coefficients <- factor_coefficients
+
+    } else {
+
+      unsupported_coefficients <- setdiff(
+        intersect(coefficients, coef_names),
+        factor_coefficients
+      )
+
+      if (length(unsupported_coefficients) > 0L) {
+        stop(
+          paste0(
+            "The following coefficients do not belong to interactions among ",
+            "factors: ",
+            paste(unsupported_coefficients, collapse = ", "),
+            ". Interactions involving numeric variables are not supported."
+          ),
+          call. = FALSE
+        )
+      }
+    }
   }
 
   if (length(coefficients) == 0) {

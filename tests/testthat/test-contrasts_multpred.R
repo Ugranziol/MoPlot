@@ -114,6 +114,51 @@ test_that("contrasts_multpred() recovers analysis data from model", {
 })
 
 
+test_that("contrasts_multpred() reports interactions with numeric variables clearly", {
+
+  set.seed(123)
+
+  dat <- expand.grid(
+    A = factor(c("A1", "A2", "A3")),
+    B = factor(c("B1", "B2")),
+    rep = seq_len(20)
+  )
+
+  dat$x <- stats::rnorm(nrow(dat))
+  dat$y <- with(dat, 10 + 2 * (A == "A2") + x) + stats::rnorm(nrow(dat))
+
+  numeric_only <- stats::lm(y ~ A * x, data = dat)
+
+  expect_error(
+    contrasts_multpred(numeric_only, methodological_note = FALSE),
+    "No interactions among factors.*numeric variables \\(x\\)"
+  )
+
+  mixed <- stats::lm(y ~ A * B * x, data = dat)
+
+  expect_error(
+    contrasts_multpred(mixed, interaction = "A:x", methodological_note = FALSE),
+    "`A:x` involves numeric variables \\(x\\)"
+  )
+
+  expect_error(
+    contrasts_multpred(mixed, coefficients = "AA2:x", methodological_note = FALSE),
+    "do not belong to interactions among factors: AA2:x"
+  )
+
+  # The factor-only interaction is selected by default; its coefficients
+  # refer to x = 0, whereas the predictions fix x at its mean.
+  expect_warning(
+    out <- suppressMessages(
+      contrasts_multpred(mixed, methodological_note = FALSE)
+    ),
+    "do not reconstruct"
+  )
+
+  expect_setequal(unique(out$coefficient), c("AA2:BB2", "AA3:BB2"))
+})
+
+
 test_that("contrasts_multpred() restricts supplied data to the rows used for fitting", {
 
   set.seed(123)
