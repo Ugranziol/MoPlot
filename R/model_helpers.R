@@ -1579,7 +1579,8 @@
 #' with which the model was fitted, so that the hypothesis matrices match
 #' the coefficients also when the coding was given through the `contrasts`
 #' argument of the model call, or when the data were modified after
-#' fitting.
+#' fitting. Levels without observations are dropped, as the fitting
+#' functions do, unless the fitted contrast matrix includes them.
 #'
 #' @param model A fitted model object.
 #' @param data A data frame with the original variables.
@@ -1604,7 +1605,6 @@
     }
 
     coding <- fitted_contrasts[[variable_name]]
-    factor_levels <- levels(data[[variable_name]])
 
     # Contrast functions are given by name, as in the model call.
     if (is.character(coding)) {
@@ -1613,6 +1613,16 @@
         error = function(e) NULL
       )
     }
+
+    empty_levels <- table(data[[variable_name]]) == 0L
+
+    if (any(empty_levels) &&
+        !(is.matrix(coding) && nrow(coding) == length(empty_levels))) {
+
+      data[[variable_name]] <- droplevels(data[[variable_name]])
+    }
+
+    factor_levels <- levels(data[[variable_name]])
 
     if (is.function(coding)) {
       coding <- coding(factor_levels)

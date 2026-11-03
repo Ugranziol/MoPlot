@@ -209,7 +209,10 @@ test_that("contrasts in data must match the fitted model", {
   data <- simulate_one_predictor_data(k = 3)
   model <- stats::lm(y ~ group, data = data)
 
+  # Different data with an observed level that the model never saw.
   data$group <- factor(data$group, levels = c("A", "B", "C", "D"))
+  data$group[1:5] <- "D"
+  rownames(data) <- paste0("other_", seq_len(nrow(data)))
 
   expect_error(
     quiet_contrasts(model = model, predictor = "group", outcome = "y", data = data),
@@ -779,6 +782,27 @@ test_that("contrasts given in the model call are used", {
     model_contrast_table(models$lm, type = "x")$Contrast_Matrix_Type,
     "Sum"
   )
+})
+
+
+test_that("factor levels without observations are dropped, as in fitting", {
+
+  data <- simulate_one_predictor_data(k = 3)
+  data$group <- factor(data$group, levels = c("A", "B", "C", "Z"))
+
+  model <- stats::lm(y ~ group, data = data)
+
+  implicit <- quiet_contrasts(model, "group")
+  explicit <- quiet_contrasts(model, "group", data = data)
+
+  expect_equal(explicit, implicit)
+  expect_setequal(implicit$Levels, c("A", "B", "C"))
+  expect_equal(displayed_coefficients(implicit), unname(stats::coef(model)[-1]))
+
+  # A level emptied by 'subset' is dropped as well.
+  emptied <- stats::lm(y ~ group, data = data, subset = group != "C")
+
+  expect_setequal(quiet_contrasts(emptied, "group", data = data)$Levels, c("A", "B"))
 })
 
 
