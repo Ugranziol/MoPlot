@@ -28,7 +28,8 @@ variable in data must be a factor.}
 
 \item{data}{Optional data frame containing the variables used to fit
 \code{model}. If \code{NULL}, the data supplied in the model call are recovered.
-The contrast matrix assigned to \code{data[[predictor]]} must correspond to
+Rows excluded from the fit, through \code{subset} or missing values, are
+dropped, matching rows by name. The contrast matrix assigned to \code{data[[predictor]]} must correspond to
 the contrast matrix used when fitting the model.}
 
 \item{outcome}{Optional character string indicating the name of the

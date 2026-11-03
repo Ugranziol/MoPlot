@@ -39,7 +39,9 @@ classes include objects returned by \code{\link[stats:lm]{stats::lm()}}, \code{\
 \code{model}. If \code{NULL}, the data supplied in the model call are recovered,
 restricted to the rows used for fitting; the model frame is used only when
 they are unavailable. The original variables are needed for model-based
-estimates when the model contains transformed terms such as \code{log(x)}.}
+estimates when the model contains transformed terms such as \code{log(x)}.
+Rows of a supplied data frame that were excluded from the fit, through
+\code{subset} or missing values, are dropped, matching rows by name.}
 
 \item{interaction}{Optional character string identifying the interaction
 term to display, for example \code{"A:B:C"}.

@@ -26,6 +26,8 @@
 #'   restricted to the rows used for fitting; the model frame is used only when
 #'   they are unavailable. The original variables are needed for model-based
 #'   estimates when the model contains transformed terms such as `log(x)`.
+#'   Rows of a supplied data frame that were excluded from the fit, through
+#'   `subset` or missing values, are dropped, matching rows by name.
 #'
 #' @param interaction Optional character string identifying the interaction
 #'   term to decompose, for example `"A:B"` or `"A:B:C"`. When supplied,
@@ -844,6 +846,9 @@ contrasts_multpred <- function(model,
   if (!is.data.frame(data)) {
     stop("'data' must be a data frame.",call. = FALSE)
   }
+
+  # Supplied data are restricted to the rows used for fitting.
+  data <- .restrict_to_model_rows(model, data)
 
   if (is.null(outcome)) {
     outcome <- .outcome_name(model)

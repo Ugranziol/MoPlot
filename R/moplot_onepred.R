@@ -21,7 +21,9 @@
 #'   `model`. If `NULL`, the data supplied in the model call are recovered;
 #'   the model frame is used only when they are unavailable. The original
 #'   variables are needed for model-based estimates when the model contains
-#'   transformed terms such as `log(x)`.
+#'   transformed terms such as `log(x)`. Rows of a supplied data frame that
+#'   were excluded from the fit, through `subset` or missing values, are
+#'   dropped, matching rows by name.
 #'
 #' @param sig_level A numeric value between 0 and 1 defining the significance
 #'   threshold used for the contrast labels. The default is `0.05`.

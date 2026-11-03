@@ -317,7 +317,11 @@
 
   # Prediction data need the original variables (x for a term such as
   # log(x)), which the model frame does not contain.
-  analysis_data <- if (is.null(data)) .extract_analysis_data(model) else data
+  analysis_data <- if (is.null(data)) {
+    .extract_analysis_data(model)
+  } else {
+    .restrict_to_model_rows(model, data, model_frame)
+  }
 
   if (!is.data.frame(analysis_data)) {
     stop(

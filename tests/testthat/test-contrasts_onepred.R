@@ -734,6 +734,21 @@ test_that("contrasts_onepred() recovers data and outcome from the model", {
 })
 
 
+test_that("supplied data are restricted to the rows used for fitting", {
+
+  data <- simulate_one_predictor_data()
+  data$y[c(3, 50)] <- NA
+  model <- stats::lm(y ~ group, data = data, subset = group_size > 0)
+
+  implicit <- quiet_contrasts(model, "group")
+  explicit <- quiet_contrasts(model, "group", data = data)
+
+  expect_equal(explicit, implicit)
+  expect_equal(displayed_coefficients(explicit), unname(stats::coef(model)[-1]))
+  expect_false(grepl("do not reconstruct", attr(explicit, "disclaimer")))
+})
+
+
 test_that("divergence notes are printed once and kept in the disclaimer", {
 
   data <- simulate_one_predictor_data(k = 3)

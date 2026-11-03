@@ -1505,10 +1505,7 @@
     return(if (is.data.frame(model_frame)) model_frame else NULL)
   }
 
-  # Keep the rows used for fitting (incomplete rows are dropped).
-  if (all(rownames(model_frame) %in% rownames(call_data))) {
-    call_data <- call_data[rownames(model_frame), , drop = FALSE]
-  }
+  call_data <- .restrict_to_model_rows(model, call_data, model_frame)
 
   # Use the contrasts stored at fitting time, in case the data were
   # modified afterwards.
@@ -1524,6 +1521,53 @@
   }
 
   call_data
+}
+
+
+#' Restrict data to the rows used for fitting
+#'
+#' Internal helper. Rows excluded from the fit, through `subset` or by the
+#' removal of incomplete rows, are dropped from `data`, so that observed
+#' estimates and reference grids describe the same observations as the
+#' model. Rows are matched by row name; `data` is returned unchanged when it
+#' has no more rows than the model frame or when the row names do not match.
+#'
+#' @param model A fitted model object.
+#' @param data A data frame with the original variables.
+#' @param model_frame The model frame of `model`, if already extracted.
+#'
+#' @return A data frame.
+#'
+#' @keywords internal
+#' @noRd
+.restrict_to_model_rows <- function(model,
+                                    data,
+                                    model_frame = NULL) {
+
+  if (!is.data.frame(data)) {
+    return(data)
+  }
+
+  if (is.null(model_frame)) {
+    model_frame <- tryCatch(
+      .extract_model_frame(model),
+      error = function(e) NULL
+    )
+  }
+
+  if (!is.data.frame(model_frame) ||
+      nrow(data) <= nrow(model_frame)) {
+
+    return(data)
+  }
+
+  model_rows <- rownames(model_frame)
+
+  if (!all(model_rows %in% rownames(data))) {
+    return(data)
+  }
+
+  data[model_rows, , drop = FALSE]
 }
 
 

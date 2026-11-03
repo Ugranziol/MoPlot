@@ -114,6 +114,39 @@ test_that("contrasts_multpred() recovers analysis data from model", {
 })
 
 
+test_that("contrasts_multpred() restricts supplied data to the rows used for fitting", {
+
+  set.seed(123)
+
+  dat <- expand.grid(
+    A = factor(c("A1", "A2", "A3")),
+    B = factor(c("B1", "B2")),
+    rep = seq_len(20)
+  )
+
+  dat$x <- stats::rnorm(nrow(dat))
+  dat$y <- with(dat, 10 + 2 * (A == "A2") + 2 * (A == "A2" & B == "B2")) +
+    stats::rnorm(nrow(dat))
+
+  mod <- stats::lm(y ~ A * B, data = dat, subset = x > 0)
+
+  out_explicit <- contrasts_multpred(
+    model = mod,
+    data = dat,
+    configuration = "all",
+    methodological_note = FALSE
+  )
+
+  out_recovered <- contrasts_multpred(
+    model = mod,
+    configuration = "all",
+    methodological_note = FALSE
+  )
+
+  expect_equal(out_explicit, out_recovered)
+})
+
+
 # ============================================================
 # HYPOTHESIS MATRIX, REFERENCE GRID, AND SCALE FACTORS
 # ============================================================
