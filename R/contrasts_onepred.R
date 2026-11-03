@@ -47,11 +47,13 @@
 #'   \describe{
 #'     \item{`"auto"`}{
 #'       Uses observed means when the fixed part of the model contains only
-#'       the focal predictor, the model has no random effects, and, for
-#'       generalized models, `prediction_scale = "response"`. Model-based
-#'       predictions are used otherwise: with other predictors or
-#'       interactions, with random effects (observed means would ignore the
-#'       clustering of the observations), and for estimates on the link scale.
+#'       the focal predictor, the model has no random effects and no unequal
+#'       prior weights, and, for generalized models,
+#'       `prediction_scale = "response"`. Model-based predictions are used
+#'       otherwise: with other predictors or interactions, with random
+#'       effects (observed means would ignore the clustering of the
+#'       observations), with `weights` (observed means are unweighted), and
+#'       for estimates on the link scale.
 #'     }
 #'     \item{`"observed"`}{
 #'       Computes observed means directly from the supplied data.
@@ -1195,8 +1197,9 @@ contrasts_onepred <- function(model,
         paste0(
           "The observed means do not reconstruct the model coefficients ",
           "exactly, because the model contains other terms, random ",
-          "effects, or levels with all-zero or all-one outcomes, or ",
-          "because 'data' differs from the data used for fitting; use ",
+          "effects, prior weights, or levels with all-zero or all-one ",
+          "outcomes, or because 'data' differs from the data used for ",
+          "fitting; use ",
           "estimate_type = \"predicted\" for displayed differences that ",
           "correspond to the coefficients."
         )

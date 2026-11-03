@@ -87,9 +87,10 @@
 #'   \describe{
 #'     \item{`"auto"`}{
 #'       Uses observed means when the selected interaction involves all the
-#'       predictors of the fixed part, the model has no random effects, and,
-#'       for generalized models, `prediction_scale = "response"`. Model-based
-#'       predictions are used otherwise.
+#'       predictors of the fixed part, the model has no random effects and no
+#'       unequal prior weights, and, for generalized models,
+#'       `prediction_scale = "response"`. Model-based predictions are used
+#'       otherwise.
 #'     }
 #'     \item{`"observed"`}{
 #'       Displays observed aggregated means computed directly from `data`.

@@ -68,7 +68,8 @@
 #' and the plotting functions. Observed means are used only when they
 #' answer the same question as the model: the fixed part contains the focal
 #' predictors alone, the model has no random effects (observed means would
-#' ignore the clustering), and, for
+#' ignore the clustering), the model has no unequal prior weights (observed
+#' means are unweighted), and, for
 #' generalized models, estimates are requested on the response scale
 #' (observed means are not on the link scale). Otherwise model-based
 #' predictions are used.
@@ -103,12 +104,36 @@
 
   if (focal_predictor_only &&
       !.is_mixed_model(model) &&
+      !.has_unequal_weights(model) &&
       !link_scale_requested) {
 
     return("observed")
   }
 
   "predicted"
+}
+
+
+#' Detect unequal prior weights
+#'
+#' Internal helper. Prior weights change the estimates only when they are
+#' not all equal; constant weights leave means and coefficients unchanged.
+#'
+#' @param model A fitted model.
+#'
+#' @return `TRUE` when the model has prior weights that are not all equal.
+#'
+#' @keywords internal
+#' @noRd
+.has_unequal_weights <- function(model) {
+
+  prior_weights <- tryCatch(
+    stats::weights(model, type = "prior"),
+    error = function(e) NULL
+  )
+
+  is.numeric(prior_weights) &&
+    length(unique(prior_weights[!is.na(prior_weights)])) > 1L
 }
 
 

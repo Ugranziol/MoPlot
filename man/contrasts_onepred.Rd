@@ -53,11 +53,13 @@ estimates should be computed. Available options are:
 \describe{
 \item{\code{"auto"}}{
 Uses observed means when the fixed part of the model contains only
-the focal predictor, the model has no random effects, and, for
-generalized models, \code{prediction_scale = "response"}. Model-based
-predictions are used otherwise: with other predictors or
-interactions, with random effects (observed means would ignore the
-clustering of the observations), and for estimates on the link scale.
+the focal predictor, the model has no random effects and no unequal
+prior weights, and, for generalized models,
+\code{prediction_scale = "response"}. Model-based predictions are used
+otherwise: with other predictors or interactions, with random
+effects (observed means would ignore the clustering of the
+observations), with \code{weights} (observed means are unweighted), and
+for estimates on the link scale.
 }
 \item{\code{"observed"}}{
 Computes observed means directly from the supplied data.

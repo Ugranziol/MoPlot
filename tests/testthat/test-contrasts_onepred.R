@@ -749,6 +749,26 @@ test_that("supplied data are restricted to the rows used for fitting", {
 })
 
 
+test_that("auto uses model-based estimates with unequal prior weights", {
+
+  data <- simulate_one_predictor_data()
+  data$w <- stats::runif(nrow(data), 0.2, 3)
+
+  weighted <- stats::lm(y ~ group, data = data, weights = w)
+  result <- quiet_contrasts(weighted, "group")
+
+  expect_match(attr(result, "disclaimer"), "^Estimates are model-based")
+  expect_equal(displayed_coefficients(result), unname(stats::coef(weighted)[-1]))
+
+  # Constant weights leave the estimates unchanged.
+  data$w <- 2
+  constant <- stats::lm(y ~ group, data = data, weights = w)
+
+  expect_match(attr(quiet_contrasts(constant, "group"), "disclaimer"), "^Estimates are observed")
+  expect_match(attr(quiet_contrasts(stats::glm(success ~ group, binomial, data), "group"), "disclaimer"), "^Estimates are observed")
+})
+
+
 test_that("divergence notes are printed once and kept in the disclaimer", {
 
   data <- simulate_one_predictor_data(k = 3)

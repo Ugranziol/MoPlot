@@ -109,9 +109,10 @@ returned. Available options are:
 \describe{
 \item{\code{"auto"}}{
 Uses observed means when every analyzed interaction involves all the
-predictors of the fixed part, the model has no random effects, and,
-for generalized models, \code{prediction_scale = "response"}. Model-based
-predictions are used otherwise, as in \code{\link[=contrasts_onepred]{contrasts_onepred()}}.
+predictors of the fixed part, the model has no random effects and no
+unequal prior weights, and, for generalized models,
+\code{prediction_scale = "response"}. Model-based predictions are used
+otherwise, as in \code{\link[=contrasts_onepred]{contrasts_onepred()}}.
 }
 \item{\code{"observed"}}{
 Returns observed aggregated means computed directly from \code{data}.
