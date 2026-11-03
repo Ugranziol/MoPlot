@@ -31,6 +31,34 @@
 #'
 #' @return Invisibly returns the normalized path of the exported file.
 #'
+#' @examples
+#' set.seed(123)
+#'
+#' dat <- data.frame(
+#'   group = factor(rep(c("A", "B", "C"), each = 20)),
+#'   y = rnorm(60, mean = rep(c(0, 0.4, 0.9), each = 20))
+#' )
+#'
+#' contrasts(dat$group) <- contr.helmert(3)
+#'
+#' plot <- moplot_onepred(
+#'   model = lm(y ~ group, data = dat),
+#'   predictor = "group",
+#'   caption = FALSE
+#' )
+#'
+#' # Recommended dimensions, stored in the plot.
+#' attr(plot, "moplot_export_size")
+#'
+#' path <- moplot_export(
+#'   plot,
+#'   filename = file.path(tempdir(), "moplot.png"),
+#'   dpi = 150
+#' )
+#'
+#' file.exists(path)
+#' unlink(path)
+#'
 #' @export
 moplot_export <- function(
     plot,

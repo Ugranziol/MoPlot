@@ -2408,6 +2408,7 @@
         y = Label_y,
         label = Text_label
       ),
+      parse = TRUE,
       hjust = 0,
       vjust = 0.5,
       size = label_size,

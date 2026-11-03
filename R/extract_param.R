@@ -163,7 +163,6 @@
 #' component selected through `component`.
 #'
 #' @examples
-#' \dontrun{
 #' set.seed(123)
 #'
 #' # Linear regression
@@ -198,7 +197,6 @@
 #'
 #' # Disable automatic coefficient transformation
 #' extract_param(mod_glm, transform = "none")
-#' }
 #'
 #' @importFrom parameters model_parameters
 #' @references

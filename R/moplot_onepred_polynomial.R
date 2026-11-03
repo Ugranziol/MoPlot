@@ -7,6 +7,84 @@
 # ordered levels, instead of as a segment between two quantities.
 
 
+#' Plotmath labels of model parameters
+#'
+#' Internal helper shared by the lower panels of `moplot_onepred()` and
+#' `moplot_multpred()`. Labels are plotmath expressions, drawn with
+#' `parse = TRUE`, so that beta is rendered on every graphics device;
+#' devices such as [grDevices::pdf()] cannot encode the Unicode character.
+#'
+#' @param display_type The `Display_type` column of the parameter data.
+#' @param estimate Displayed estimates.
+#' @param d Cohen's d values.
+#' @param per_difference Logical. Were the coefficients divided by their
+#'   scale factor?
+#' @param digits Number of decimal places.
+#'
+#' @return A list with `estimate_label` (the plotmath name of each
+#'   estimate) and `text_label` (the two-line plotmath label).
+#'
+#' @keywords internal
+#' @noRd
+.parameter_label_expressions <- function(display_type,
+                                         estimate,
+                                         d,
+                                         per_difference = FALSE,
+                                         digits = 2L) {
+
+  estimate_label <- vapply(
+    display_type,
+    function(estimate_type) {
+      switch(
+        estimate_type,
+        "Model estimate" = "beta",
+        "Coefficient" = "beta",
+        "Odds ratio" = "\"OR\"",
+        "Risk ratio" = "\"RR\"",
+        "Incidence rate ratio" = "\"IRR\"",
+        "Hazard ratio" = "\"HR\"",
+        "Multiplicative ratio" = "\"MR\"",
+        "Exponentiated coefficient" = "exp(beta)",
+        "\"Estimate\""
+      )
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+
+  # Rescaled model coefficients are labelled explicitly. Ratios keep
+  # their usual label: exp(beta / s) is the ratio for the displayed
+  # comparison itself.
+  if (isTRUE(per_difference)) {
+    estimate_label[estimate_label == "beta"] <- "beta/s"
+  }
+
+  format_value <- function(values) {
+    ifelse(
+      is.na(values),
+      "NA",
+      formatC(values, format = "f", digits = digits)
+    )
+  }
+
+  # Numbers are quoted so that their decimals are kept as formatted.
+  text_label <- paste0(
+    "displaystyle(atop(",
+    estimate_label,
+    " == \"",
+    format_value(estimate),
+    "\", d == \"",
+    format_value(d),
+    "\"))"
+  )
+
+  list(
+    estimate_label = estimate_label,
+    text_label = text_label
+  )
+}
+
+
 #' Format the lower-panel labels of model parameters
 #'
 #' Internal helper shared by the lower panels of `moplot_onepred()`.
@@ -26,56 +104,16 @@
                                      per_difference = FALSE,
                                      digits = 2L) {
 
-  estimate_abbreviation <- function(estimate_type) {
-
-    switch(
-      estimate_type,
-
-      "Model estimate" = "\u03b2",
-      "Coefficient" = "\u03b2",
-      "Odds ratio" = "OR",
-      "Risk ratio" = "RR",
-      "Incidence rate ratio" = "IRR",
-      "Hazard ratio" = "HR",
-      "Multiplicative ratio" = "MR",
-      "Exponentiated coefficient" = "exp(\u03b2)",
-
-      "Estimate"
-    )
-  }
-
-  parameter_data$Estimate_label <- vapply(
-    parameter_data$Display_type,
-    estimate_abbreviation,
-    character(1)
+  labels <- .parameter_label_expressions(
+    display_type = parameter_data$Display_type,
+    estimate = parameter_data$Display_estimate,
+    d = parameter_data$d,
+    per_difference = per_difference,
+    digits = digits
   )
 
-  # Rescaled model coefficients are labelled explicitly. Ratios keep
-  # their usual label: exp(beta / s) is the ratio for the displayed
-  # comparison itself.
-  if (isTRUE(per_difference)) {
-
-    is_coefficient <- parameter_data$Estimate_label == "\u03b2"
-
-    parameter_data$Estimate_label[is_coefficient] <- "\u03b2/s"
-  }
-
-  format_value <- function(values) {
-    ifelse(
-      is.na(values),
-      "NA",
-      formatC(values, format = "f", digits = digits)
-    )
-  }
-
-  parameter_data$Text_label <- paste0(
-    parameter_data$Estimate_label,
-    " = ",
-    format_value(parameter_data$Display_estimate),
-    "\n",
-    "d = ",
-    format_value(parameter_data$d)
-  )
+  parameter_data$Estimate_label <- labels$estimate_label
+  parameter_data$Text_label <- labels$text_label
 
   parameter_data
 }
@@ -596,6 +634,7 @@
     ) +
     ggplot2::geom_label(
       mapping = ggplot2::aes(x = 0.12, y = Display_estimate, label = Text_label),
+      parse = TRUE,
       hjust = 0,
       vjust = 0.5,
       size = settings$label_size,

@@ -577,7 +577,7 @@ contrasts_onepred(
 ###############################################################
 ## Mixed-effects models
 ###############################################################
-\dontrun{
+\donttest{
 
 library(lme4)
 library(nlme)

@@ -3875,74 +3875,18 @@
   # 3. ESTIMATE ABBREVIATIONS AND LABELS
   # ==========================================================================
 
-  estimate_abbreviation <- function(
-    estimate_type
-  ) {
-
-    switch(
-      estimate_type,
-
-      "Model estimate" = "\u03b2",
-      "Coefficient" = "\u03b2",
-      "Odds ratio" = "OR",
-      "Risk ratio" = "RR",
-      "Incidence rate ratio" = "IRR",
-      "Hazard ratio" = "HR",
-      "Multiplicative ratio" = "MR",
-      "Exponentiated coefficient" = "exp(\u03b2)",
-
-      "Estimate"
-    )
-  }
-
-  parameter_data$Estimate_label <- vapply(
-    parameter_data$Display_type,
-    estimate_abbreviation,
-    character(1)
+  # Plotmath labels, shared with moplot_onepred(); see
+  # .parameter_label_expressions().
+  labels <- .parameter_label_expressions(
+    display_type = parameter_data$Display_type,
+    estimate = parameter_data$Display_estimate,
+    d = parameter_data$d,
+    per_difference = parameters$per_difference,
+    digits = digits
   )
 
-  # Rescaled model coefficients are labelled explicitly. Ratios keep
-  # their usual label: exp(beta / s) is the ratio for the displayed
-  # comparison itself.
-  if (isTRUE(parameters$per_difference)) {
-
-    is_coefficient <- parameter_data$Estimate_label == "\u03b2"
-
-    parameter_data$Estimate_label[is_coefficient] <- "\u03b2/s"
-  }
-
-  formatted_estimate <- ifelse(
-    is.na(
-      parameter_data$Display_estimate
-    ),
-    "NA",
-    formatC(
-      parameter_data$Display_estimate,
-      format = "f",
-      digits = digits
-    )
-  )
-
-  formatted_d <- ifelse(
-    is.na(
-      parameter_data$d
-    ),
-    "NA",
-    formatC(
-      parameter_data$d,
-      format = "f",
-      digits = digits
-    )
-  )
-
-  parameter_data$Text_label <- paste0(
-    parameter_data$Estimate_label,
-    " = ",
-    formatted_estimate,
-    "\n",
-    "d = ",
-    formatted_d
-  )
+  parameter_data$Estimate_label <- labels$estimate_label
+  parameter_data$Text_label <- labels$text_label
 
   significant <- !is.na(
     parameter_data$significance
@@ -4145,6 +4089,7 @@
         y = Label_y,
         label = Text_label
       ),
+      parse = TRUE,
       hjust = 0,
       vjust = 0.5,
       size = label_size,

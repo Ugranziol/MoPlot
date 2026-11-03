@@ -202,7 +202,6 @@ polynomial coefficients have no scale factor.
 No model-intercept line is displayed.
 }
 \examples{
-\dontrun{
 set.seed(123)
 
 dat <- data.frame(
@@ -241,6 +240,5 @@ moplot_onepred(
   predictor = "group",
   show_coef = FALSE
 )
-}
 
 }

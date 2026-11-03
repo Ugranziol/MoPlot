@@ -177,7 +177,6 @@ In models with multiple components, the interpretation may depend on the
 component selected through \code{component}.
 }
 \examples{
-\dontrun{
 set.seed(123)
 
 # Linear regression
@@ -212,7 +211,6 @@ extract_param(mod_glm)
 
 # Disable automatic coefficient transformation
 extract_param(mod_glm, transform = "none")
-}
 
 }
 \references{

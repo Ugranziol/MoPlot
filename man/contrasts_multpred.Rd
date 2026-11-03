@@ -683,7 +683,7 @@ If no p-values are available, \code{p_value} is set to \code{NA} and
 ###############################################################
 ## Two-way interaction
 ###############################################################
-\dontrun{
+\donttest{
 
 library(lme4)
 library(MASS)

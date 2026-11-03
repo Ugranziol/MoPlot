@@ -176,7 +176,6 @@
 #' [moplot_export()] when `width` or `height` is not supplied.
 #'
 #' @examples
-#' \dontrun{
 #' set.seed(123)
 #'
 #' dat <- data.frame(
@@ -215,7 +214,6 @@
 #'   predictor = "group",
 #'   show_coef = FALSE
 #' )
-#' }
 #'
 #' @importFrom patchwork wrap_plots plot_annotation
 #' @export

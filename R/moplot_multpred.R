@@ -283,8 +283,6 @@
 #' lower panels.
 #'
 #' @examples
-#' \dontrun{
-#'
 #' set.seed(123)
 #'
 #' dat <- expand.grid(
@@ -315,20 +313,20 @@
 #' )
 #'
 #' # Automatically display the unique highest-order interaction.
-#' moplot_multpred(
+#' plot_auto <- moplot_multpred(
 #'   model = mod,
 #'   data = dat
 #' )
 #'
 #' # Display all coefficients from a specific interaction.
-#' moplot_multpred(
+#' plot_tree <- moplot_multpred(
 #'   model = mod,
 #'   interaction = "A:B:C",
 #'   style = "tree"
 #' )
 #'
 #' # Display one specific coefficient using the minimal representation.
-#' moplot_multpred(
+#' plot_minimal <- moplot_multpred(
 #'   model = mod,
 #'   interaction = "A:B:C",
 #'   coefficients = "A1:B2-1:C2",
@@ -336,13 +334,23 @@
 #' )
 #'
 #' # Use model-based predictions instead of observed means.
-#' moplot_multpred(
+#' plot_predicted <- moplot_multpred(
 #'   model = mod,
 #'   interaction = "A:B:C",
 #'   estimate_type = "predicted",
 #'   prediction_scale = "response"
 #' )
-#' }
+#'
+#' # The recommended size is stored in the plot and used by moplot_export().
+#' attr(plot_tree, "moplot_export_size")
+#'
+#' path <- moplot_export(
+#'   plot_tree,
+#'   filename = file.path(tempdir(), "moplot_multpred.png"),
+#'   dpi = 72
+#' )
+#'
+#' unlink(path)
 #'
 #' @importFrom patchwork wrap_plots
 #' @export
