@@ -23,8 +23,9 @@
 #' @param data Optional data frame containing the variables used to fit
 #'   `model`. If `NULL`, the data supplied in the model call are recovered.
 #'   Rows excluded from the fit, through `subset` or missing values, are
-#'   dropped, matching rows by name. The contrast matrix assigned to `data[[predictor]]` must correspond to
-#'   the contrast matrix used when fitting the model.
+#'   dropped, matching rows by name. Factors are given the contrasts used
+#'   for fitting, including those supplied through the `contrasts` argument
+#'   of the model call.
 #'
 #' @param outcome Optional character string indicating the name of the
 #' dependent variable; by default, the dependent variable of `model`. It is
@@ -696,11 +697,12 @@ contrasts_onepred <- function(model,
 
   # The data supplied in the model call are recovered when 'data' is not
   # given, and the outcome is the dependent variable of the model. Supplied
-  # data are restricted to the rows used for fitting.
+  # data are restricted to the rows used for fitting and given the
+  # contrasts used for fitting.
   if (is.null(data)) {
     data <- .extract_analysis_data(model)
   } else {
-    data <- .restrict_to_model_rows(model, data)
+    data <- .align_data_with_model(model, data)
   }
 
   if (is.null(outcome)) {

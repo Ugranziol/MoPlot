@@ -848,8 +848,9 @@ contrasts_multpred <- function(model,
     stop("'data' must be a data frame.",call. = FALSE)
   }
 
-  # Supplied data are restricted to the rows used for fitting.
-  data <- .restrict_to_model_rows(model, data)
+  # Supplied data are restricted to the rows used for fitting and given
+  # the contrasts used for fitting.
+  data <- .align_data_with_model(model, data)
 
   if (is.null(outcome)) {
     outcome <- .outcome_name(model)

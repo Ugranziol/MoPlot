@@ -4555,7 +4555,7 @@
 
         "Treatment" = {
 
-          current_factor <- stats::model.frame(
+          current_factor <- .extract_model_frame(
             model
           )[[current_variable]]
 

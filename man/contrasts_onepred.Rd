@@ -29,8 +29,9 @@ variable in data must be a factor.}
 \item{data}{Optional data frame containing the variables used to fit
 \code{model}. If \code{NULL}, the data supplied in the model call are recovered.
 Rows excluded from the fit, through \code{subset} or missing values, are
-dropped, matching rows by name. The contrast matrix assigned to \code{data[[predictor]]} must correspond to
-the contrast matrix used when fitting the model.}
+dropped, matching rows by name. Factors are given the contrasts used
+for fitting, including those supplied through the \code{contrasts} argument
+of the model call.}
 
 \item{outcome}{Optional character string indicating the name of the
 dependent variable; by default, the dependent variable of \code{model}. It is

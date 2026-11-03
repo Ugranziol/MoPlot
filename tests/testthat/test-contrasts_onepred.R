@@ -749,6 +749,39 @@ test_that("supplied data are restricted to the rows used for fitting", {
 })
 
 
+test_that("contrasts given in the model call are used", {
+
+  data <- simulate_one_predictor_data()
+  data$cluster <- factor(rep(seq_len(10), length.out = nrow(data)))
+
+  models <- list(
+    lm = stats::lm(y ~ group, data = data, contrasts = list(group = "contr.sum")),
+    lmer = lme4::lmer(y ~ group + (1 | cluster), data = data, contrasts = list(group = MASS::contr.sdif(4)))
+  )
+
+  for (model_name in names(models)) {
+
+    model <- models[[model_name]]
+
+    implicit <- quiet_contrasts(model, "group", estimate_type = "predicted")
+    explicit <- quiet_contrasts(model, "group", data = data, estimate_type = "predicted")
+
+    expect_equal(explicit, implicit, info = model_name)
+    expect_equal(
+      displayed_coefficients(implicit),
+      unname(.extract_fixef(model)[-1]),
+      tolerance = 1e-6,
+      info = model_name
+    )
+  }
+
+  expect_identical(
+    model_contrast_table(models$lm, type = "x")$Contrast_Matrix_Type,
+    "Sum"
+  )
+})
+
+
 test_that("auto uses model-based estimates with unequal prior weights", {
 
   data <- simulate_one_predictor_data()

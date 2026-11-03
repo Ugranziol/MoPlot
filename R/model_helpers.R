@@ -127,6 +127,15 @@
 
 .extract_model_frame <- function(model) {
 
+  # The factors of the model frame carry only the contrasts stored in the
+  # data; those supplied through the 'contrasts' argument of the model
+  # call are added from the fitted model.
+  .apply_fitted_contrasts(model, .model_frame_data(model))
+}
+
+
+.model_frame_data <- function(model) {
+
   # For nlme::lme, stats::model.frame() returns the internal model
   # structure rather than the data. getData() returns the data used
   # for fitting, after removal of incomplete rows.
@@ -1469,8 +1478,8 @@
 #' `log(x)` rather than the original variables, which are needed to build
 #' prediction data. The data supplied in the model call are therefore
 #' recovered when available, restricted to the rows used for fitting, and
-#' given the contrasts stored in the model frame (those used for fitting).
-#' The model frame is returned when the original data cannot be recovered.
+#' given the contrasts used for fitting. The model frame is returned when
+#' the original data cannot be recovered.
 #'
 #' @param model A fitted model object.
 #'
@@ -1505,22 +1514,118 @@
     return(if (is.data.frame(model_frame)) model_frame else NULL)
   }
 
-  call_data <- .restrict_to_model_rows(model, call_data, model_frame)
+  .align_data_with_model(model, call_data, model_frame)
+}
 
-  # Use the contrasts stored at fitting time, in case the data were
-  # modified afterwards.
-  for (variable_name in intersect(names(model_frame), names(call_data))) {
 
-    fitted_contrasts <- attr(model_frame[[variable_name]], "contrasts")
+#' Align data with a fitted model
+#'
+#' Internal helper. Restricts `data` to the rows used for fitting and gives
+#' its factors the contrasts used for fitting. See
+#' `.restrict_to_model_rows()` and `.apply_fitted_contrasts()`.
+#'
+#' @param model A fitted model object.
+#' @param data A data frame with the original variables.
+#' @param model_frame The model frame of `model`, if already extracted.
+#'
+#' @return A data frame.
+#'
+#' @keywords internal
+#' @noRd
+.align_data_with_model <- function(model,
+                                   data,
+                                   model_frame = NULL) {
 
-    if (is.factor(call_data[[variable_name]]) &&
-        !is.null(fitted_contrasts)) {
+  .apply_fitted_contrasts(
+    model,
+    .restrict_to_model_rows(model, data, model_frame)
+  )
+}
 
-      stats::contrasts(call_data[[variable_name]]) <- fitted_contrasts
+
+#' Contrasts used for fitting
+#'
+#' Internal helper. Contrasts may come from the factors in the data or from
+#' the `contrasts` argument of the model call; in both cases the model
+#' records the coding actually used. Models of class `lme` store it in
+#' `model$contrasts`, the other supported classes as the `"contrasts"`
+#' attribute of their fixed-effect model matrix.
+#'
+#' @param model A fitted model object.
+#'
+#' @return A named list with one element per factor (a matrix, or the name
+#'   of a contrast function), or `NULL`.
+#'
+#' @keywords internal
+#' @noRd
+.fitted_contrasts <- function(model) {
+
+  if (inherits(model, "lme")) {
+    return(model$contrasts)
+  }
+
+  model_matrix <- tryCatch(
+    stats::model.matrix(model),
+    error = function(e) NULL
+  )
+
+  attr(model_matrix, "contrasts")
+}
+
+
+#' Give factors the contrasts used for fitting
+#'
+#' Internal helper. Assigns to each factor of `data` the contrast matrix
+#' with which the model was fitted, so that the hypothesis matrices match
+#' the coefficients also when the coding was given through the `contrasts`
+#' argument of the model call, or when the data were modified after
+#' fitting.
+#'
+#' @param model A fitted model object.
+#' @param data A data frame with the original variables.
+#'
+#' @return A data frame.
+#'
+#' @keywords internal
+#' @noRd
+.apply_fitted_contrasts <- function(model,
+                                    data) {
+
+  if (!is.data.frame(data)) {
+    return(data)
+  }
+
+  fitted_contrasts <- .fitted_contrasts(model)
+
+  for (variable_name in intersect(names(fitted_contrasts), names(data))) {
+
+    if (!is.factor(data[[variable_name]])) {
+      next
+    }
+
+    coding <- fitted_contrasts[[variable_name]]
+    factor_levels <- levels(data[[variable_name]])
+
+    # Contrast functions are given by name, as in the model call.
+    if (is.character(coding)) {
+      coding <- tryCatch(
+        get(coding, mode = "function"),
+        error = function(e) NULL
+      )
+    }
+
+    if (is.function(coding)) {
+      coding <- coding(factor_levels)
+    }
+
+    if (is.matrix(coding) &&
+        nrow(coding) == length(factor_levels)) {
+
+      stats::contrasts(data[[variable_name]], how.many = ncol(coding)) <- coding
     }
   }
 
-  call_data
+  data
 }
 
 
