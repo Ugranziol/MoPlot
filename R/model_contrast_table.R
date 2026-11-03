@@ -98,7 +98,6 @@ model_contrast_table <- function(model,
   model_class <- .model_class_label(model)
   model_family <- .family_link_label(model)
 
-  model_formula <- stats::formula(model)
   fixed_formula <- .extract_fixed_formula(model)
   terms_object <- stats::terms(fixed_formula)
   model_frame <- .extract_model_frame(model)

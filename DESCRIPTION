@@ -33,7 +33,7 @@ Roxygen: list(markdown = TRUE)
 Imports: 
     cli,
     effectsize,
-    ggplot2,
+    ggplot2 (>= 4.0.0),
     glmmTMB,
     grid,
     lme4,

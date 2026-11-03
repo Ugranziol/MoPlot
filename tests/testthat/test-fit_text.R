@@ -1,3 +1,14 @@
+# Text is measured with the Cairo device used by moplot_export(); pdf()
+# cannot encode symbols such as beta and warns about each of them.
+open_test_device <- function(width, height) {
+  if (isTRUE(capabilities("cairo"))) {
+    grDevices::cairo_pdf(tempfile(fileext = ".pdf"), width = width, height = height)
+  } else {
+    grDevices::pdf(NULL, width = width, height = height)
+  }
+}
+
+
 test_that(".fit_label_scale() shrinks labels only when neighbours would touch", {
 
   # Two labels 1.5 inches wide whose centres are 2 inches apart fit.
@@ -39,7 +50,7 @@ test_that("group labels are fitted to the size of the device", {
   )
 
   drawn_font_size <- function(width) {
-    grDevices::pdf(NULL, width = width, height = 4)
+    open_test_device(width = width, height = 4)
     on.exit(grDevices::dev.off())
     grid::pushViewport(grid::viewport())
     fitted <- grid::makeContent(labels)
@@ -79,7 +90,7 @@ test_that("moplot_multpred() draws its group labels with the fitted geom", {
     expect_true("GeomMoplotFitText" %in% geoms, info = style)
 
     # Drawing on a small device does not fail.
-    grDevices::pdf(NULL, width = 5, height = 4)
+    open_test_device(width = 5, height = 4)
     expect_no_error(print(plot))
     grDevices::dev.off()
   }
@@ -115,7 +126,7 @@ test_that(".fit_label_scale() accounts for justification and vertical bands", {
 
 
 fitted_scales <- function(plot, width, height) {
-  grDevices::pdf(NULL, width = width, height = height)
+  open_test_device(width = width, height = height)
   on.exit(grDevices::dev.off())
   print(plot)
   forced <- grid::grid.force()

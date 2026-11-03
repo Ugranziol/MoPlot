@@ -1615,18 +1615,6 @@
 
   dependent_variable <-dependent_variables[1L]
 
-  disclaimer <- attr(contrast_output,"disclaimer")
-
-  disclaimer_text <- if (
-    is.null(disclaimer) ||
-    length(disclaimer) == 0L ||
-    is.na(disclaimer[1L])
-  ) {
-    ""
-  } else {
-    tolower(disclaimer[1L])
-  }
-
   mean_description <- if (identical(estimate_type, "observed")) {
 
     if (family_name %in% c("binomial", "quasibinomial")) {

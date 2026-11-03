@@ -3779,7 +3779,6 @@
   }
 
   parameter_data <- parameters$parameter_data
-  point_data <- prep$point_data
   coefficient_data <- prep$coefficient_data
 
   required_parameter_columns <- c(
