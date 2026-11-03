@@ -52,6 +52,25 @@ test_that("reverse_helmert() returns a contrast matrix of the expected dimension
 })
 
 
+test_that("reverse_helmert() uses the levels of a factor", {
+
+  group <- factor(c("b", "a", "b", "c", "a", "c"))
+
+  expect_equal(
+    reverse_helmert(group),
+    reverse_helmert(levels(group))
+  )
+  expect_identical(rownames(reverse_helmert(group)), c("a", "b", "c"))
+})
+
+
+test_that("reverse_helmert() rejects a non-integer number of levels", {
+
+  expect_error(reverse_helmert(2.5), "whole number")
+  expect_error(reverse_helmert(NA_real_), "whole number")
+})
+
+
 test_that("reverse_helmert() contrasts sum to zero", {
 
   for (n in 2:10) {
