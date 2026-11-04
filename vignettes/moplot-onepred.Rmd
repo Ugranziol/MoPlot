@@ -40,11 +40,10 @@ All data are included with R or simulated within the examples.
 
 # Installation
 
-The development version can be installed from GitHub:
+The released version can be installed from CRAN:
 
 ```{r installation, eval = FALSE}
-install.packages("remotes")
-remotes::install_github("Ugranziol/MoPlot")
+install.packages("MoPlot")
 ```
 
 # The workflow

@@ -4753,7 +4753,7 @@
       lower_quantity,
       " for each displayed interaction contrast, together with its confidence ",
       "interval and an approximate Cohen's d. Each coefficient is horizontally ",
-      "aligned with the centre of the corresponding hierarchical contrast block ",
+      "aligned with the center of the corresponding hierarchical contrast block ",
       "in the upper panel."
     )
   }
